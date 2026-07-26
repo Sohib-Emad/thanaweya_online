@@ -1,0 +1,10 @@
+-- ============================================================
+-- Thanaweya Online - Row Level Security Policies
+-- ============================================================
+-- This file is superseded by schema.sql which contains the
+-- complete database schema including tables, indexes,
+-- triggers, RLS policies, and seed data.
+--
+-- Run schema.sql in the Supabase SQL Editor instead:
+--   lib/core/supabase/schema.sql
+-- ============================================================
