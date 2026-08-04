@@ -1,13 +1,15 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:thanaweya_online/core/constants/app_colors.dart';
-import 'package:thanaweya_online/core/data/mock_data.dart';
 import 'package:thanaweya_online/core/router/app_router.dart';
+import 'package:thanaweya_online/features/student/data/repos/student_courses_repo.dart';
+import 'package:thanaweya_online/features/student/logic/student_courses_cubit.dart';
+import 'package:thanaweya_online/features/student/ui/courses/course_filter_screen.dart';
 import 'package:thanaweya_online/features/student/ui/exams/exams_list_screen.dart';
 import 'package:thanaweya_online/features/student/ui/courses/student_my_courses_list_screen.dart';
 import 'package:thanaweya_online/features/student/ui/transactions/student_transactions_screen.dart';
@@ -25,113 +27,91 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
   late final PageController _adPageController;
   int _activeAdIndex = 0;
   final TextEditingController _searchController = TextEditingController();
+  late final StudentCoursesCubit _coursesCubit;
+  String _firstName = 'طالب';
+  String _homeSubjectFilter = 'الكل';
+  CourseFilters? _homeFilters;
 
-  final List<Map<String, dynamic>> _studentEnrolledCourses = [
-    {
-      'title': 'مراجعة الفيزياء الكهربية والشحنات',
-      'teacher': 'أ. محمد علي',
-      'subject': 'الفيزياء ⚡',
-      'progress': 0.75,
-      'progressPercent': '75%',
-      'completedLessons': '15 من أصل 20 درس',
-      'isActivated': true,
-      'color': const Color(0xFF0FA37F),
-    },
-    {
-      'title': 'شرح الرياضيات العامة والبحثة',
-      'teacher': 'أ. سارة أحمد',
-      'subject': 'الرياضيات 📐',
-      'progress': 0.40,
-      'progressPercent': '40%',
-      'completedLessons': '8 من أصل 20 درس',
-      'isActivated': true,
-      'color': const Color(0xFF2563EB),
-    },
+  static const List<Color> _palette = [
+    Color(0xFF0FA37F),
+    Color(0xFF2563EB),
+    Color(0xFFEF4444),
+    Color(0xFFD97706),
+    Color(0xFF9333EA),
+    Color(0xFF0284C7),
   ];
 
-  final List<Map<String, dynamic>> _popularTeachersList = [
-    {
-      'name': 'أ. كاسي فالديز',
-      'subject': 'الأحياء والعلوم الحيوية',
-      'bgColor': const Color(0xFFFEE2E2),
-      'initials': 'ك',
-    },
-    {
-      'name': 'أ. بول سايمونز',
-      'subject': 'الكيمياء العامة',
-      'bgColor': const Color(0xFF334155),
-      'initials': 'ب',
-      'textColor': Colors.white,
-    },
-    {
-      'name': 'أ. جراهام أوسبورن',
-      'subject': 'الفيزياء الكهربية',
-      'bgColor': const Color(0xFFFEF3C7),
-      'initials': 'ج',
-    },
-    {
-      'name': 'أ. سارة أحمد',
-      'subject': 'الرياضيات والهندسة',
-      'bgColor': const Color(0xFFE0F2FE),
-      'initials': 'س',
-    },
-  ];
+  Color _colorFor(String key) =>
+      _palette[key.hashCode.abs() % _palette.length];
 
-  final List<Map<String, dynamic>> _subjectCategories = [
-    {
-      'title': 'الرياضيات',
-      'coursesCount': '25 كورس',
-      'icon': Icons.calculate_rounded,
-      'color': const Color(0xFFEFF6FF),
-      'iconColor': const Color(0xFF2563EB),
-    },
-    {
-      'title': 'الأحياء',
-      'coursesCount': '15 كورس',
-      'icon': Icons.biotech_rounded,
-      'color': const Color(0xFFECFDF5),
-      'iconColor': const Color(0xFF0FA37F),
-    },
-    {
-      'title': 'الفيزياء',
-      'coursesCount': '25 كورس',
-      'icon': Icons.electric_bolt_rounded,
-      'color': const Color(0xFFFEE2E2),
-      'iconColor': const Color(0xFFEF4444),
-    },
-    {
-      'title': 'الكيمياء',
-      'coursesCount': '20 كورس',
-      'icon': Icons.science_rounded,
-      'color': const Color(0xFFFEF3C7),
-      'iconColor': const Color(0xFFD97706),
-    },
-    {
-      'title': 'اللغة العربية',
-      'coursesCount': '18 كورس',
-      'icon': Icons.menu_book_rounded,
-      'color': const Color(0xFFF3E8FF),
-      'iconColor': const Color(0xFF9333EA),
-    },
-    {
-      'title': 'اللغة الإنجليزية',
-      'coursesCount': '22 كورس',
-      'icon': Icons.language_rounded,
-      'color': const Color(0xFFE0F2FE),
-      'iconColor': const Color(0xFF0284C7),
-    },
-  ];
+  List<Map<String, dynamic>> get _subjectCategories =>
+      _coursesCubit.state.subjects
+          .map((s) => {'title': s['name_ar']})
+          .toList();
+
+  List<Map<String, dynamic>> get _studentEnrolledCourses =>
+      _coursesCubit.state.myCourses
+          .where((c) {
+            if (_homeSubjectFilter != 'الكل' &&
+                c['subject_name'] != _homeSubjectFilter) {
+              return false;
+            }
+            if (_homeFilters != null && !_homeFilters!.matches(c)) {
+              return false;
+            }
+            return true;
+          })
+          .map((c) {
+            return {
+              'id': c['id'],
+              'title': c['title'],
+              'teacher': c['teacher_name'],
+              'subject': c['subject_name'],
+              'color': _colorFor(c['id'] as String),
+            };
+          })
+          .toList();
+
+  List<Map<String, dynamic>> get _popularTeachersList =>
+      _coursesCubit.state.approvedTeachers.map((t) {
+        final name = (t['users'] as Map<String, dynamic>?)?['full_name']
+                as String? ??
+            '';
+        final subject =
+            (t['subjects'] as Map<String, dynamic>?)?['name_ar'] as String? ??
+                '';
+        return {
+          'id': t['id'],
+          'name': 'أ. $name',
+          'subject': subject,
+          'bgColor': _colorFor(t['id'] as String).withAlpha(40),
+          'initials': name.isNotEmpty ? name[0] : 'م',
+          'textColor': const Color(0xFF0F172A),
+        };
+      }).toList();
 
   @override
   void initState() {
     super.initState();
     _adPageController = PageController(viewportFraction: 0.94);
+    _coursesCubit = StudentCoursesCubit(repo: StudentCoursesRepo());
+    final user = Supabase.instance.client.auth.currentUser;
+    _firstName =
+        user?.userMetadata?['full_name']?.toString().split(' ').first ?? 'طالب';
+    final userId = user?.id;
+    if (userId != null) {
+      _coursesCubit.loadSubscribedTeachers(userId);
+      _coursesCubit.loadMyCourses(userId);
+      _coursesCubit.loadApprovedTeachers();
+      _coursesCubit.loadSubjects();
+    }
   }
 
   @override
   void dispose() {
     _adPageController.dispose();
     _searchController.dispose();
+    _coursesCubit.close();
     super.dispose();
   }
 
@@ -146,7 +126,10 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           child: IndexedStack(
             index: _currentIndex,
             children: [
-              _buildHomeDashboardTab(context),
+              BlocBuilder<StudentCoursesCubit, StudentCoursesState>(
+                bloc: _coursesCubit,
+                builder: (context, _) => _buildHomeDashboardTab(context),
+              ),
               const StudentMyCoursesListScreen(),
               const StudentTransactionsScreen(),
               const StudentExamsListScreen(),
@@ -179,7 +162,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'مرحباً بك، طالب 👋',
+                        'مرحباً بك، $_firstName 👋',
                         style: GoogleFonts.cairo(
                           fontSize: 20.sp,
                           fontWeight: FontWeight.w900,
@@ -253,9 +236,14 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                     ),
                   ),
                   GestureDetector(
-                    onTap: () {
+                    onTap: () async {
                       HapticFeedback.lightImpact();
-                      Navigator.pushNamed(context, AppRouter.studentFilter);
+                      final result = await Navigator.pushNamed<CourseFilters>(
+                        context,
+                        AppRouter.studentFilter,
+                      );
+                      if (!mounted) return;
+                      setState(() => _homeFilters = result);
                     },
                     child: Container(
                       margin: EdgeInsets.all(4.r),
@@ -521,45 +509,89 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 padding: EdgeInsets.symmetric(horizontal: 20.w),
-                children:
-                    [
-                      'الكل',
-                      'الفيزياء',
-                      'الرياضيات',
-                      'الأحياء',
-                      'الكيمياء',
-                    ].asMap().entries.map((e) {
-                      final selected = e.key == 0;
-                      return Container(
-                        margin: EdgeInsets.only(left: 8.w),
-                        padding: EdgeInsets.symmetric(horizontal: 16.w),
-                        decoration: BoxDecoration(
+                children: [
+                  'الكل',
+                  ..._coursesCubit.state.subjects
+                      .map((s) => s['name_ar'] as String),
+                ].map((label) {
+                  final selected = _homeSubjectFilter == label;
+                  return GestureDetector(
+                    onTap: () =>
+                        setState(() => _homeSubjectFilter = label),
+                    child: Container(
+                      margin: EdgeInsets.only(left: 8.w),
+                      padding: EdgeInsets.symmetric(horizontal: 16.w),
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? const Color(0xFF0FA37F)
+                            : const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(20.r),
+                        border: Border.all(
                           color: selected
                               ? const Color(0xFF0FA37F)
-                              : const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(20.r),
-                          border: Border.all(
+                              : const Color(0xFFE2E8F0),
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          label,
+                          style: GoogleFonts.cairo(
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w700,
                             color: selected
-                                ? const Color(0xFF0FA37F)
-                                : const Color(0xFFE2E8F0),
+                                ? Colors.white
+                                : const Color(0xFF475569),
                           ),
                         ),
-                        child: Center(
-                          child: Text(
-                            e.value,
-                            style: GoogleFonts.cairo(
-                              fontSize: 12.sp,
-                              fontWeight: FontWeight.w700,
-                              color: selected
-                                  ? Colors.white
-                                  : const Color(0xFF475569),
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
+                      ),
+                    ),
+                  );
+                }).toList(),
               ),
             ),
+            if (_homeFilters != null && _homeFilters!.isActive)
+              Padding(
+                padding: EdgeInsets.fromLTRB(20.w, 6.h, 20.w, 0),
+                child: Container(
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE6F7F2),
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.filter_alt_rounded,
+                        color: const Color(0xFF0FA37F),
+                        size: 16.r,
+                      ),
+                      SizedBox(width: 8.w),
+                      Expanded(
+                        child: Text(
+                          'تم التصفية: ${_studentEnrolledCourses.length} دورة',
+                          style: GoogleFonts.cairo(
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF0F766E),
+                          ),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => setState(() => _homeFilters = null),
+                        child: Text(
+                          'مسح',
+                          style: GoogleFonts.cairo(
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF0FA37F),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             SizedBox(height: 14.h),
             // Course cards (horizontal scroll)
             SizedBox(
@@ -581,6 +613,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                     onTap: () => Navigator.pushNamed(
                       context,
                       AppRouter.studentCourseDetails,
+                      arguments: course['id'],
                     ),
                     child: Container(
                       width: 170.w,
@@ -768,6 +801,10 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                     onTap: () => Navigator.pushNamed(
                       context,
                       AppRouter.studentTeacherPage,
+                      arguments: {
+                        'teacherId': teacher['id'],
+                        'title': teacher['name'],
+                      },
                     ),
                     child: Column(
                       children: [
@@ -1811,162 +1848,237 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     );
   }
 
-  // ─── TEACHER AD CAROUSEL WIDGET ───
+  // ─── TEACHER AD CAROUSEL WIDGET (Supabase) ───
   Widget _buildTeacherAdCarousel() {
-    final adImagePaths = [
-      '/Users/sohibemad/.gemini/antigravity-ide/brain/d86763e5-7ec8-4674-8af8-67124dfdd647/teacher_ad_math_1784853258532.png',
-      '/Users/sohibemad/.gemini/antigravity-ide/brain/d86763e5-7ec8-4674-8af8-67124dfdd647/teacher_ad_physics_1784853280105.png',
-      '/Users/sohibemad/.gemini/antigravity-ide/brain/d86763e5-7ec8-4674-8af8-67124dfdd647/teacher_ad_science_1784853304564.png',
-    ];
+    return BlocBuilder<StudentCoursesCubit, StudentCoursesState>(
+      bloc: _coursesCubit,
+      builder: (context, state) {
+        if (state.status == StudentCoursesStatus.loading) {
+          return SizedBox(
+            height: 165.h,
+            child: const Center(child: CircularProgressIndicator()),
+          );
+        }
 
-    return Column(
-      children: [
-        SizedBox(
-          height: 165.h,
-          child: PageView.builder(
-            controller: _adPageController,
-            itemCount: MockData.mockTeachers.length,
-            onPageChanged: (index) {
-              setState(() => _activeAdIndex = index);
-            },
-            itemBuilder: (context, index) {
-              final teacher = MockData.mockTeachers[index];
-              final user = teacher['users'] as Map<String, dynamic>;
-              final name = user['full_name'] as String;
-              final subject = teacher['subject_id'] as String;
-              final imageFile = File(adImagePaths[index % adImagePaths.length]);
+        final teachers = state.subscribedTeachers;
 
-              return GestureDetector(
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  Navigator.pushNamed(context, AppRouter.studentTeacherPage);
-                },
-                child: Container(
-                  margin: EdgeInsets.symmetric(horizontal: 4.w),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(22.r),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x180F172A),
-                        blurRadius: 12,
-                        offset: Offset(0, 5),
+        if (teachers.isEmpty) {
+          return GestureDetector(
+            onTap: () =>
+                Navigator.pushNamed(context, AppRouter.studentSubjects),
+            child: Container(
+              height: 165.h,
+              margin: EdgeInsets.symmetric(horizontal: 4.w),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppColors.studentPrimary, const Color(0xFF047857)],
+                  begin: Alignment.topRight,
+                  end: Alignment.bottomLeft,
+                ),
+                borderRadius: BorderRadius.circular(22.r),
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.school_rounded, color: Colors.white, size: 40.r),
+                    SizedBox(height: 10.h),
+                    Text(
+                      'اشترك مع معلم الآن!',
+                      style: GoogleFonts.cairo(
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
                       ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(22.r),
-                    child: Stack(
-                      children: [
-                        Positioned.fill(
-                          child: imageFile.existsSync()
-                              ? Image.file(imageFile, fit: BoxFit.cover)
-                              : Container(color: AppColors.studentPrimary),
+                    ),
+                    SizedBox(height: 4.h),
+                    Text(
+                      'اضغط هنا لتصفح المعلمين',
+                      style: GoogleFonts.cairo(
+                        fontSize: 12.sp,
+                        color: Colors.white.withAlpha(210),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+
+        final bgColors = [
+          AppColors.studentPrimary,
+          const Color(0xFF2563EB),
+          const Color(0xFF9333EA),
+          const Color(0xFFD97706),
+        ];
+
+        return Column(
+          children: [
+            SizedBox(
+              height: 165.h,
+              child: PageView.builder(
+                controller: _adPageController,
+                itemCount: teachers.length,
+                onPageChanged: (index) =>
+                    setState(() => _activeAdIndex = index),
+                itemBuilder: (context, index) {
+                  final teacher = teachers[index];
+                  final teacherData =
+                      teacher['teachers'] as Map<String, dynamic>? ?? {};
+                  final users =
+                      teacherData['users'] as Map<String, dynamic>? ?? {};
+                  final name = users['full_name'] as String? ?? 'معلم';
+                  final initials = name.isNotEmpty ? name[0] : 'م';
+                  final bgColor = bgColors[index % bgColors.length];
+
+                  return GestureDetector(
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      Navigator.pushNamed(
+                        context,
+                        AppRouter.studentTeacherPage,
+                      );
+                    },
+                    child: Container(
+                      margin: EdgeInsets.symmetric(horizontal: 4.w),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [bgColor, bgColor.withAlpha(200)],
+                          begin: Alignment.topRight,
+                          end: Alignment.bottomLeft,
                         ),
-                        Positioned.fill(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  Colors.black.withAlpha(210),
-                                  Colors.black.withAlpha(80),
-                                  Colors.transparent,
-                                ],
-                                begin: Alignment.bottomRight,
-                                end: Alignment.topLeft,
+                        borderRadius: BorderRadius.circular(22.r),
+                        boxShadow: [
+                          BoxShadow(
+                            color: bgColor.withAlpha(60),
+                            blurRadius: 12,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      child: Stack(
+                        children: [
+                          Positioned(
+                            left: -20,
+                            top: -20,
+                            child: Container(
+                              width: 120,
+                              height: 120,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.white.withAlpha(15),
                               ),
                             ),
                           ),
-                        ),
-                        Positioned(
-                          right: 16.w,
-                          bottom: 16.h,
-                          left: 16.w,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 10.w,
-                                      vertical: 3.h,
+                          Padding(
+                            padding: EdgeInsets.all(16.r),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 10.w,
+                                    vertical: 3.h,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withAlpha(30),
+                                    borderRadius: BorderRadius.circular(10.r),
+                                  ),
+                                  child: Text(
+                                    'معلم مشترك',
+                                    style: GoogleFonts.cairo(
+                                      fontSize: 10.sp,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
                                     ),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.studentPrimary,
-                                      borderRadius: BorderRadius.circular(10.r),
-                                    ),
-                                    child: Text(
-                                      'إعلان معلم • $subject',
+                                  ),
+                                ),
+                                SizedBox(height: 6.h),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      name,
                                       style: GoogleFonts.cairo(
-                                        fontSize: 10.sp,
+                                        fontSize: 17.sp,
+                                        fontWeight: FontWeight.w900,
                                         color: Colors.white,
-                                        fontWeight: FontWeight.w700,
                                       ),
                                     ),
-                                  ),
-                                  SizedBox(height: 4.h),
-                                  Text(
-                                    name,
-                                    style: GoogleFonts.cairo(
-                                      fontSize: 17.sp,
-                                      fontWeight: FontWeight.w900,
-                                      color: Colors.white,
+                                    Container(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 12.w,
+                                        vertical: 6.h,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(
+                                          20.r,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        'عرض التفاصيل 👈',
+                                        style: GoogleFonts.cairo(
+                                          fontSize: 11.sp,
+                                          fontWeight: FontWeight.w800,
+                                          color: bgColor,
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                              Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 12.w,
-                                  vertical: 6.h,
+                                  ],
                                 ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(20.r),
-                                ),
-                                child: Text(
-                                  'عرض التفاصيل 👈',
-                                  style: GoogleFonts.cairo(
-                                    fontSize: 11.sp,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.studentPrimary,
-                                  ),
-                                ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
+                          Positioned(
+                            left: 16.w,
+                            top: 16.h,
+                            child: CircleAvatar(
+                              radius: 22.r,
+                              backgroundColor: Colors.white.withAlpha(30),
+                              child: Text(
+                                initials,
+                                style: GoogleFonts.cairo(
+                                  fontSize: 18.sp,
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-        SizedBox(height: 10.h),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(
-            MockData.mockTeachers.length,
-            (index) => AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
-              margin: EdgeInsets.symmetric(horizontal: 3.w),
-              width: _activeAdIndex == index ? 20.w : 6.w,
-              height: 6.h,
-              decoration: BoxDecoration(
-                color: _activeAdIndex == index
-                    ? AppColors.studentPrimary
-                    : const Color(0xFFCBD5E1),
-                borderRadius: BorderRadius.circular(10.r),
+                  );
+                },
               ),
             ),
-          ),
-        ),
-      ],
+            SizedBox(height: 10.h),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(
+                teachers.length,
+                (index) => AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  margin: EdgeInsets.symmetric(horizontal: 3.w),
+                  width: _activeAdIndex == index ? 20.w : 6.w,
+                  height: 6.h,
+                  decoration: BoxDecoration(
+                    color: _activeAdIndex == index
+                        ? AppColors.studentPrimary
+                        : const Color(0xFFCBD5E1),
+                    borderRadius: BorderRadius.circular(10.r),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 

@@ -9,33 +9,33 @@ part of 'teacher_model.dart';
 _$TeacherModelImpl _$$TeacherModelImplFromJson(Map<String, dynamic> json) =>
     _$TeacherModelImpl(
       id: json['id'] as String,
-      subjectId: json['subjectId'] as String,
+      subjectId: json['subject_id'] as String,
       stage: $enumDecode(_$TeacherStageEnumMap, json['stage']),
       bio: json['bio'] as String?,
       approvalStatus: $enumDecode(
         _$ApprovalStatusEnumMap,
-        json['approvalStatus'],
+        json['approval_status'],
       ),
-      rejectionReason: json['rejectionReason'] as String?,
-      subscriptionPlanId: json['subscriptionPlanId'] as String?,
-      subscriptionExpiresAt: json['subscriptionExpiresAt'] == null
+      rejectionReason: json['rejection_reason'] as String?,
+      subscriptionPlanId: json['subscription_plan_id'] as String?,
+      subscriptionExpiresAt: json['subscription_expires_at'] == null
           ? null
-          : DateTime.parse(json['subscriptionExpiresAt'] as String),
-      createdAt: DateTime.parse(json['createdAt'] as String),
+          : DateTime.parse(json['subscription_expires_at'] as String),
+      createdAt: DateTime.parse(json['created_at'] as String),
     );
 
 Map<String, dynamic> _$$TeacherModelImplToJson(
   _$TeacherModelImpl instance,
 ) => <String, dynamic>{
   'id': instance.id,
-  'subjectId': instance.subjectId,
+  'subject_id': instance.subjectId,
   'stage': _$TeacherStageEnumMap[instance.stage]!,
   'bio': instance.bio,
-  'approvalStatus': _$ApprovalStatusEnumMap[instance.approvalStatus]!,
-  'rejectionReason': instance.rejectionReason,
-  'subscriptionPlanId': instance.subscriptionPlanId,
-  'subscriptionExpiresAt': instance.subscriptionExpiresAt?.toIso8601String(),
-  'createdAt': instance.createdAt.toIso8601String(),
+  'approval_status': _$ApprovalStatusEnumMap[instance.approvalStatus]!,
+  'rejection_reason': instance.rejectionReason,
+  'subscription_plan_id': instance.subscriptionPlanId,
+  'subscription_expires_at': instance.subscriptionExpiresAt?.toIso8601String(),
+  'created_at': instance.createdAt.toIso8601String(),
 };
 
 const _$TeacherStageEnumMap = {

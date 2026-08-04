@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:thanaweya_online/core/constants/app_colors.dart';
 import 'package:thanaweya_online/core/constants/app_strings.dart';
 import 'package:thanaweya_online/core/router/app_router.dart';
+import 'package:thanaweya_online/features/student/data/repos/student_onboarding_repo.dart';
+import 'package:thanaweya_online/features/student/logic/student_onboarding_cubit.dart';
 
 class SubjectSelectionScreen extends StatefulWidget {
   const SubjectSelectionScreen({super.key});
@@ -15,32 +18,11 @@ class SubjectSelectionScreen extends StatefulWidget {
 }
 
 class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
+  late final StudentOnboardingCubit _cubit;
   int _selectedSystemIndex = 0; // 0 = عامة (قديم), 1 = نظام البكالوريا (IB)
   final Set<String> _selectedIds = {};
 
-  final List<Map<String, dynamic>> _generalSubjectsList = [
-    {'id': 's1', 'name_ar': 'اللغة العربية'},
-    {'id': 's2', 'name_ar': 'اللغة الإنجليزية'},
-    {'id': 's3', 'name_ar': 'اللغة الفرنساوية'},
-    {'id': 's4', 'name_ar': 'اللغة الألمانية'},
-    {'id': 's5', 'name_ar': 'اللغة الإيطالية'},
-    {'id': 's6', 'name_ar': 'الرياضيات العامة'},
-    {'id': 's7', 'name_ar': 'الرياضيات البحتة'},
-    {'id': 's8', 'name_ar': 'الرياضيات التطبيقية'},
-    {'id': 's9', 'name_ar': 'الفيزياء'},
-    {'id': 's10', 'name_ar': 'الكيمياء'},
-    {'id': 's11', 'name_ar': 'الأحياء'},
-    {'id': 's12', 'name_ar': 'الجيولوجيا وعلوم البيئة'},
-    {'id': 's13', 'name_ar': 'العلوم العامة'},
-    {'id': 's14', 'name_ar': 'التاريخ'},
-    {'id': 's15', 'name_ar': 'الجغرافيا'},
-    {'id': 's16', 'name_ar': 'الفلسفة والمنطق'},
-    {'id': 's17', 'name_ar': 'علم النفس والاجتماع'},
-    {'id': 's18', 'name_ar': 'الاقتصاد والإحصاء'},
-    {'id': 's19', 'name_ar': 'الحاسب الآلي والبرمجة'},
-    {'id': 's20', 'name_ar': 'التربية الدينية والوطنية'},
-  ];
-
+  // مسارات البكالوريا ثابتة (IB tracks)
   final List<Map<String, dynamic>> _baccalaureateTracks = [
     {
       'id': 'track_med',
@@ -74,6 +56,19 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
       'color': const Color(0xFF9333EA),
     },
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _cubit = StudentOnboardingCubit(repo: StudentOnboardingRepo());
+    _cubit.loadSubjects();
+  }
+
+  @override
+  void dispose() {
+    _cubit.close();
+    super.dispose();
+  }
 
   IconData _getSubjectIcon(String subjectName) {
     if (subjectName.contains('رياضيات')) return Icons.calculate_rounded;
@@ -123,169 +118,235 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          leading: IconButton(
-            icon: Icon(
-              Icons.chevron_right_rounded,
-              color: const Color(0xFF0F172A),
-              size: 28.r,
+    return BlocProvider.value(
+      value: _cubit,
+      child: Directionality(
+        textDirection: TextDirection.rtl,
+        child: Scaffold(
+          backgroundColor: const Color(0xFFF8FAFC),
+          appBar: AppBar(
+            backgroundColor: Colors.white,
+            elevation: 0,
+            leading: IconButton(
+              icon: Icon(
+                Icons.chevron_right_rounded,
+                color: const Color(0xFF0F172A),
+                size: 28.r,
+              ),
+              onPressed: () => Navigator.pop(context),
             ),
-            onPressed: () => Navigator.pop(context),
-          ),
-          centerTitle: true,
-          title: Text(
-            AppStrings.selectSubjects,
-            style: GoogleFonts.cairo(
-              fontSize: 20.sp,
-              fontWeight: FontWeight.w900,
-              color: const Color(0xFF0F172A),
+            centerTitle: true,
+            title: Text(
+              AppStrings.selectSubjects,
+              style: GoogleFonts.cairo(
+                fontSize: 20.sp,
+                fontWeight: FontWeight.w900,
+                color: const Color(0xFF0F172A),
+              ),
             ),
           ),
-        ),
-        body: SafeArea(
-          child: Column(
-            children: [
-              SizedBox(height: 12.h),
+          body: SafeArea(
+            child: Column(
+              children: [
+                SizedBox(height: 12.h),
 
-              // System Segmented Switcher (عامة قديم vs نظام البكالوريا IB)
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20.w),
-                child: Container(
-                  padding: EdgeInsets.all(4.r),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE2E8F0),
-                    borderRadius: BorderRadius.circular(24.r),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () {
-                            if (_selectedSystemIndex != 0) {
-                              HapticFeedback.selectionClick();
-                              setState(() {
-                                _selectedSystemIndex = 0;
-                                _selectedIds.clear();
-                              });
-                            }
-                          },
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: EdgeInsets.symmetric(vertical: 10.h),
-                            decoration: BoxDecoration(
-                              color: _selectedSystemIndex == 0
-                                  ? AppColors.studentPrimary
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(20.r),
-                            ),
-                            child: Center(
-                              child: Text(
-                                'عامة (قديم)',
-                                style: GoogleFonts.cairo(
-                                  fontSize: 13.sp,
-                                  fontWeight: FontWeight.w800,
-                                  color: _selectedSystemIndex == 0
-                                      ? Colors.white
-                                      : const Color(0xFF64748B),
+                // System Segmented Switcher (عامة قديم vs نظام البكالوريا IB)
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20.w),
+                  child: Container(
+                    padding: EdgeInsets.all(4.r),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE2E8F0),
+                      borderRadius: BorderRadius.circular(24.r),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              if (_selectedSystemIndex != 0) {
+                                HapticFeedback.selectionClick();
+                                setState(() {
+                                  _selectedSystemIndex = 0;
+                                  _selectedIds.clear();
+                                });
+                              }
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: EdgeInsets.symmetric(vertical: 10.h),
+                              decoration: BoxDecoration(
+                                color: _selectedSystemIndex == 0
+                                    ? AppColors.studentPrimary
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(20.r),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'عامة (قديم)',
+                                  style: GoogleFonts.cairo(
+                                    fontSize: 13.sp,
+                                    fontWeight: FontWeight.w800,
+                                    color: _selectedSystemIndex == 0
+                                        ? Colors.white
+                                        : const Color(0xFF64748B),
+                                  ),
                                 ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () {
-                            if (_selectedSystemIndex != 1) {
-                              HapticFeedback.selectionClick();
-                              setState(() {
-                                _selectedSystemIndex = 1;
-                                _selectedIds.clear();
-                              });
-                            }
-                          },
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: EdgeInsets.symmetric(vertical: 10.h),
-                            decoration: BoxDecoration(
-                              color: _selectedSystemIndex == 1
-                                  ? AppColors.studentPrimary
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(20.r),
-                            ),
-                            child: Center(
-                              child: Text(
-                                'نظام البكالوريا (IB)',
-                                style: GoogleFonts.cairo(
-                                  fontSize: 13.sp,
-                                  fontWeight: FontWeight.w800,
-                                  color: _selectedSystemIndex == 1
-                                      ? Colors.white
-                                      : const Color(0xFF64748B),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              if (_selectedSystemIndex != 1) {
+                                HapticFeedback.selectionClick();
+                                setState(() {
+                                  _selectedSystemIndex = 1;
+                                  _selectedIds.clear();
+                                });
+                              }
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: EdgeInsets.symmetric(vertical: 10.h),
+                              decoration: BoxDecoration(
+                                color: _selectedSystemIndex == 1
+                                    ? AppColors.studentPrimary
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(20.r),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'نظام البكالوريا (IB)',
+                                  style: GoogleFonts.cairo(
+                                    fontSize: 13.sp,
+                                    fontWeight: FontWeight.w800,
+                                    color: _selectedSystemIndex == 1
+                                        ? Colors.white
+                                        : const Color(0xFF64748B),
+                                  ),
                                 ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
 
-              SizedBox(height: 14.h),
+                SizedBox(height: 14.h),
 
-              // Dynamic View: 0 = General Subjects Grid with Icons, 1 = Baccalaureate Tracks
-              Expanded(
-                child: _selectedSystemIndex == 0
-                    ? _buildGeneralSubjectsGrid()
-                    : _buildBaccalaureateTracksList(),
-              ),
+                // Dynamic View
+                Expanded(
+                  child: _selectedSystemIndex == 0
+                      ? BlocBuilder<StudentOnboardingCubit,
+                          StudentOnboardingState>(
+                          builder: (context, state) {
+                            if (state.status ==
+                                StudentOnboardingStatus.loading) {
+                              return const Center(
+                                  child: CircularProgressIndicator());
+                            }
+                            if (state.status ==
+                                StudentOnboardingStatus.error) {
+                              return Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.error_outline_rounded,
+                                        size: 48.r, color: AppColors.error),
+                                    SizedBox(height: 12.h),
+                                    Text(
+                                      state.errorMessage ??
+                                          'حدث خطأ أثناء تحميل المواد',
+                                      style: GoogleFonts.cairo(
+                                          fontSize: 14.sp,
+                                          color: AppColors.textSecondary),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    SizedBox(height: 16.h),
+                                    ElevatedButton(
+                                      onPressed: () =>
+                                          _cubit.loadSubjects(),
+                                      child: Text('إعادة المحاولة',
+                                          style: GoogleFonts.cairo()),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+                            final subjects = state.subjects;
+                            if (subjects.isEmpty) {
+                              return Center(
+                                child: Text(
+                                  'لا توجد مواد متاحة',
+                                  style: GoogleFonts.cairo(
+                                      fontSize: 15.sp,
+                                      color: AppColors.textSecondary),
+                                ),
+                              );
+                            }
+                            return _buildGeneralSubjectsGrid(subjects);
+                          },
+                        )
+                      : _buildBaccalaureateTracksList(),
+                ),
 
-              // Bottom Action Button
-              Padding(
-                padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 20.h),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 54.h,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      HapticFeedback.lightImpact();
-                      Navigator.pushNamed(context, AppRouter.studentTeachers);
+                // Bottom Action Button
+                Padding(
+                  padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 20.h),
+                  child: BlocBuilder<StudentOnboardingCubit,
+                      StudentOnboardingState>(
+                    builder: (context, state) {
+                      return SizedBox(
+                        width: double.infinity,
+                        height: 54.h,
+                        child: ElevatedButton(
+                          onPressed: _selectedIds.isEmpty
+                              ? null
+                              : () {
+                                  HapticFeedback.lightImpact();
+                                  // تمرير الـ IDs المختارة للشاشة التالية
+                                  for (final id in _selectedIds) {
+                                    _cubit.selectSubject(id);
+                                  }
+                                  Navigator.pushNamed(
+                                      context, AppRouter.studentTeachers);
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF0FA37F),
+                            disabledBackgroundColor:
+                                const Color(0xFFCBD5E1),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(18.r),
+                            ),
+                          ),
+                          child: Text(
+                            '${AppStrings.next} (${_selectedIds.length})',
+                            style: GoogleFonts.cairo(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      );
                     },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0FA37F),
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(18.r),
-                      ),
-                    ),
-                    child: Text(
-                      '${AppStrings.next} (${_selectedIds.length})',
-                      style: GoogleFonts.cairo(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                      ),
-                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  // 1. General Subjects Grid with Icons
-  Widget _buildGeneralSubjectsGrid() {
+  // 1. شبكة المواد العامة من Supabase
+  Widget _buildGeneralSubjectsGrid(List<Map<String, dynamic>> subjects) {
     return GridView.builder(
       padding: EdgeInsets.symmetric(horizontal: 20.w),
       physics: const BouncingScrollPhysics(),
@@ -295,11 +356,11 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
         mainAxisSpacing: 14.h,
         childAspectRatio: 1.05,
       ),
-      itemCount: _generalSubjectsList.length,
+      itemCount: subjects.length,
       itemBuilder: (context, index) {
-        final subject = _generalSubjectsList[index];
+        final subject = subjects[index];
         final subjectId = subject['id'] as String;
-        final subjectName = subject['name_ar'] as String;
+        final subjectName = (subject['name_ar'] as String? ?? '');
         final isSelected = _selectedIds.contains(subjectId);
         final iconData = _getSubjectIcon(subjectName);
         final iconColor = _getSubjectColor(subjectName);
@@ -365,7 +426,8 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
                   subjectName,
                   style: GoogleFonts.cairo(
                     fontSize: 14.sp,
-                    fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
+                    fontWeight:
+                        isSelected ? FontWeight.w800 : FontWeight.w700,
                     color: isSelected
                         ? const Color(0xFF0FA37F)
                         : const Color(0xFF0F172A),
@@ -382,13 +444,13 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
     );
   }
 
-  // 2. Baccalaureate Academic Tracks List
+  // 2. قائمة مسارات البكالوريا (ثابتة)
   Widget _buildBaccalaureateTracksList() {
     return ListView.separated(
       padding: EdgeInsets.symmetric(horizontal: 20.w),
       physics: const BouncingScrollPhysics(),
       itemCount: _baccalaureateTracks.length,
-      separatorBuilder: (_, _) => SizedBox(height: 12.h),
+      separatorBuilder: (_, __) => SizedBox(height: 12.h),
       itemBuilder: (context, index) {
         final track = _baccalaureateTracks[index];
         final trackId = track['id'] as String;
@@ -455,7 +517,8 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
                         style: GoogleFonts.cairo(
                           fontSize: 15.sp,
                           fontWeight: FontWeight.w900,
-                          color: isSelected ? color : const Color(0xFF0F172A),
+                          color:
+                              isSelected ? color : const Color(0xFF0F172A),
                         ),
                       ),
                     ),
@@ -467,7 +530,8 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
                         color: isSelected ? color : Colors.transparent,
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: isSelected ? color : const Color(0xFFCBD5E1),
+                          color:
+                              isSelected ? color : const Color(0xFFCBD5E1),
                           width: 1.5,
                         ),
                       ),

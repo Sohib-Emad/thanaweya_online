@@ -1,15 +1,45 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:thanaweya_online/core/constants/app_colors.dart';
 import 'package:thanaweya_online/core/constants/app_strings.dart';
-import 'package:thanaweya_online/core/data/mock_data.dart';
 import 'package:thanaweya_online/core/router/app_router.dart';
+import 'package:thanaweya_online/features/shared/models/course_model.dart';
+import 'package:thanaweya_online/features/teacher/data/repos/teacher_courses_repo.dart';
+import 'package:thanaweya_online/features/teacher/logic/teacher_courses_cubit.dart';
 
-class CoursesListScreen extends StatelessWidget {
+class CoursesListScreen extends StatefulWidget {
   const CoursesListScreen({super.key});
+
+  @override
+  State<CoursesListScreen> createState() => _CoursesListScreenState();
+}
+
+class _CoursesListScreenState extends State<CoursesListScreen> {
+  final _cubit = TeacherCoursesCubit(repo: TeacherCoursesRepo());
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCourses();
+  }
+
+  Future<void> _loadCourses() async {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId != null) {
+      _cubit.loadCourses(userId);
+    }
+  }
+
+  @override
+  void dispose() {
+    _cubit.close();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,23 +74,75 @@ class CoursesListScreen extends StatelessWidget {
             ),
           ),
         ),
-        body: ListView.separated(
-          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
-          itemCount: MockData.mockCourses.length,
-          separatorBuilder: (_, __) => SizedBox(height: 14.h),
-          itemBuilder: (context, index) {
-            final course = MockData.mockCourses[index];
-            return _CourseCard(
-              title: course['title'] as String,
-              description: course['description'] as String,
-              onTap: () {
-                HapticFeedback.lightImpact();
-                Navigator.pushNamed(
-                  context,
-                  AppRouter.teacherLessons,
-                  arguments: course['id'] as String,
-                );
-              },
+        body: BlocBuilder<TeacherCoursesCubit, TeacherCoursesState>(
+          bloc: _cubit,
+          builder: (context, state) {
+            if (state.status == TeacherCoursesStatus.loading) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (state.status == TeacherCoursesStatus.error) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.error_outline_rounded, size: 48.r, color: AppColors.error),
+                    SizedBox(height: 12.h),
+                    Text(
+                      state.errorMessage ?? 'حدث خطأ أثناء تحميل الدورات',
+                      style: GoogleFonts.cairo(fontSize: 14.sp, color: AppColors.textSecondary),
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(height: 16.h),
+                    ElevatedButton(
+                      onPressed: _loadCourses,
+                      child: Text('إعادة المحاولة', style: GoogleFonts.cairo()),
+                    ),
+                  ],
+                ),
+              );
+            }
+            if (state.courses.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.menu_book_rounded, size: 64.r, color: AppColors.textTertiary),
+                    SizedBox(height: 16.h),
+                    Text(
+                      'لا توجد دورات بعد',
+                      style: GoogleFonts.cairo(fontSize: 16.sp, color: AppColors.textSecondary),
+                    ),
+                    SizedBox(height: 8.h),
+                    Text(
+                      'اضغط على زر + لإنشاء أول دورة',
+                      style: GoogleFonts.cairo(fontSize: 13.sp, color: AppColors.textTertiary),
+                    ),
+                  ],
+                ),
+              );
+            }
+            return RefreshIndicator(
+              onRefresh: _loadCourses,
+              child: ListView.separated(
+                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+                itemCount: state.courses.length,
+                separatorBuilder: (_, __) => SizedBox(height: 14.h),
+                itemBuilder: (context, index) {
+                  final course = state.courses[index];
+                  return _CourseCard(
+                    title: course.title,
+                    description: course.description ?? '',
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      Navigator.pushNamed(
+                        context,
+                        AppRouter.teacherLessons,
+                        arguments: course.id,
+                      );
+                    },
+                  );
+                },
+              ),
             );
           },
         ),
@@ -89,7 +171,6 @@ class CoursesListScreen extends StatelessWidget {
   void _showAddCourseBottomSheet(BuildContext context) {
     final titleController = TextEditingController();
     final descController = TextEditingController();
-    final priceController = TextEditingController();
 
     showModalBottomSheet(
       context: context,
@@ -176,39 +257,27 @@ class CoursesListScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                SizedBox(height: 14.h),
-                Text(
-                  'سعر الاشتراك (ج.م)*',
-                  style: GoogleFonts.cairo(
-                    fontSize: 12.sp,
-                    color: const Color(0xFF64748B),
-                  ),
-                ),
-                SizedBox(height: 6.h),
-                TextField(
-                  controller: priceController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    hintText: '350',
-                    filled: true,
-                    fillColor: const Color(0xFFF8FAFC),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14.r),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                    ),
-                  ),
-                ),
                 SizedBox(height: 24.h),
                 SizedBox(
                   width: double.infinity,
                   height: 52.h,
                   child: ElevatedButton(
                     onPressed: () {
+                      final title = titleController.text.trim();
+                      final description = descController.text.trim();
+                      if (title.isEmpty) return;
+
+                      final userId = Supabase.instance.client.auth.currentUser?.id;
+                      if (userId != null) {
+                        _cubit.createCourse(
+                          teacherId: userId,
+                          title: title,
+                          description: description.isNotEmpty ? description : null,
+                        );
+                      }
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('تم إنشاء الدورة بنجاح 🎉'),
-                        ),
+                        const SnackBar(content: Text('جاري إنشاء الدورة...')),
                       );
                     },
                     style: ElevatedButton.styleFrom(
@@ -218,7 +287,7 @@ class CoursesListScreen extends StatelessWidget {
                       ),
                     ),
                     child: Text(
-                      'حفظ وحفظ الدورة',
+                      'حفظ الدورة',
                       style: GoogleFonts.cairo(
                         fontSize: 15.sp,
                         fontWeight: FontWeight.w800,
@@ -303,20 +372,6 @@ class _CourseCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  SizedBox(height: 10.h),
-                  Row(
-                    children: [
-                      _ChipBadge(
-                        label: '12 درس',
-                        icon: Icons.play_circle_outline_rounded,
-                      ),
-                      SizedBox(width: 8.w),
-                      _ChipBadge(
-                        label: '84 طالب',
-                        icon: Icons.people_outline_rounded,
-                      ),
-                    ],
-                  ),
                 ],
               ),
             ),
@@ -327,40 +382,6 @@ class _CourseCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _ChipBadge extends StatelessWidget {
-  final String label;
-  final IconData icon;
-
-  const _ChipBadge({required this.label, required this.icon});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(8.r),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12.r, color: const Color(0xFF64748B)),
-          SizedBox(width: 4.w),
-          Text(
-            label,
-            style: GoogleFonts.cairo(
-              fontSize: 10.sp,
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFF64748B),
-            ),
-          ),
-        ],
       ),
     );
   }

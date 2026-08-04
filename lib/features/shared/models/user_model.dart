@@ -3,19 +3,26 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'user_model.freezed.dart';
 part 'user_model.g.dart';
 
-enum UserRole { superAdmin, teacher, student }
+enum UserRole {
+  @JsonValue('super_admin')
+  superAdmin,
+  @JsonValue('teacher')
+  teacher,
+  @JsonValue('student')
+  student,
+}
 
 @freezed
 class UserModel with _$UserModel {
   const factory UserModel({
     required String id,
     required String email,
-    required String fullName,
+    @JsonKey(name: 'full_name') required String fullName,
     required String phone,
     required UserRole role,
-    String? avatarUrl,
-    required DateTime createdAt,
-    required DateTime updatedAt,
+    @JsonKey(name: 'avatar_url') String? avatarUrl,
+    @JsonKey(name: 'created_at') required DateTime createdAt,
+    @JsonKey(name: 'updated_at') required DateTime updatedAt,
   }) = _UserModel;
 
   factory UserModel.fromJson(Map<String, dynamic> json) =>

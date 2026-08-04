@@ -1,67 +1,76 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/router/app_router.dart';
+import '../../../../core/utils/formatters.dart';
+import 'package:thanaweya_online/features/shared/models/lesson_model.dart';
+import 'package:thanaweya_online/features/student/data/repos/student_courses_repo.dart';
+import 'package:thanaweya_online/features/student/logic/student_courses_cubit.dart';
 
 class CourseCurriculumScreen extends StatefulWidget {
+  final String courseId;
   final bool isCompleted;
 
-  const CourseCurriculumScreen({super.key, this.isCompleted = false});
+  const CourseCurriculumScreen({
+    super.key,
+    required this.courseId,
+    this.isCompleted = false,
+  });
 
   @override
   State<CourseCurriculumScreen> createState() => _CourseCurriculumScreenState();
 }
 
 class _CourseCurriculumScreenState extends State<CourseCurriculumScreen> {
-  final List<Map<String, dynamic>> _sections = const [
-    {
-      'sectionNumber': 'القسم 01',
-      'title': 'المقدمة والأساسيات (Introduction)',
-      'totalDuration': '25 دقيقة',
-      'lessons': [
-        {
-          'number': '01',
-          'title': 'لماذا نعتمد 3D Blender في التصميم؟',
-          'duration': '15 دقيقة',
-          'isUnlocked': true,
-        },
-        {
-          'number': '02',
-          'title': 'إعداد وتحضير واجهة البرنامج وتثبيته',
-          'duration': '10 دقائق',
-          'isUnlocked': true,
-        },
-      ],
-    },
-    {
-      'sectionNumber': 'القسم 02',
-      'title': 'التصميم والتطبيق العملي (Graphic Design)',
-      'totalDuration': '55 دقيقة',
-      'lessons': [
-        {
-          'number': '03',
-          'title': 'نظرة عامة على أدوات النمذجة والتحكم',
-          'duration': '20 دقيقة',
-          'isUnlocked': false,
-        },
-        {
-          'number': '04',
-          'title': 'التعامل مع الإطارات والطبقات الرسمية',
-          'duration': '25 دقيقة',
-          'isUnlocked': false,
-        },
-        {
-          'number': '05',
-          'title': 'التظليل والإضاءة الشاملة ثلاثية الأبعاد',
-          'duration': '10 دقائق',
-          'isUnlocked': false,
-        },
-      ],
-    },
-  ];
+  late final StudentCoursesCubit _coursesCubit;
+
+  @override
+  void initState() {
+    super.initState();
+    _coursesCubit = StudentCoursesCubit(repo: StudentCoursesRepo());
+    _coursesCubit.loadCourseLessons(widget.courseId);
+  }
+
+  @override
+  void dispose() {
+    _coursesCubit.close();
+    super.dispose();
+  }
+
+  List<Map<String, dynamic>> _buildSections(List<LessonModel> lessons) {
+    if (lessons.isEmpty) return const [];
+    final totalSeconds = lessons.fold<int>(
+      0,
+      (sum, l) => sum + (l.durationSeconds ?? 0),
+    );
+    return [
+      {
+        'sectionNumber': 'القسم 01',
+        'title': 'دروس الكورس',
+        'totalDuration': totalSeconds > 0
+            ? Formatters.formatDurationMinutes((totalSeconds / 60).ceil())
+            : '',
+        'lessons': [
+          for (var i = 0; i < lessons.length; i++)
+            {
+              'id': lessons[i].id,
+              'videoUrl': lessons[i].videoUrlOrId,
+              'number': (i + 1).toString().padLeft(2, '0'),
+              'title': lessons[i].title,
+              'duration': lessons[i].durationSeconds != null
+                  ? Formatters.formatDurationMinutes(
+                      (lessons[i].durationSeconds! / 60).ceil())
+                  : '',
+              'isUnlocked': true,
+            },
+        ],
+      },
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -161,12 +170,23 @@ class _CourseCurriculumScreenState extends State<CourseCurriculumScreen> {
 
                 // Curriculum Sections List
                 Expanded(
-                  child: ListView.builder(
-                    padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 110.h),
-                    physics: const BouncingScrollPhysics(),
-                    itemCount: _sections.length,
-                    itemBuilder: (context, sectionIndex) {
-                      final sec = _sections[sectionIndex];
+                  child: BlocBuilder<StudentCoursesCubit, StudentCoursesState>(
+                    bloc: _coursesCubit,
+                    builder: (context, state) {
+                      if (state.lessonsStatus ==
+                              StudentCoursesStatus.loading &&
+                          state.lessons.isEmpty) {
+                        return const Center(
+                          child: CircularProgressIndicator(),
+                        );
+                      }
+                      final sections = _buildSections(state.lessons);
+                      return ListView.builder(
+                        padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 110.h),
+                        physics: const BouncingScrollPhysics(),
+                        itemCount: sections.length,
+                        itemBuilder: (context, sectionIndex) {
+                          final sec = sections[sectionIndex];
                       final sectionNumber = sec['sectionNumber'] as String;
                       final title = sec['title'] as String;
                       final totalDuration = sec['totalDuration'] as String;
@@ -217,8 +237,10 @@ class _CourseCurriculumScreenState extends State<CourseCurriculumScreen> {
                                   context,
                                   AppRouter.studentVideoPlayer,
                                   arguments: {
-                                    'lessonId': num,
+                                    'lessonId': les['id'],
+                                    'videoUrl': les['videoUrl'],
                                     'title': lesTitle,
+                                    'courseId': widget.courseId,
                                   },
                                 );
                               },
@@ -312,9 +334,11 @@ class _CourseCurriculumScreenState extends State<CourseCurriculumScreen> {
                           SizedBox(height: 14.h),
                         ],
                       );
-                    },
+                          },
+                        );
+                      },
+                    ),
                   ),
-                ),
               ],
             ),
 
@@ -374,18 +398,28 @@ class _CourseCurriculumScreenState extends State<CourseCurriculumScreen> {
                       Expanded(
                         child: SizedBox(
                           height: 52.h,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              HapticFeedback.mediumImpact();
-                              Navigator.pushNamed(
-                                context,
-                                AppRouter.studentVideoPlayer,
-                                arguments: {
-                                  'lessonId': '01',
-                                  'title': 'درس التمهيد للثانوية العامة',
+                          child: BlocBuilder<
+                              StudentCoursesCubit, StudentCoursesState>(
+                            bloc: _coursesCubit,
+                            builder: (context, state) {
+                              final firstLesson = state.lessons.isNotEmpty
+                                  ? state.lessons.first
+                                  : null;
+                              return ElevatedButton(
+                                onPressed: () {
+                                  HapticFeedback.mediumImpact();
+                                  Navigator.pushNamed(
+                                    context,
+                                    AppRouter.studentVideoPlayer,
+                                    arguments: {
+                                      'lessonId': firstLesson?.id ?? '',
+                                      'videoUrl':
+                                          firstLesson?.videoUrlOrId ?? '',
+                                      'title': firstLesson?.title ?? 'درس',
+                                      'courseId': widget.courseId,
+                                    },
+                                  );
                                 },
-                              );
-                            },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF2563EB),
                               elevation: 4,
@@ -422,10 +456,15 @@ class _CourseCurriculumScreenState extends State<CourseCurriculumScreen> {
                                   ),
                                 ),
                               ],
+                            
+                            
+                        
                             ),
-                          ),
-                        ),
+                          );
+                        },
                       ),
+                    ),
+                  ),
                     ],
                   ),
                 ),

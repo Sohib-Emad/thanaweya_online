@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/constants/app_assets.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/router/app_router.dart';
+import '../../shared/models/user_model.dart';
 
 class AnimatedSplashScreen extends StatefulWidget {
   const AnimatedSplashScreen({super.key});
@@ -70,8 +72,20 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
     Future.delayed(const Duration(milliseconds: 4600), () {
       if (!mounted) return;
       HapticFeedback.mediumImpact();
-      Navigator.pushReplacementNamed(context, AppRouter.onboarding);
+      _goToNextScreen();
     });
+  }
+
+  void _goToNextScreen() {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user != null &&
+        Supabase.instance.client.auth.currentSession != null) {
+      final role = UserRole.values.asNameMap()[user.userMetadata?['role']] ??
+          UserRole.student;
+      Navigator.pushReplacementNamed(context, AppRouter.homeForRole(role));
+    } else {
+      Navigator.pushReplacementNamed(context, AppRouter.onboarding);
+    }
   }
 
   void _startTypewriter() {

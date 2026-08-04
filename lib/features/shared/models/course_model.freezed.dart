@@ -22,13 +22,18 @@ CourseModel _$CourseModelFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$CourseModel {
   String get id => throw _privateConstructorUsedError;
+  @JsonKey(name: 'teacher_id')
   String get teacherId => throw _privateConstructorUsedError;
   String get title => throw _privateConstructorUsedError;
   String? get description => throw _privateConstructorUsedError;
+  @JsonKey(name: 'cover_image_url')
   String? get coverImageUrl => throw _privateConstructorUsedError;
+  @JsonKey(name: 'is_published')
   bool get isPublished => throw _privateConstructorUsedError;
   int get order => throw _privateConstructorUsedError;
+  @JsonKey(name: 'created_at')
   DateTime get createdAt => throw _privateConstructorUsedError;
+  @JsonKey(name: 'updated_at')
   DateTime get updatedAt => throw _privateConstructorUsedError;
 
   /// Serializes this CourseModel to a JSON map.
@@ -50,14 +55,14 @@ abstract class $CourseModelCopyWith<$Res> {
   @useResult
   $Res call({
     String id,
-    String teacherId,
+    @JsonKey(name: 'teacher_id') String teacherId,
     String title,
     String? description,
-    String? coverImageUrl,
-    bool isPublished,
+    @JsonKey(name: 'cover_image_url') String? coverImageUrl,
+    @JsonKey(name: 'is_published') bool isPublished,
     int order,
-    DateTime createdAt,
-    DateTime updatedAt,
+    @JsonKey(name: 'created_at') DateTime createdAt,
+    @JsonKey(name: 'updated_at') DateTime updatedAt,
   });
 }
 
@@ -141,14 +146,14 @@ abstract class _$$CourseModelImplCopyWith<$Res>
   @useResult
   $Res call({
     String id,
-    String teacherId,
+    @JsonKey(name: 'teacher_id') String teacherId,
     String title,
     String? description,
-    String? coverImageUrl,
-    bool isPublished,
+    @JsonKey(name: 'cover_image_url') String? coverImageUrl,
+    @JsonKey(name: 'is_published') bool isPublished,
     int order,
-    DateTime createdAt,
-    DateTime updatedAt,
+    @JsonKey(name: 'created_at') DateTime createdAt,
+    @JsonKey(name: 'updated_at') DateTime updatedAt,
   });
 }
 
@@ -224,14 +229,14 @@ class __$$CourseModelImplCopyWithImpl<$Res>
 class _$CourseModelImpl implements _CourseModel {
   const _$CourseModelImpl({
     required this.id,
-    required this.teacherId,
+    @JsonKey(name: 'teacher_id') required this.teacherId,
     required this.title,
     this.description,
-    this.coverImageUrl,
-    this.isPublished = false,
+    @JsonKey(name: 'cover_image_url') this.coverImageUrl,
+    @JsonKey(name: 'is_published') this.isPublished = false,
     this.order = 0,
-    required this.createdAt,
-    required this.updatedAt,
+    @JsonKey(name: 'created_at') required this.createdAt,
+    @JsonKey(name: 'updated_at') required this.updatedAt,
   });
 
   factory _$CourseModelImpl.fromJson(Map<String, dynamic> json) =>
@@ -240,22 +245,26 @@ class _$CourseModelImpl implements _CourseModel {
   @override
   final String id;
   @override
+  @JsonKey(name: 'teacher_id')
   final String teacherId;
   @override
   final String title;
   @override
   final String? description;
   @override
+  @JsonKey(name: 'cover_image_url')
   final String? coverImageUrl;
   @override
-  @JsonKey()
+  @JsonKey(name: 'is_published')
   final bool isPublished;
   @override
   @JsonKey()
   final int order;
   @override
+  @JsonKey(name: 'created_at')
   final DateTime createdAt;
   @override
+  @JsonKey(name: 'updated_at')
   final DateTime updatedAt;
 
   @override
@@ -317,14 +326,14 @@ class _$CourseModelImpl implements _CourseModel {
 abstract class _CourseModel implements CourseModel {
   const factory _CourseModel({
     required final String id,
-    required final String teacherId,
+    @JsonKey(name: 'teacher_id') required final String teacherId,
     required final String title,
     final String? description,
-    final String? coverImageUrl,
-    final bool isPublished,
+    @JsonKey(name: 'cover_image_url') final String? coverImageUrl,
+    @JsonKey(name: 'is_published') final bool isPublished,
     final int order,
-    required final DateTime createdAt,
-    required final DateTime updatedAt,
+    @JsonKey(name: 'created_at') required final DateTime createdAt,
+    @JsonKey(name: 'updated_at') required final DateTime updatedAt,
   }) = _$CourseModelImpl;
 
   factory _CourseModel.fromJson(Map<String, dynamic> json) =
@@ -333,20 +342,25 @@ abstract class _CourseModel implements CourseModel {
   @override
   String get id;
   @override
+  @JsonKey(name: 'teacher_id')
   String get teacherId;
   @override
   String get title;
   @override
   String? get description;
   @override
+  @JsonKey(name: 'cover_image_url')
   String? get coverImageUrl;
   @override
+  @JsonKey(name: 'is_published')
   bool get isPublished;
   @override
   int get order;
   @override
+  @JsonKey(name: 'created_at')
   DateTime get createdAt;
   @override
+  @JsonKey(name: 'updated_at')
   DateTime get updatedAt;
 
   /// Create a copy of CourseModel

@@ -12,12 +12,21 @@ class ExamStartScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final title =
-        examData?['title'] ?? 'امتحان الفيزياء الكهربية والشحنات الشامل ⚡';
-    final duration = examData?['duration'] ?? '45 دقيقة';
-    final questionsCount = examData?['questionsCount'] ?? '30 سؤال';
-    final totalMarks = examData?['totalMarks'] ?? '60 درجة';
-    final instructor = examData?['instructor'] ?? 'أ. محمد علي';
+    final title = examData?['title'] as String? ?? 'امتحان شامل';
+    final durationMinutes = examData?['duration_minutes'] as int? ?? 0;
+    final duration = '$durationMinutes دقيقة';
+    final questions = examData?['questions'];
+    final questionsCount =
+        (questions is List && questions.isNotEmpty
+                ? (questions.first['count'] as int?) ?? 0
+                : 0)
+            .toString();
+    final totalMarks = '${examData?['max_score'] ?? 0} درجة';
+    final teachers = examData?['teachers'];
+    final users = teachers is Map ? teachers['users'] : null;
+    final instructor =
+        users is Map ? (users['full_name'] as String? ?? '') : '';
+    final examId = examData?['id'] as String? ?? '';
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -95,7 +104,7 @@ class ExamStartScreen extends StatelessWidget {
                     ),
                     SizedBox(height: 4.h),
                     Text(
-                      'المدرس المسؤول: $instructor',
+                      'المدرس المسؤول: ${instructor.isEmpty ? 'المدرس' : instructor}',
                       style: GoogleFonts.cairo(
                         fontSize: 12.sp,
                         color: const Color(0xFF64748B),
@@ -191,7 +200,7 @@ class ExamStartScreen extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: () {
                     HapticFeedback.heavyImpact();
-                    _showStartConfirmationDialog(context);
+                    _showStartConfirmationDialog(context, examId);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFE11D48),
@@ -286,7 +295,7 @@ class ExamStartScreen extends StatelessWidget {
     );
   }
 
-  void _showStartConfirmationDialog(BuildContext context) {
+  void _showStartConfirmationDialog(BuildContext context, String examId) {
     showDialog(
       context: context,
       builder: (context) => Directionality(
@@ -338,6 +347,7 @@ class ExamStartScreen extends StatelessWidget {
                 Navigator.pushReplacementNamed(
                   context,
                   AppRouter.studentExamTaking,
+                  arguments: {'examId': examId},
                 );
               },
               style: ElevatedButton.styleFrom(

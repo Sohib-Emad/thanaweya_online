@@ -71,6 +71,10 @@ CREATE TABLE public.teachers (
   rejection_reason TEXT,
   subscription_plan_id UUID REFERENCES public.subscription_plans(id),
   subscription_expires_at TIMESTAMPTZ,
+  avatar_url TEXT,
+  id_card_front_url TEXT,
+  id_card_back_url TEXT,
+  teacher_proof_url TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -210,6 +214,40 @@ CREATE TABLE public.comments (
   lesson_id UUID NOT NULL REFERENCES public.lessons(id) ON DELETE CASCADE,
   author_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
   text TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Bookmarks
+CREATE TABLE public.bookmarks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
+  course_id UUID NOT NULL REFERENCES public.courses(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(student_id, course_id)
+);
+
+-- Course Reviews
+CREATE TABLE public.course_reviews (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  course_id UUID NOT NULL REFERENCES public.courses(id) ON DELETE CASCADE,
+  student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
+  rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+  text TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(course_id, student_id)
+);
+
+-- Payment Methods (cards)
+CREATE TABLE public.payment_methods (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
+  card_holder TEXT NOT NULL,
+  card_last4 TEXT NOT NULL,
+  card_brand TEXT,
+  expiry_month INTEGER,
+  expiry_year INTEGER,
+  is_default BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -357,6 +395,9 @@ ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.lesson_progress ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.exam_submissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.bookmarks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.course_reviews ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.payment_methods ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================
 -- USERS
@@ -364,6 +405,10 @@ ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "users_select_own" ON public.users
   FOR SELECT USING (id = auth.uid());
+
+CREATE POLICY "users_select_teacher_profiles" ON public.users
+  FOR SELECT TO anon, authenticated
+  USING (id IN (SELECT id FROM public.teachers WHERE approval_status = 'approved'));
 
 CREATE POLICY "users_update_own" ON public.users
   FOR UPDATE USING (id = auth.uid());
@@ -377,6 +422,13 @@ CREATE POLICY "admin_update_all_users" ON public.users
   FOR UPDATE USING (
     (auth.jwt()->'user_metadata'->>'role') = 'super_admin'
   );
+
+-- Safe public profile view (id, full_name, avatar_url only — no email/phone)
+CREATE OR REPLACE VIEW public.user_profiles AS
+SELECT id, full_name, avatar_url
+FROM public.users;
+
+GRANT SELECT ON public.user_profiles TO anon, authenticated;
 
 -- ============================================================
 -- TEACHERS
@@ -642,6 +694,51 @@ CREATE POLICY "comments_update_own" ON public.comments
 
 CREATE POLICY "comments_delete_own" ON public.comments
   FOR DELETE USING (author_id = auth.uid());
+
+-- ============================================================
+-- BOOKMARKS
+-- ============================================================
+
+CREATE POLICY "bookmarks_select_own" ON public.bookmarks
+  FOR SELECT USING (student_id = auth.uid());
+
+CREATE POLICY "bookmarks_insert_own" ON public.bookmarks
+  FOR INSERT WITH CHECK (student_id = auth.uid());
+
+CREATE POLICY "bookmarks_delete_own" ON public.bookmarks
+  FOR DELETE USING (student_id = auth.uid());
+
+-- ============================================================
+-- COURSE REVIEWS
+-- ============================================================
+
+CREATE POLICY "course_reviews_select_all" ON public.course_reviews
+  FOR SELECT USING (true);
+
+CREATE POLICY "course_reviews_insert_own" ON public.course_reviews
+  FOR INSERT WITH CHECK (student_id = auth.uid());
+
+CREATE POLICY "course_reviews_update_own" ON public.course_reviews
+  FOR UPDATE USING (student_id = auth.uid());
+
+CREATE POLICY "course_reviews_delete_own" ON public.course_reviews
+  FOR DELETE USING (student_id = auth.uid());
+
+-- ============================================================
+-- PAYMENT METHODS
+-- ============================================================
+
+CREATE POLICY "payment_methods_select_own" ON public.payment_methods
+  FOR SELECT USING (student_id = auth.uid());
+
+CREATE POLICY "payment_methods_insert_own" ON public.payment_methods
+  FOR INSERT WITH CHECK (student_id = auth.uid());
+
+CREATE POLICY "payment_methods_update_own" ON public.payment_methods
+  FOR UPDATE USING (student_id = auth.uid());
+
+CREATE POLICY "payment_methods_delete_own" ON public.payment_methods
+  FOR DELETE USING (student_id = auth.uid());
 
 -- ============================================================
 -- 6. SEED DATA (Optional)

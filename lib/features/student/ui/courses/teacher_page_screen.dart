@@ -1,13 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:thanaweya_online/core/constants/app_colors.dart';
 import 'package:thanaweya_online/core/router/app_router.dart';
+import 'package:thanaweya_online/features/shared/models/course_model.dart';
+import 'package:thanaweya_online/features/student/data/repos/student_courses_repo.dart';
+import 'package:thanaweya_online/features/student/logic/student_courses_cubit.dart';
 
 class TeacherPageScreen extends StatefulWidget {
-  const TeacherPageScreen({super.key});
+  final String teacherId;
+  final String title;
+
+  const TeacherPageScreen({
+    super.key,
+    this.teacherId = '',
+    this.title = '',
+  });
 
   @override
   State<TeacherPageScreen> createState() => _TeacherPageScreenState();
@@ -16,28 +27,15 @@ class TeacherPageScreen extends StatefulWidget {
 class _TeacherPageScreenState extends State<TeacherPageScreen> {
   int _activeTab = 0; // 0 = Lessons, 1 = Quiz
 
-  final List<Map<String, dynamic>> _lessonsList = [
-    {
-      'id': 'l1',
-      'part': 'الجزء 01',
-      'title': 'البناء الضوئي والتغذية (Photosynthesis)',
-      'duration': '25 دقيقة',
-      'icon': Icons.eco_rounded,
-    },
-    {
-      'id': 'l2',
-      'part': 'الجزء 02',
-      'title': 'النتح والتنفس الخلوي (Transpiration)',
-      'duration': '18 دقيقة',
-      'icon': Icons.water_drop_rounded,
-    },
-    {
-      'id': 'l3',
-      'part': 'الجزء 03',
-      'title': 'العوامل المؤثرة في نمو النباتات',
-      'duration': '30 دقيقة',
-      'icon': Icons.wb_sunny_rounded,
-    },
+  late final StudentCoursesCubit _coursesCubit;
+
+  final List<IconData> _lessonIcons = const [
+    Icons.eco_rounded,
+    Icons.water_drop_rounded,
+    Icons.wb_sunny_rounded,
+    Icons.biotech_rounded,
+    Icons.science_rounded,
+    Icons.menu_book_rounded,
   ];
 
   final List<Map<String, dynamic>> _quizzesList = [
@@ -65,6 +63,21 @@ class _TeacherPageScreenState extends State<TeacherPageScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _coursesCubit = StudentCoursesCubit(repo: StudentCoursesRepo());
+    if (widget.teacherId.isNotEmpty) {
+      _coursesCubit.loadTeacherCourses(widget.teacherId);
+    }
+  }
+
+  @override
+  void dispose() {
+    _coursesCubit.close();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -84,7 +97,9 @@ class _TeacherPageScreenState extends State<TeacherPageScreen> {
           ),
           centerTitle: true,
           title: Text(
-            'الأحياء - فسيولوجيا النبات 🌿',
+            widget.title.isNotEmpty
+                ? widget.title
+                : 'الأحياء - فسيولوجيا النبات 🌿',
             style: GoogleFonts.cairo(
               fontSize: 17.sp,
               fontWeight: FontWeight.w800,
@@ -252,7 +267,12 @@ class _TeacherPageScreenState extends State<TeacherPageScreen> {
 
                     // Active Tab Content List
                     _activeTab == 0
-                        ? _buildLessonsListView(context)
+                        ? BlocBuilder<StudentCoursesCubit,
+                            StudentCoursesState>(
+                            bloc: _coursesCubit,
+                            builder: (context, state) =>
+                                _buildLessonsListView(context, state.courses),
+                          )
                         : _buildQuizzesListView(context),
                   ],
                 ),
@@ -275,23 +295,28 @@ class _TeacherPageScreenState extends State<TeacherPageScreen> {
               child: SizedBox(
                 width: double.infinity,
                 height: 52.h,
-                child: ElevatedButton(
-                  onPressed: () {
-                    HapticFeedback.lightImpact();
-                    if (_activeTab == 0) {
-                      Navigator.pushNamed(
-                        context,
-                        AppRouter.studentVideoPlayer,
-                        arguments: {
-                          'lessonId': 'l1',
-                          'videoUrl': 'demo',
-                          'title': 'البناء الضوئي والتغذية',
-                        },
-                      );
-                    } else {
-                      Navigator.pushNamed(context, AppRouter.studentExamStart);
-                    }
-                  },
+                child: BlocBuilder<StudentCoursesCubit, StudentCoursesState>(
+                  bloc: _coursesCubit,
+                  builder: (context, state) {
+                    final firstCourse = state.courses.isNotEmpty
+                        ? state.courses.first
+                        : null;
+                    return ElevatedButton(
+                      onPressed: () {
+                        HapticFeedback.lightImpact();
+                        if (_activeTab == 0) {
+                          Navigator.pushNamed(
+                            context,
+                            AppRouter.studentCourseLessons,
+                            arguments: firstCourse?.id ?? '',
+                          );
+                        } else {
+                          Navigator.pushNamed(
+                            context,
+                            AppRouter.studentExamStart,
+                          );
+                        }
+                      },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.studentPrimary,
                     elevation: 0,
@@ -309,9 +334,11 @@ class _TeacherPageScreenState extends State<TeacherPageScreen> {
                       color: Colors.white,
                     ),
                   ),
-                ),
+                  );
+                },
               ),
             ),
+          ),
           ],
         ),
       ),
@@ -319,26 +346,25 @@ class _TeacherPageScreenState extends State<TeacherPageScreen> {
   }
 
   // 07 Detail Lesson List
-  Widget _buildLessonsListView(BuildContext context) {
+  Widget _buildLessonsListView(
+      BuildContext context, List<CourseModel> courses) {
     return ListView.separated(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      itemCount: _lessonsList.length,
+      itemCount: courses.length,
       separatorBuilder: (_, _) => SizedBox(height: 12.h),
       itemBuilder: (context, index) {
-        final item = _lessonsList[index];
+        final course = courses[index];
+        final part = 'كورس ${(index + 1).toString().padLeft(2, '0')}';
+        final icon = _lessonIcons[index % _lessonIcons.length];
 
         return GestureDetector(
           onTap: () {
             HapticFeedback.lightImpact();
             Navigator.pushNamed(
               context,
-              AppRouter.studentVideoPlayer,
-              arguments: {
-                'lessonId': item['id'],
-                'videoUrl': 'demo',
-                'title': item['title'],
-              },
+              AppRouter.studentCourseLessons,
+              arguments: course.id,
             );
           },
           child: Container(
@@ -364,7 +390,7 @@ class _TeacherPageScreenState extends State<TeacherPageScreen> {
                     borderRadius: BorderRadius.circular(16.r),
                   ),
                   child: Icon(
-                    item['icon'] as IconData,
+                    icon,
                     color: AppColors.studentPrimary,
                     size: 24.r,
                   ),
@@ -375,20 +401,24 @@ class _TeacherPageScreenState extends State<TeacherPageScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${item['part']} • ${item['title']}',
+                        '$part • ${course.title}',
                         style: GoogleFonts.cairo(
                           fontSize: 13.sp,
                           fontWeight: FontWeight.w800,
                           color: const Color(0xFF0F172A),
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       SizedBox(height: 3.h),
                       Text(
-                        'المدة: ${item['duration']}',
+                        course.description ?? '',
                         style: GoogleFonts.cairo(
                           fontSize: 11.sp,
                           color: const Color(0xFF64748B),
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),

@@ -2,9 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'package:thanaweya_online/features/student/data/repos/student_reviews_repo.dart';
+import 'package:thanaweya_online/features/student/logic/student_reviews_cubit.dart';
 
 class WriteReviewScreen extends StatefulWidget {
-  const WriteReviewScreen({super.key});
+  final String courseId;
+
+  const WriteReviewScreen({super.key, required this.courseId});
 
   @override
   State<WriteReviewScreen> createState() => _WriteReviewScreenState();
@@ -13,11 +19,31 @@ class WriteReviewScreen extends StatefulWidget {
 class _WriteReviewScreenState extends State<WriteReviewScreen> {
   int _ratingStars = 5;
   final TextEditingController _reviewTextController = TextEditingController();
+  final _cubit = StudentReviewsCubit(repo: StudentReviewsRepo());
+
+  @override
+  void initState() {
+    super.initState();
+    _prefillMyReview();
+  }
 
   @override
   void dispose() {
+    _cubit.close();
     _reviewTextController.dispose();
     super.dispose();
+  }
+
+  Future<void> _prefillMyReview() async {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null || widget.courseId.isEmpty) return;
+    await _cubit.loadMyReview(userId, widget.courseId);
+    if (!mounted) return;
+    final state = _cubit.state;
+    setState(() {
+      if (state.myRating > 0) _ratingStars = state.myRating;
+      if (state.myText.isNotEmpty) _reviewTextController.text = state.myText;
+    });
   }
 
   @override
@@ -136,7 +162,9 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
                               child: Padding(
                                 padding: EdgeInsets.symmetric(horizontal: 4.w),
                                 child: Icon(
-                                  index < _ratingStars ? Icons.star_rounded : Icons.star_border_rounded,
+                                  index < _ratingStars
+                                      ? Icons.star_rounded
+                                      : Icons.star_border_rounded,
                                   color: const Color(0xFFFBBF24),
                                   size: 36.r,
                                 ),
@@ -166,7 +194,10 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(16.r),
-                      border: Border.all(color: const Color(0xFFCBD5E1), style: BorderStyle.solid),
+                      border: Border.all(
+                        color: const Color(0xFFCBD5E1),
+                        style: BorderStyle.solid,
+                      ),
                     ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -210,10 +241,17 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
                     child: TextField(
                       controller: _reviewTextController,
                       maxLines: 4,
-                      style: GoogleFonts.cairo(fontSize: 13.sp, color: const Color(0xFF0F172A)),
+                      style: GoogleFonts.cairo(
+                        fontSize: 13.sp,
+                        color: const Color(0xFF0F172A),
+                      ),
                       decoration: InputDecoration(
-                        hintText: 'ما هي تجربتك مع هذا الكورس والمدرس؟ شارك برأيك لمساعدة بقية الطلاب...',
-                        hintStyle: GoogleFonts.cairo(fontSize: 12.sp, color: const Color(0xFF94A3B8)),
+                        hintText:
+                            'ما هي تجربتك مع هذا الكورس والمدرس؟ شارك برأيك لمساعدة بقية الطلاب...',
+                        hintStyle: GoogleFonts.cairo(
+                          fontSize: 12.sp,
+                          color: const Color(0xFF94A3B8),
+                        ),
                         border: InputBorder.none,
                         contentPadding: EdgeInsets.all(14.r),
                       ),
@@ -232,18 +270,53 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
                 child: SizedBox(
                   height: 54.h,
                   child: ElevatedButton(
-                    onPressed: () {
+                    onPressed: () async {
                       HapticFeedback.heavyImpact();
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      final messenger = ScaffoldMessenger.of(context);
+                      final navigator = Navigator.of(context);
+                      final userId =
+                          Supabase.instance.client.auth.currentUser?.id;
+                      if (userId == null || widget.courseId.isEmpty) {
+                        messenger.showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'يجب تسجيل الدخول أولاً',
+                              style: GoogleFonts.cairo(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            backgroundColor: const Color(0xFFEF4444),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                        return;
+                      }
+                      final saved = await _cubit.saveMyReview(
+                        studentId: userId,
+                        courseId: widget.courseId,
+                        rating: _ratingStars,
+                        text: _reviewTextController.text.trim(),
+                      );
+                      if (!mounted) return;
+                      messenger.showSnackBar(
                         SnackBar(
                           content: Text(
-                            'شاطر! تم إرسال تقييمك بنجاح.',
-                            style: GoogleFonts.cairo(fontWeight: FontWeight.w700),
+                            saved
+                                ? 'شاطر! تم إرسال تقييمك بنجاح.'
+                                : 'حدث خطأ أثناء إرسال التقييم، حاول مرة أخرى',
+                            style: GoogleFonts.cairo(
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
-                          backgroundColor: const Color(0xFF0FA37F),
+                          backgroundColor: saved
+                              ? const Color(0xFF0FA37F)
+                              : const Color(0xFFEF4444),
+                          behavior: SnackBarBehavior.floating,
                         ),
                       );
-                      Navigator.pop(context);
+                      if (saved) {
+                        navigator.pop(true);
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF0FA37F),

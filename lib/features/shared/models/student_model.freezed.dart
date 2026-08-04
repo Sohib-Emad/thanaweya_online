@@ -22,8 +22,11 @@ StudentModel _$StudentModelFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$StudentModel {
   String get id => throw _privateConstructorUsedError;
+  @JsonKey(name: 'grade_level')
   StudentGradeLevel get gradeLevel => throw _privateConstructorUsedError;
+  @JsonKey(name: 'parent_phone')
   String get parentPhone => throw _privateConstructorUsedError;
+  @JsonKey(name: 'created_at')
   DateTime get createdAt => throw _privateConstructorUsedError;
 
   /// Serializes this StudentModel to a JSON map.
@@ -45,9 +48,9 @@ abstract class $StudentModelCopyWith<$Res> {
   @useResult
   $Res call({
     String id,
-    StudentGradeLevel gradeLevel,
-    String parentPhone,
-    DateTime createdAt,
+    @JsonKey(name: 'grade_level') StudentGradeLevel gradeLevel,
+    @JsonKey(name: 'parent_phone') String parentPhone,
+    @JsonKey(name: 'created_at') DateTime createdAt,
   });
 }
 
@@ -106,9 +109,9 @@ abstract class _$$StudentModelImplCopyWith<$Res>
   @useResult
   $Res call({
     String id,
-    StudentGradeLevel gradeLevel,
-    String parentPhone,
-    DateTime createdAt,
+    @JsonKey(name: 'grade_level') StudentGradeLevel gradeLevel,
+    @JsonKey(name: 'parent_phone') String parentPhone,
+    @JsonKey(name: 'created_at') DateTime createdAt,
   });
 }
 
@@ -159,9 +162,9 @@ class __$$StudentModelImplCopyWithImpl<$Res>
 class _$StudentModelImpl implements _StudentModel {
   const _$StudentModelImpl({
     required this.id,
-    required this.gradeLevel,
-    required this.parentPhone,
-    required this.createdAt,
+    @JsonKey(name: 'grade_level') required this.gradeLevel,
+    @JsonKey(name: 'parent_phone') required this.parentPhone,
+    @JsonKey(name: 'created_at') required this.createdAt,
   });
 
   factory _$StudentModelImpl.fromJson(Map<String, dynamic> json) =>
@@ -170,10 +173,13 @@ class _$StudentModelImpl implements _StudentModel {
   @override
   final String id;
   @override
+  @JsonKey(name: 'grade_level')
   final StudentGradeLevel gradeLevel;
   @override
+  @JsonKey(name: 'parent_phone')
   final String parentPhone;
   @override
+  @JsonKey(name: 'created_at')
   final DateTime createdAt;
 
   @override
@@ -217,9 +223,9 @@ class _$StudentModelImpl implements _StudentModel {
 abstract class _StudentModel implements StudentModel {
   const factory _StudentModel({
     required final String id,
-    required final StudentGradeLevel gradeLevel,
-    required final String parentPhone,
-    required final DateTime createdAt,
+    @JsonKey(name: 'grade_level') required final StudentGradeLevel gradeLevel,
+    @JsonKey(name: 'parent_phone') required final String parentPhone,
+    @JsonKey(name: 'created_at') required final DateTime createdAt,
   }) = _$StudentModelImpl;
 
   factory _StudentModel.fromJson(Map<String, dynamic> json) =
@@ -228,10 +234,13 @@ abstract class _StudentModel implements StudentModel {
   @override
   String get id;
   @override
+  @JsonKey(name: 'grade_level')
   StudentGradeLevel get gradeLevel;
   @override
+  @JsonKey(name: 'parent_phone')
   String get parentPhone;
   @override
+  @JsonKey(name: 'created_at')
   DateTime get createdAt;
 
   /// Create a copy of StudentModel

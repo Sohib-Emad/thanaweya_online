@@ -9,17 +9,17 @@ enum VideoSourceType { youtube, upload }
 class LessonModel with _$LessonModel {
   const factory LessonModel({
     required String id,
-    required String courseId,
+    @JsonKey(name: 'course_id') required String courseId,
     required String title,
     String? description,
-    required VideoSourceType videoSourceType,
-    required String videoUrlOrId,
-    int? durationSeconds,
-    String? thumbnailUrl,
-    @Default(false) bool isFreePreview,
+    @JsonKey(name: 'video_source_type') required VideoSourceType videoSourceType,
+    @JsonKey(name: 'video_url_or_id') required String videoUrlOrId,
+    @JsonKey(name: 'duration_seconds') int? durationSeconds,
+    @JsonKey(name: 'thumbnail_url') String? thumbnailUrl,
+    @JsonKey(name: 'is_free_preview') @Default(false) bool isFreePreview,
     @Default(0) int order,
-    required DateTime createdAt,
-    required DateTime updatedAt,
+    @JsonKey(name: 'created_at') required DateTime createdAt,
+    @JsonKey(name: 'updated_at') required DateTime updatedAt,
   }) = _LessonModel;
 
   factory LessonModel.fromJson(Map<String, dynamic> json) =>

@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/router/app_router.dart';
+import '../../../../core/utils/formatters.dart';
+import 'package:thanaweya_online/features/shared/models/lesson_model.dart';
+import 'package:thanaweya_online/features/student/data/repos/student_courses_repo.dart';
+import 'package:thanaweya_online/features/student/logic/student_courses_cubit.dart';
 
 class CourseDetailsScreen extends StatefulWidget {
   final String courseId;
@@ -18,46 +23,64 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
   int _selectedTab = 0; // 0 = About, 1 = Curriculum
   bool _isDescriptionExpanded = false;
 
-  final List<Map<String, dynamic>> _curriculumSections = [
-    {
-      'sectionNumber': 'القسم 01',
-      'title': 'المقدمة والأساسيات',
-      'totalDuration': '25 دقيقة',
-      'lessons': [
-        {
-          'number': '01',
-          'title': 'لماذا نعتمد الشحنات الكهربية في الفيزياء؟',
-          'duration': '15 دقيقة',
-          'isUnlocked': true,
-        },
-        {
-          'number': '02',
-          'title': 'إعداد وتحضير الأدوات وقوانين الحركة',
-          'duration': '10 دقائق',
-          'isUnlocked': true,
-        },
-      ],
-    },
-    {
-      'sectionNumber': 'القسم 02',
-      'title': 'قانون أوم وتوصيل المقاومات',
-      'totalDuration': '55 دقيقة',
-      'lessons': [
-        {
-          'number': '03',
-          'title': 'حساب الشدة والفرق في الجهد الكهربائي',
-          'duration': '25 دقيقة',
-          'isUnlocked': false,
-        },
-        {
-          'number': '04',
-          'title': 'تطبيقات عملي وحل المسائل الصعبة',
-          'duration': '30 دقيقة',
-          'isUnlocked': false,
-        },
-      ],
-    },
-  ];
+  late final StudentCoursesCubit _coursesCubit;
+
+  @override
+  void initState() {
+    super.initState();
+    _coursesCubit = StudentCoursesCubit(repo: StudentCoursesRepo());
+    _coursesCubit.loadCourse(widget.courseId);
+    _coursesCubit.loadCourseLessons(widget.courseId);
+  }
+
+  @override
+  void dispose() {
+    _coursesCubit.close();
+    super.dispose();
+  }
+
+  int _lessonCountOf(dynamic lessons) {
+    if (lessons is Map) return (lessons['count'] as int?) ?? 0;
+    if (lessons is List && lessons.isNotEmpty) {
+      final first = lessons.first;
+      if (first is Map) return (first['count'] as int?) ?? 0;
+    }
+    return 0;
+  }
+
+  List<Map<String, dynamic>> _buildCurriculumSections(
+    List<LessonModel> lessons,
+  ) {
+    if (lessons.isEmpty) return const [];
+    final totalSeconds = lessons.fold<int>(
+      0,
+      (sum, l) => sum + (l.durationSeconds ?? 0),
+    );
+    return [
+      {
+        'sectionNumber': 'القسم 01',
+        'title': 'دروس الكورس',
+        'totalDuration': totalSeconds > 0
+            ? Formatters.formatDurationMinutes((totalSeconds / 60).ceil())
+            : '',
+        'lessons': [
+          for (var i = 0; i < lessons.length; i++)
+            {
+              'id': lessons[i].id,
+              'videoUrl': lessons[i].videoUrlOrId,
+              'number': (i + 1).toString().padLeft(2, '0'),
+              'title': lessons[i].title,
+              'duration': lessons[i].durationSeconds != null
+                  ? Formatters.formatDurationMinutes(
+                      (lessons[i].durationSeconds! / 60).ceil(),
+                    )
+                  : '',
+              'isUnlocked': true,
+            },
+        ],
+      },
+    ];
+  }
 
   final List<Map<String, dynamic>> _whatYouGetList = [
     {
@@ -109,6 +132,43 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    return BlocBuilder<StudentCoursesCubit, StudentCoursesState>(
+      bloc: _coursesCubit,
+      builder: (context, state) {
+        if (state.courseStatus == StudentCoursesStatus.loading &&
+            state.course == null) {
+          return const Directionality(
+            textDirection: TextDirection.rtl,
+            child: Scaffold(
+              backgroundColor: Color(0xFFF8FAFC),
+              body: Center(child: CircularProgressIndicator()),
+            ),
+          );
+        }
+        return _buildScreen(context, state);
+      },
+    );
+  }
+
+  Widget _buildScreen(BuildContext context, StudentCoursesState state) {
+    final course = state.course ?? const <String, dynamic>{};
+    final teachers = course['teachers'] as Map<String, dynamic>? ?? const {};
+    final users = teachers['users'] as Map<String, dynamic>? ?? const {};
+    final subjects = teachers['subjects'] as Map<String, dynamic>? ?? const {};
+    final teacherName = users['full_name'] as String? ?? 'مدرس';
+    final teacherInitial = teacherName.isNotEmpty ? teacherName[0] : 'م';
+    final teacherId = teachers['id'] as String? ?? '';
+    final subjectName = subjects['name_ar'] as String? ?? '';
+    final lessonCount = _lessonCountOf(course['lessons']);
+    final description = course['description'] as String? ?? '';
+    final totalSeconds = state.lessons.fold<int>(
+      0,
+      (sum, l) => sum + (l.durationSeconds ?? 0),
+    );
+    final totalDurationText = totalSeconds > 0
+        ? Formatters.formatDurationMinutes((totalSeconds / 60).ceil())
+        : '28 ساعة';
+
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
@@ -206,7 +266,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'الفيزياء الكهربية ⚡',
+                              subjectName,
                               style: GoogleFonts.cairo(
                                 fontSize: 12.sp,
                                 fontWeight: FontWeight.w800,
@@ -236,7 +296,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                         SizedBox(height: 6.h),
 
                         Text(
-                          'مبادئ وتطبيقات الفيزياء الكهربية والدوائر المركبة',
+                          course['title'] as String? ?? '',
                           style: GoogleFonts.cairo(
                             fontSize: 18.sp,
                             fontWeight: FontWeight.w900,
@@ -256,7 +316,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                             ),
                             SizedBox(width: 4.w),
                             Text(
-                              '25 درس',
+                              '$lessonCount درس',
                               style: GoogleFonts.cairo(
                                 fontSize: 12.sp,
                                 color: const Color(0xFF64748B),
@@ -279,7 +339,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                             ),
                             SizedBox(width: 4.w),
                             Text(
-                              '28 ساعة',
+                              totalDurationText,
                               style: GoogleFonts.cairo(
                                 fontSize: 12.sp,
                                 color: const Color(0xFF64748B),
@@ -401,8 +461,14 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
 
                   // 4. Tab Body Content
                   _selectedTab == 0
-                      ? _buildAboutTabContent()
-                      : _buildCurriculumTabContent(),
+                      ? _buildAboutTabContent(
+                          description: description,
+                          teacherName: teacherName,
+                          teacherInitial: teacherInitial,
+                          teacherId: teacherId,
+                          subjectName: subjectName,
+                        )
+                      : _buildCurriculumTabContent(state),
                 ],
               ),
             ),
@@ -470,7 +536,13 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
   }
 
   // ── ABOUT TAB ──
-  Widget _buildAboutTabContent() {
+  Widget _buildAboutTabContent({
+    required String description,
+    required String teacherName,
+    required String teacherInitial,
+    required String teacherId,
+    required String subjectName,
+  }) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 20.w),
       child: Column(
@@ -478,7 +550,9 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
         children: [
           // Description
           Text(
-            'هذا الكورس مصمم خصيصاً لطلاب الثانوية العامة لبناء أساس متين وحل جميع أنواع مسائل الفيزياء الكهربية بكل سهولة وبدون تعقيد. يتضمن الكورس مراجعات شاملة، حل أسئلة الامتحانات السابقة، واختبارات تفاعلية.',
+            description.isEmpty
+                ? 'هذا الكورس مصمم خصيصاً لطلاب الثانوية العامة لبناء أساس متين وحل جميع أنواع مسائل الفيزياء الكهربية بكل سهولة وبدون تعقيد. يتضمن الكورس مراجعات شاملة، حل أسئلة الامتحانات السابقة، واختبارات تفاعلية.'
+                : description,
             style: GoogleFonts.cairo(
               fontSize: 13.sp,
               color: const Color(0xFF475569),
@@ -516,8 +590,11 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
           ),
           SizedBox(height: 12.h),
           GestureDetector(
-            onTap: () =>
-                Navigator.pushNamed(context, AppRouter.studentTeacherPage),
+            onTap: () => Navigator.pushNamed(
+              context,
+              AppRouter.studentTeacherPage,
+              arguments: {'teacherId': teacherId, 'title': teacherName},
+            ),
             child: Container(
               padding: EdgeInsets.all(12.r),
               decoration: BoxDecoration(
@@ -531,7 +608,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                     radius: 24.r,
                     backgroundColor: const Color(0xFF0FA37F),
                     child: Text(
-                      'م',
+                      teacherInitial,
                       style: GoogleFonts.cairo(
                         fontSize: 18.sp,
                         fontWeight: FontWeight.w800,
@@ -545,7 +622,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'أ. محمد علي',
+                          teacherName,
                           style: GoogleFonts.cairo(
                             fontSize: 15.sp,
                             fontWeight: FontWeight.w800,
@@ -553,7 +630,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                           ),
                         ),
                         Text(
-                          'خبير مادة الفيزياء للثانوية العامة',
+                          subjectName.isEmpty ? 'مدرس' : subjectName,
                           style: GoogleFonts.cairo(
                             fontSize: 11.sp,
                             color: const Color(0xFF64748B),
@@ -633,8 +710,11 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                 ),
               ),
               GestureDetector(
-                onTap: () =>
-                    Navigator.pushNamed(context, AppRouter.studentReviews),
+                onTap: () => Navigator.pushNamed(
+                  context,
+                  AppRouter.studentReviews,
+                  arguments: widget.courseId,
+                ),
                 child: Text(
                   'عرض الكل >',
                   style: GoogleFonts.cairo(
@@ -761,12 +841,12 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
   }
 
   // ── CURRICULUM TAB ──
-  Widget _buildCurriculumTabContent() {
+  Widget _buildCurriculumTabContent(StudentCoursesState state) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 20.w),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: _curriculumSections.map((sec) {
+        children: _buildCurriculumSections(state.lessons).map((sec) {
           final sectionNumber = sec['sectionNumber'] as String;
           final title = sec['title'] as String;
           final totalDuration = sec['totalDuration'] as String;
@@ -807,7 +887,16 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                 return GestureDetector(
                   onTap: () {
                     HapticFeedback.lightImpact();
-                    Navigator.pushNamed(context, AppRouter.studentVideoPlayer);
+                    Navigator.pushNamed(
+                      context,
+                      AppRouter.studentVideoPlayer,
+                      arguments: {
+                        'lessonId': les['id'],
+                        'videoUrl': les['videoUrl'],
+                        'title': lesTitle,
+                        'courseId': widget.courseId,
+                      },
+                    );
                   },
                   child: Container(
                     margin: EdgeInsets.only(bottom: 12.h),

@@ -3,7 +3,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:thanaweya_online/core/network/api_error_handler.dart';
 import 'package:thanaweya_online/core/network/api_result.dart';
 
-
 class StudentOnboardingRepo {
   final SupabaseClient _client = Supabase.instance.client;
 
@@ -20,13 +19,17 @@ class StudentOnboardingRepo {
     }
   }
 
-  Future<ApiResult<List<Map<String, dynamic>>>> getTeachersBySubject(
-      String subjectId) async {
+  Future<ApiResult<List<Map<String, dynamic>>>> getTeachers() async {
     try {
-      final data = await _client.from('teachers').select('''
+      final data = await _client
+          .from('teachers')
+          .select('''
             id, stage, bio, approval_status, created_at,
-            users!inner(id, full_name, avatar_url)
-          ''').eq('subject_id', subjectId).eq('approval_status', 'approved');
+            users!inner(id, full_name, avatar_url),
+            subjects(id, name_ar)
+          ''')
+          .eq('approval_status', 'approved')
+          .order('created_at');
       return ApiResult.success(data);
     } catch (e) {
       return ApiErrorHandler.handleException(e);
@@ -52,31 +55,36 @@ class StudentOnboardingRepo {
 
   Future<ApiResult<void>> activateSubscription({
     required String studentId,
-    required String teacherId,
+    String? teacherId,
     required String activationCode,
   }) async {
     try {
-      final codeData = await _client
+      var query = _client
           .from('activation_codes')
           .select()
           .eq('code', activationCode)
-          .eq('is_used', false)
-          .eq('teacher_id', teacherId)
-          .maybeSingle();
+          .eq('is_used', false);
+      if (teacherId != null) {
+        query = query.eq('teacher_id', teacherId);
+      }
+      final codeData = await query.maybeSingle();
 
       if (codeData == null) {
         return const ApiResult.failure('كود التفعيل غير صحيح أو مستخدم بالفعل');
       }
 
-      await _client.from('activation_codes').update({
-        'is_used': true,
-        'used_by': studentId,
-        'used_at': DateTime.now().toIso8601String(),
-      }).eq('id', codeData['id']);
+      await _client
+          .from('activation_codes')
+          .update({
+            'is_used': true,
+            'used_by': studentId,
+            'used_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', codeData['id']);
 
       await _client.from('subscriptions').insert({
         'student_id': studentId,
-        'teacher_id': teacherId,
+        'teacher_id': codeData['teacher_id'],
         'activation_code_id': codeData['id'],
         'status': 'active',
       });
@@ -88,15 +96,45 @@ class StudentOnboardingRepo {
   }
 
   Future<ApiResult<List<Map<String, dynamic>>>> getSubscriptions(
-      String studentId) async {
+    String studentId,
+  ) async {
     try {
-      final data = await _client.from('subscriptions').select('''
-            id, status, starts_at, expires_at, created_at,
-            teachers!inner(id, subject_id, stage,
-              users!inner(id, full_name, avatar_url)
-            )
-          ''').eq('student_id', studentId).eq('status', 'active');
-      return ApiResult.success(data);
+      final subData = await _client
+          .from('subscriptions')
+          .select('id, teacher_id, status, starts_at, expires_at, created_at')
+          .eq('student_id', studentId)
+          .eq('status', 'active');
+
+      if (subData.isEmpty) return const ApiResult.success([]);
+
+      final teacherIds = subData.map((e) => e['teacher_id'] as String).toList();
+
+      final teachersData = await _client
+          .from('teachers')
+          .select('id, subject_id, stage')
+          .inFilter('id', teacherIds);
+
+      final usersData = await _client
+          .from('users')
+          .select('id, full_name, avatar_url')
+          .inFilter('id', teacherIds);
+
+      final usersMap = {for (final u in usersData) u['id'] as String: u};
+      final teachersMap = {for (final t in teachersData) t['id'] as String: t};
+
+      final result = <Map<String, dynamic>>[];
+      for (final sub in subData) {
+        final teacherId = sub['teacher_id'] as String;
+        result.add({
+          ...sub,
+          'teachers': {
+            ...?teachersMap[teacherId],
+            'users': usersMap[teacherId],
+          },
+        });
+      }
+
+      return ApiResult.success(result);
     } catch (e) {
       return ApiErrorHandler.handleException(e);
     }
@@ -108,10 +146,10 @@ class StudentOnboardingRepo {
     required String phone,
   }) async {
     try {
-      await _client.from('users').update({
-        'full_name': fullName,
-        'phone': phone,
-      }).eq('id', userId);
+      await _client
+          .from('users')
+          .update({'full_name': fullName, 'phone': phone})
+          .eq('id', userId);
       return const ApiResult.success(null);
     } catch (e) {
       return ApiErrorHandler.handleException(e);

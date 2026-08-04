@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../student/data/repos/student_onboarding_repo.dart';
 
 class StudentEditProfileScreen extends StatefulWidget {
   const StudentEditProfileScreen({super.key});
@@ -14,12 +16,34 @@ class StudentEditProfileScreen extends StatefulWidget {
 }
 
 class _StudentEditProfileScreenState extends State<StudentEditProfileScreen> {
-  final _nameController = TextEditingController(text: 'صهيب عماد (Alex)');
+  final _nameController = TextEditingController();
   final _nickNameController = TextEditingController(text: 'صهيب');
   final _dobController = TextEditingController(text: '12/10/2005');
-  final _emailController = TextEditingController(text: 'sohibemad@gmail.com');
-  final _phoneController = TextEditingController(text: '01012345678');
+  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
   String _selectedGender = 'ذكر (Male)';
+  String _userId = '';
+
+  @override
+  void initState() {
+    super.initState();
+    final auth = Supabase.instance.client.auth;
+    final user = auth.currentUser;
+    _userId = user?.id ?? '';
+    _nameController.text = user?.userMetadata?['full_name']?.toString() ?? '';
+    _phoneController.text = user?.userMetadata?['phone']?.toString() ?? '';
+    _emailController.text = user?.email ?? '';
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _nickNameController.dispose();
+    _dobController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -152,6 +176,7 @@ class _StudentEditProfileScreenState extends State<StudentEditProfileScreen> {
                 controller: _emailController,
                 icon: Icons.email_outlined,
                 keyboardType: TextInputType.emailAddress,
+                enabled: false,
               ),
 
               SizedBox(height: 16.h),
@@ -249,19 +274,34 @@ class _StudentEditProfileScreenState extends State<StudentEditProfileScreen> {
                 width: double.infinity,
                 height: 54.h,
                 child: ElevatedButton(
-                  onPressed: () {
+                  onPressed: () async {
                     HapticFeedback.mediumImpact();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'تم تحديث بيانات الملف الشخصي بنجاح! ⚡',
-                          style: GoogleFonts.cairo(fontWeight: FontWeight.w700),
-                        ),
-                        backgroundColor: AppColors.studentPrimary,
-                        behavior: SnackBarBehavior.floating,
-                      ),
+                    final result = await StudentOnboardingRepo()
+                        .updateStudentProfile(
+                      userId: _userId,
+                      fullName: _nameController.text.trim(),
+                      phone: _phoneController.text.trim(),
                     );
-                    Navigator.pop(context);
+                    if (!mounted) return;
+                    result.when(
+                      success: (_) => Navigator.pop(context, true),
+                      failure: (message, statusCode) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              message.isEmpty
+                                  ? 'حدث خطأ أثناء تحديث البيانات'
+                                  : message,
+                              style: GoogleFonts.cairo(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            backgroundColor: const Color(0xFFDC2626),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      },
+                    );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF2563EB),
@@ -312,6 +352,7 @@ class _StudentEditProfileScreenState extends State<StudentEditProfileScreen> {
     required TextEditingController controller,
     required IconData icon,
     bool isReadOnly = false,
+    bool enabled = true,
     VoidCallback? onTap,
     TextInputType keyboardType = TextInputType.text,
   }) {
@@ -324,6 +365,7 @@ class _StudentEditProfileScreenState extends State<StudentEditProfileScreen> {
       child: TextField(
         controller: controller,
         readOnly: isReadOnly,
+        enabled: enabled,
         onTap: onTap,
         keyboardType: keyboardType,
         decoration: InputDecoration(

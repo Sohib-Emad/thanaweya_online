@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/router/app_router.dart';
@@ -21,6 +22,18 @@ class StudentProfileTab extends StatefulWidget {
 class _StudentProfileTabState extends State<StudentProfileTab> {
   bool _isDarkMode = false;
   String _selectedLanguage = 'English (US)';
+  String _fullName = 'طالب';
+  String _email = '';
+
+  @override
+  void initState() {
+    super.initState();
+    final auth = Supabase.instance.client.auth;
+    final user = auth.currentUser;
+    final fullName = user?.userMetadata?['full_name']?.toString().trim() ?? '';
+    _fullName = fullName.isEmpty ? 'طالب' : fullName;
+    _email = user?.email ?? '';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -98,10 +111,13 @@ class _StudentProfileTabState extends State<StudentProfileTab> {
                           ),
                           child: CircleAvatar(
                             backgroundColor: const Color(0xFFCBD5E1),
-                            child: Icon(
-                              Icons.person_rounded,
-                              size: 54.r,
-                              color: Colors.white,
+                            child: Text(
+                              _fullName.substring(0, 1),
+                              style: GoogleFonts.cairo(
+                                fontSize: 40.sp,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
                         ),
@@ -139,7 +155,7 @@ class _StudentProfileTabState extends State<StudentProfileTab> {
                     ),
                     SizedBox(height: 12.h),
                     Text(
-                      'صهيب عماد (Alex)',
+                      _fullName,
                       style: GoogleFonts.cairo(
                         fontSize: 18.sp,
                         fontWeight: FontWeight.w900,
@@ -148,7 +164,7 @@ class _StudentProfileTabState extends State<StudentProfileTab> {
                     ),
                     SizedBox(height: 2.h),
                     Text(
-                      'sohibemad.redial@gmail.com',
+                      _email,
                       style: GoogleFonts.cairo(
                         fontSize: 12.sp,
                         color: const Color(0xFF64748B),
@@ -163,9 +179,7 @@ class _StudentProfileTabState extends State<StudentProfileTab> {
               // Menu Card
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
                   borderRadius: BorderRadius.circular(24.r),
-                  border: Border.all(color: const Color(0xFFF1F5F9)),
                   boxShadow: const [
                     BoxShadow(
                       color: Color(0x060F172A),
@@ -174,7 +188,14 @@ class _StudentProfileTabState extends State<StudentProfileTab> {
                     ),
                   ],
                 ),
-                child: Column(
+                child: Material(
+                  color: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24.r),
+                    side: const BorderSide(color: Color(0xFFF1F5F9)),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Column(
                   children: [
                     _buildMenuItem(
                       icon: Icons.person_outline_rounded,
@@ -302,6 +323,7 @@ class _StudentProfileTabState extends State<StudentProfileTab> {
                     ),
                   ],
                 ),
+              ),
               ),
             ],
           ),

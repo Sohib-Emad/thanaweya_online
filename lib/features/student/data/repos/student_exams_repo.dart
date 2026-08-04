@@ -16,7 +16,8 @@ class StudentExamsRepo {
             id, title, duration_minutes, start_at, end_at, max_score, is_published, created_at,
             teachers!inner(id, subject_id,
               users!inner(id, full_name)
-            )
+            ),
+            questions(count)
           ''').eq('is_published', true).lte('start_at', now).gte('end_at', now);
       return ApiResult.success(data);
     } catch (e) {

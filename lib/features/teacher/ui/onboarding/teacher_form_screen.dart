@@ -2,13 +2,20 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:thanaweya_online/core/constants/app_colors.dart';
 import 'package:thanaweya_online/core/constants/app_strings.dart';
 import 'package:thanaweya_online/core/router/app_router.dart';
+import 'package:thanaweya_online/core/supabase/storage_helper.dart';
+import 'package:thanaweya_online/core/utils/validators.dart';
+import 'package:thanaweya_online/features/auth/data/repos/auth_repo.dart';
+import 'package:thanaweya_online/features/auth/logic/auth_cubit.dart';
+import 'package:thanaweya_online/features/auth/logic/auth_state.dart' as local;
 
 class TeacherFormScreen extends StatefulWidget {
   const TeacherFormScreen({super.key});
@@ -32,28 +39,7 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
       0; // 0 = عامة (قديم), 1 = البكالوريا (IB), 2 = كلا النظامين
   final Set<String> _selectedSubjectIds = {};
   final Set<String> _selectedTrackIds = {};
-  final List<Map<String, dynamic>> _teacherSubjectsList = [
-    {'id': 's1', 'name_ar': 'اللغة العربية'},
-    {'id': 's2', 'name_ar': 'اللغة الإنجليزية'},
-    {'id': 's3', 'name_ar': 'اللغة الفرنساوية'},
-    {'id': 's4', 'name_ar': 'اللغة الألمانية'},
-    {'id': 's5', 'name_ar': 'اللغة الإيطالية'},
-    {'id': 's6', 'name_ar': 'الرياضيات العامة'},
-    {'id': 's7', 'name_ar': 'الرياضيات البحتة'},
-    {'id': 's8', 'name_ar': 'الرياضيات التطبيقية (ميكانيكا)'},
-    {'id': 's9', 'name_ar': 'الفيزياء'},
-    {'id': 's10', 'name_ar': 'الكيمياء'},
-    {'id': 's11', 'name_ar': 'الأحياء'},
-    {'id': 's12', 'name_ar': 'الجيولوجيا وعلوم البيئة'},
-    {'id': 's13', 'name_ar': 'العلوم العامة (إعدادي)'},
-    {'id': 's14', 'name_ar': 'التاريخ'},
-    {'id': 's15', 'name_ar': 'الجغرافيا'},
-    {'id': 's16', 'name_ar': 'الفلسفة والمنطق'},
-    {'id': 's17', 'name_ar': 'علم النفس والاجتماع'},
-    {'id': 's18', 'name_ar': 'الاقتصاد والإحصاء'},
-    {'id': 's19', 'name_ar': 'الحاسب الآلي وتكنولوجيا المعلومات'},
-    {'id': 's20', 'name_ar': 'التربية الدينية والوطنية'},
-  ];
+  List<Map<String, dynamic>> _teacherSubjectsList = [];
 
   final List<Map<String, dynamic>> _baccalaureateTracks = [
     {
@@ -112,9 +98,9 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
   XFile? _teacherProofFile;
 
   int _currentStep = 0; // 0, 1, 2
-  bool _isLoading = false;
 
   final ImagePicker _picker = ImagePicker();
+  late final AuthCubit _authCubit;
 
   final _stages = [
     {'value': 'first', 'name': AppStrings.firstStage},
@@ -133,7 +119,30 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _authCubit = AuthCubit(authRepo: AuthRepo());
+    _loadSubjects();
+  }
+
+  Future<void> _loadSubjects() async {
+    try {
+      final data = await Supabase.instance.client
+          .from('subjects')
+          .select('id, name_ar')
+          .eq('is_active', true)
+          .order('display_order');
+      if (mounted) {
+        setState(() => _teacherSubjectsList = List<Map<String, dynamic>>.from(data));
+      }
+    } catch (e) {
+      debugPrint('[TeacherForm] failed to load subjects: $e');
+    }
+  }
+
+  @override
   void dispose() {
+    _authCubit.close();
     _nameController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
@@ -375,110 +384,161 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
       return;
     }
     HapticFeedback.mediumImpact();
-    setState(() => _isLoading = true);
-    Future.delayed(const Duration(milliseconds: 900), () {
-      if (!mounted) return;
-      setState(() => _isLoading = false);
-      Navigator.pushNamedAndRemoveUntil(
-        context,
-        AppRouter.teacherPending,
-        (route) => false,
+    _authCubit.signUp(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+          fullName: _nameController.text.trim(),
+          phone: _phoneController.text.trim(),
+          role: 'teacher',
+        );
+  }
+
+  Future<void> _upsertTeacherData() async {
+    try {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) return;
+
+      final stageMap = {
+        'first': 'first',
+        'second': 'second',
+        'third': 'third',
+      };
+      final stage =
+          _selectedStages.isNotEmpty ? stageMap[_selectedStages.first] : null;
+
+      final urls = await StorageHelper.uploadTeacherDocuments(
+        userId: userId,
+        files: {
+          'avatar': _avatarFile,
+          'id_front': _idFrontFile,
+          'id_back': _idBackFile,
+          'proof': _teacherProofFile,
+        },
       );
-    });
+
+      await Supabase.instance.client.from('teachers').upsert({
+        'id': userId,
+        'subject_id': _selectedSubjectIds.isNotEmpty
+            ? _selectedSubjectIds.first
+            : null,
+        'stage': stage,
+        'bio': _bioController.text.trim().isNotEmpty
+            ? _bioController.text.trim()
+            : null,
+        'approval_status': 'pending',
+        'avatar_url': urls['avatar'],
+        'id_card_front_url': urls['id_front'],
+        'id_card_back_url': urls['id_back'],
+        'teacher_proof_url': urls['proof'],
+      }, onConflict: 'id');
+
+      if (urls['avatar'] != null) {
+        await Supabase.instance.client.from('users').update({
+          'avatar_url': urls['avatar'],
+        }).eq('id', userId);
+      }
+
+      debugPrint('[TeacherForm] upserted teacher data with document URLs');
+    } catch (e) {
+      debugPrint('[TeacherForm] upsert teacher data failed: $e');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        body: SafeArea(
-          child: Column(
-            children: [
-              // 1. Top Navigation Bar (Centered Title + Back Arrow)
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Text(
-                      'طلب الالتحاق',
-                      style: GoogleFonts.cairo(
-                        fontSize: 20.sp,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF0F172A),
-                      ),
-                    ),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: IconButton(
-                        onPressed: () {
-                          if (_currentStep > 0) {
-                            _prevStep();
-                          } else {
-                            Navigator.pop(context);
-                          }
-                        },
-                        icon: Icon(
-                          Icons.chevron_right_rounded,
+    return BlocProvider.value(
+      value: _authCubit,
+      child: Directionality(
+        textDirection: TextDirection.rtl,
+        child: Scaffold(
+          backgroundColor: Colors.white,
+          body: SafeArea(
+            child: Column(
+              children: [
+                // 1. Top Navigation Bar (Centered Title + Back Arrow)
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Text(
+                        'طلب الالتحاق',
+                        style: GoogleFonts.cairo(
+                          fontSize: 20.sp,
+                          fontWeight: FontWeight.w800,
                           color: const Color(0xFF0F172A),
-                          size: 30.r,
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-
-              SizedBox(height: 8.h),
-
-              // 2. Stepper Progress Bar (3 Connected Dots)
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24.w),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _StepItem(
-                      label: 'بيانات المعلم',
-                      isActive: _currentStep >= 0,
-                      isCompleted: _currentStep > 0,
-                    ),
-                    _StepConnector(isActive: _currentStep >= 1),
-                    _StepItem(
-                      label: 'التخصص والمادة',
-                      isActive: _currentStep >= 1,
-                      isCompleted: _currentStep > 1,
-                    ),
-                    _StepConnector(isActive: _currentStep >= 2),
-                    _StepItem(
-                      label: 'المراحل والتواصل',
-                      isActive: _currentStep >= 2,
-                      isCompleted: _currentStep > 2,
-                    ),
-                  ],
-                ),
-              ),
-
-              SizedBox(height: 24.h),
-
-              // 3. Scrollable Step Content with Animated Switcher
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.symmetric(horizontal: 24.w),
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 300),
-                    child: _buildCurrentStepView(),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: IconButton(
+                          onPressed: () {
+                            if (_currentStep > 0) {
+                              _prevStep();
+                            } else {
+                              Navigator.pop(context);
+                            }
+                          },
+                          icon: Icon(
+                            Icons.chevron_right_rounded,
+                            color: const Color(0xFF0F172A),
+                            size: 30.r,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
 
-              // 4. Bottom Buttons Section
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 16.h),
-                child: _buildBottomButtons(),
-              ),
-            ],
+                SizedBox(height: 8.h),
+
+                // 2. Stepper Progress Bar (3 Connected Dots)
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 24.w),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _StepItem(
+                        label: 'بيانات المعلم',
+                        isActive: _currentStep >= 0,
+                        isCompleted: _currentStep > 0,
+                      ),
+                      _StepConnector(isActive: _currentStep >= 1),
+                      _StepItem(
+                        label: 'التخصص والمادة',
+                        isActive: _currentStep >= 1,
+                        isCompleted: _currentStep > 1,
+                      ),
+                      _StepConnector(isActive: _currentStep >= 2),
+                      _StepItem(
+                        label: 'المراحل والتواصل',
+                        isActive: _currentStep >= 2,
+                        isCompleted: _currentStep > 2,
+                      ),
+                    ],
+                  ),
+                ),
+
+                SizedBox(height: 24.h),
+
+                // 3. Scrollable Step Content with Animated Switcher
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.symmetric(horizontal: 24.w),
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      child: _buildCurrentStepView(),
+                    ),
+                  ),
+                ),
+
+                // 4. Bottom Buttons Section
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 16.h),
+                  child: _buildBottomButtons(),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -589,7 +649,7 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
             prefixIcon: Icons.phone_outlined,
             keyboardType: TextInputType.phone,
             textDirection: TextDirection.ltr,
-            validator: (v) => v!.isEmpty ? AppStrings.fieldRequired : null,
+            validator: Validators.phone,
           ),
 
           SizedBox(height: 18.h),
@@ -602,7 +662,7 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
             hintText: 'example@email.com',
             keyboardType: TextInputType.emailAddress,
             textDirection: TextDirection.ltr,
-            validator: (v) => v!.isEmpty ? AppStrings.fieldRequired : null,
+            validator: Validators.email,
           ),
 
           SizedBox(height: 18.h),
@@ -821,8 +881,8 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
               spacing: 8.w,
               runSpacing: 10.h,
               children: _teacherSubjectsList.map((subject) {
-                final subjectId = subject['id'] as String;
-                final subjectName = subject['name_ar'] as String;
+                final subjectId = subject['id'] as String? ?? '';
+                final subjectName = subject['name_ar'] as String? ?? '';
                 final isSelected = _selectedSubjectIds.contains(subjectId);
 
                 return GestureDetector(
@@ -937,9 +997,9 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
               separatorBuilder: (_, _) => SizedBox(height: 10.h),
               itemBuilder: (context, index) {
                 final track = _baccalaureateTracks[index];
-                final trackId = track['id'] as String;
-                final trackName = track['name_ar'] as String;
-                final qualifying = track['qualifying'] as String;
+                final trackId = track['id'] as String? ?? '';
+                final trackName = track['name_ar'] as String? ?? '';
+                final qualifying = track['qualifying'] as String? ?? '';
                 final color = track['color'] as Color;
                 final isSelected = _selectedTrackIds.contains(trackId);
 
@@ -1191,6 +1251,96 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
           ),
         ),
       );
+    } else if (_currentStep == 2) {
+      return BlocConsumer<AuthCubit, local.AuthState>(
+        listener: (context, state) {
+          switch (state.status) {
+            case local.AuthStatus.authenticated:
+              _upsertTeacherData();
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                AppRouter.teacherPending,
+                (route) => false,
+              );
+              break;
+            case local.AuthStatus.error:
+              if (state.errorMessage != null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(state.errorMessage!),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+              }
+              break;
+            default:
+              break;
+          }
+        },
+        builder: (context, state) {
+          final isLoading = state.status == local.AuthStatus.loading;
+          return Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 54.h,
+                  child: OutlinedButton(
+                    onPressed: _prevStep,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF64748B),
+                      side: const BorderSide(color: Color(0xFFE2E8F0)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30.r),
+                      ),
+                    ),
+                    child: Text(
+                      'السابق',
+                      style: GoogleFonts.cairo(
+                        fontSize: 15.sp,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(width: 12.w),
+              Expanded(
+                flex: 2,
+                child: SizedBox(
+                  height: 54.h,
+                  child: ElevatedButton(
+                    onPressed: isLoading ? null : _onSubmitFinal,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.studentPrimary,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30.r),
+                      ),
+                    ),
+                    child: isLoading
+                        ? SizedBox(
+                            width: 24.r,
+                            height: 24.r,
+                            child: const CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2.5,
+                            ),
+                          )
+                        : Text(
+                            'إرسال طلب الانضمام',
+                            style: GoogleFonts.cairo(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                            ),
+                          ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      );
     } else {
       return Row(
         children: [
@@ -1230,23 +1380,14 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
                     borderRadius: BorderRadius.circular(30.r),
                   ),
                 ),
-                child: _isLoading
-                    ? SizedBox(
-                        width: 24.r,
-                        height: 24.r,
-                        child: const CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2.5,
-                        ),
-                      )
-                    : Text(
-                        _currentStep == 2 ? 'إرسال طلب الانضمام' : 'التالي',
-                        style: GoogleFonts.cairo(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                        ),
-                      ),
+                child: Text(
+                  'التالي',
+                  style: GoogleFonts.cairo(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
               ),
             ),
           ),

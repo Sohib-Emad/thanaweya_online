@@ -9,25 +9,25 @@ part of 'course_model.dart';
 _$CourseModelImpl _$$CourseModelImplFromJson(Map<String, dynamic> json) =>
     _$CourseModelImpl(
       id: json['id'] as String,
-      teacherId: json['teacherId'] as String,
+      teacherId: json['teacher_id'] as String,
       title: json['title'] as String,
       description: json['description'] as String?,
-      coverImageUrl: json['coverImageUrl'] as String?,
-      isPublished: json['isPublished'] as bool? ?? false,
+      coverImageUrl: json['cover_image_url'] as String?,
+      isPublished: json['is_published'] as bool? ?? false,
       order: (json['order'] as num?)?.toInt() ?? 0,
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      updatedAt: DateTime.parse(json['updatedAt'] as String),
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String),
     );
 
 Map<String, dynamic> _$$CourseModelImplToJson(_$CourseModelImpl instance) =>
     <String, dynamic>{
       'id': instance.id,
-      'teacherId': instance.teacherId,
+      'teacher_id': instance.teacherId,
       'title': instance.title,
       'description': instance.description,
-      'coverImageUrl': instance.coverImageUrl,
-      'isPublished': instance.isPublished,
+      'cover_image_url': instance.coverImageUrl,
+      'is_published': instance.isPublished,
       'order': instance.order,
-      'createdAt': instance.createdAt.toIso8601String(),
-      'updatedAt': instance.updatedAt.toIso8601String(),
+      'created_at': instance.createdAt.toIso8601String(),
+      'updated_at': instance.updatedAt.toIso8601String(),
     };

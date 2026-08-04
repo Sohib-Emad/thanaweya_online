@@ -22,16 +22,24 @@ LessonModel _$LessonModelFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$LessonModel {
   String get id => throw _privateConstructorUsedError;
+  @JsonKey(name: 'course_id')
   String get courseId => throw _privateConstructorUsedError;
   String get title => throw _privateConstructorUsedError;
   String? get description => throw _privateConstructorUsedError;
+  @JsonKey(name: 'video_source_type')
   VideoSourceType get videoSourceType => throw _privateConstructorUsedError;
+  @JsonKey(name: 'video_url_or_id')
   String get videoUrlOrId => throw _privateConstructorUsedError;
+  @JsonKey(name: 'duration_seconds')
   int? get durationSeconds => throw _privateConstructorUsedError;
+  @JsonKey(name: 'thumbnail_url')
   String? get thumbnailUrl => throw _privateConstructorUsedError;
+  @JsonKey(name: 'is_free_preview')
   bool get isFreePreview => throw _privateConstructorUsedError;
   int get order => throw _privateConstructorUsedError;
+  @JsonKey(name: 'created_at')
   DateTime get createdAt => throw _privateConstructorUsedError;
+  @JsonKey(name: 'updated_at')
   DateTime get updatedAt => throw _privateConstructorUsedError;
 
   /// Serializes this LessonModel to a JSON map.
@@ -53,17 +61,17 @@ abstract class $LessonModelCopyWith<$Res> {
   @useResult
   $Res call({
     String id,
-    String courseId,
+    @JsonKey(name: 'course_id') String courseId,
     String title,
     String? description,
-    VideoSourceType videoSourceType,
-    String videoUrlOrId,
-    int? durationSeconds,
-    String? thumbnailUrl,
-    bool isFreePreview,
+    @JsonKey(name: 'video_source_type') VideoSourceType videoSourceType,
+    @JsonKey(name: 'video_url_or_id') String videoUrlOrId,
+    @JsonKey(name: 'duration_seconds') int? durationSeconds,
+    @JsonKey(name: 'thumbnail_url') String? thumbnailUrl,
+    @JsonKey(name: 'is_free_preview') bool isFreePreview,
     int order,
-    DateTime createdAt,
-    DateTime updatedAt,
+    @JsonKey(name: 'created_at') DateTime createdAt,
+    @JsonKey(name: 'updated_at') DateTime updatedAt,
   });
 }
 
@@ -162,17 +170,17 @@ abstract class _$$LessonModelImplCopyWith<$Res>
   @useResult
   $Res call({
     String id,
-    String courseId,
+    @JsonKey(name: 'course_id') String courseId,
     String title,
     String? description,
-    VideoSourceType videoSourceType,
-    String videoUrlOrId,
-    int? durationSeconds,
-    String? thumbnailUrl,
-    bool isFreePreview,
+    @JsonKey(name: 'video_source_type') VideoSourceType videoSourceType,
+    @JsonKey(name: 'video_url_or_id') String videoUrlOrId,
+    @JsonKey(name: 'duration_seconds') int? durationSeconds,
+    @JsonKey(name: 'thumbnail_url') String? thumbnailUrl,
+    @JsonKey(name: 'is_free_preview') bool isFreePreview,
     int order,
-    DateTime createdAt,
-    DateTime updatedAt,
+    @JsonKey(name: 'created_at') DateTime createdAt,
+    @JsonKey(name: 'updated_at') DateTime updatedAt,
   });
 }
 
@@ -263,17 +271,17 @@ class __$$LessonModelImplCopyWithImpl<$Res>
 class _$LessonModelImpl implements _LessonModel {
   const _$LessonModelImpl({
     required this.id,
-    required this.courseId,
+    @JsonKey(name: 'course_id') required this.courseId,
     required this.title,
     this.description,
-    required this.videoSourceType,
-    required this.videoUrlOrId,
-    this.durationSeconds,
-    this.thumbnailUrl,
-    this.isFreePreview = false,
+    @JsonKey(name: 'video_source_type') required this.videoSourceType,
+    @JsonKey(name: 'video_url_or_id') required this.videoUrlOrId,
+    @JsonKey(name: 'duration_seconds') this.durationSeconds,
+    @JsonKey(name: 'thumbnail_url') this.thumbnailUrl,
+    @JsonKey(name: 'is_free_preview') this.isFreePreview = false,
     this.order = 0,
-    required this.createdAt,
-    required this.updatedAt,
+    @JsonKey(name: 'created_at') required this.createdAt,
+    @JsonKey(name: 'updated_at') required this.updatedAt,
   });
 
   factory _$LessonModelImpl.fromJson(Map<String, dynamic> json) =>
@@ -282,28 +290,35 @@ class _$LessonModelImpl implements _LessonModel {
   @override
   final String id;
   @override
+  @JsonKey(name: 'course_id')
   final String courseId;
   @override
   final String title;
   @override
   final String? description;
   @override
+  @JsonKey(name: 'video_source_type')
   final VideoSourceType videoSourceType;
   @override
+  @JsonKey(name: 'video_url_or_id')
   final String videoUrlOrId;
   @override
+  @JsonKey(name: 'duration_seconds')
   final int? durationSeconds;
   @override
+  @JsonKey(name: 'thumbnail_url')
   final String? thumbnailUrl;
   @override
-  @JsonKey()
+  @JsonKey(name: 'is_free_preview')
   final bool isFreePreview;
   @override
   @JsonKey()
   final int order;
   @override
+  @JsonKey(name: 'created_at')
   final DateTime createdAt;
   @override
+  @JsonKey(name: 'updated_at')
   final DateTime updatedAt;
 
   @override
@@ -374,17 +389,18 @@ class _$LessonModelImpl implements _LessonModel {
 abstract class _LessonModel implements LessonModel {
   const factory _LessonModel({
     required final String id,
-    required final String courseId,
+    @JsonKey(name: 'course_id') required final String courseId,
     required final String title,
     final String? description,
+    @JsonKey(name: 'video_source_type')
     required final VideoSourceType videoSourceType,
-    required final String videoUrlOrId,
-    final int? durationSeconds,
-    final String? thumbnailUrl,
-    final bool isFreePreview,
+    @JsonKey(name: 'video_url_or_id') required final String videoUrlOrId,
+    @JsonKey(name: 'duration_seconds') final int? durationSeconds,
+    @JsonKey(name: 'thumbnail_url') final String? thumbnailUrl,
+    @JsonKey(name: 'is_free_preview') final bool isFreePreview,
     final int order,
-    required final DateTime createdAt,
-    required final DateTime updatedAt,
+    @JsonKey(name: 'created_at') required final DateTime createdAt,
+    @JsonKey(name: 'updated_at') required final DateTime updatedAt,
   }) = _$LessonModelImpl;
 
   factory _LessonModel.fromJson(Map<String, dynamic> json) =
@@ -393,26 +409,34 @@ abstract class _LessonModel implements LessonModel {
   @override
   String get id;
   @override
+  @JsonKey(name: 'course_id')
   String get courseId;
   @override
   String get title;
   @override
   String? get description;
   @override
+  @JsonKey(name: 'video_source_type')
   VideoSourceType get videoSourceType;
   @override
+  @JsonKey(name: 'video_url_or_id')
   String get videoUrlOrId;
   @override
+  @JsonKey(name: 'duration_seconds')
   int? get durationSeconds;
   @override
+  @JsonKey(name: 'thumbnail_url')
   String? get thumbnailUrl;
   @override
+  @JsonKey(name: 'is_free_preview')
   bool get isFreePreview;
   @override
   int get order;
   @override
+  @JsonKey(name: 'created_at')
   DateTime get createdAt;
   @override
+  @JsonKey(name: 'updated_at')
   DateTime get updatedAt;
 
   /// Create a copy of LessonModel

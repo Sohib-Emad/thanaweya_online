@@ -23,11 +23,15 @@ UserModel _$UserModelFromJson(Map<String, dynamic> json) {
 mixin _$UserModel {
   String get id => throw _privateConstructorUsedError;
   String get email => throw _privateConstructorUsedError;
+  @JsonKey(name: 'full_name')
   String get fullName => throw _privateConstructorUsedError;
   String get phone => throw _privateConstructorUsedError;
   UserRole get role => throw _privateConstructorUsedError;
+  @JsonKey(name: 'avatar_url')
   String? get avatarUrl => throw _privateConstructorUsedError;
+  @JsonKey(name: 'created_at')
   DateTime get createdAt => throw _privateConstructorUsedError;
+  @JsonKey(name: 'updated_at')
   DateTime get updatedAt => throw _privateConstructorUsedError;
 
   /// Serializes this UserModel to a JSON map.
@@ -48,12 +52,12 @@ abstract class $UserModelCopyWith<$Res> {
   $Res call({
     String id,
     String email,
-    String fullName,
+    @JsonKey(name: 'full_name') String fullName,
     String phone,
     UserRole role,
-    String? avatarUrl,
-    DateTime createdAt,
-    DateTime updatedAt,
+    @JsonKey(name: 'avatar_url') String? avatarUrl,
+    @JsonKey(name: 'created_at') DateTime createdAt,
+    @JsonKey(name: 'updated_at') DateTime updatedAt,
   });
 }
 
@@ -133,12 +137,12 @@ abstract class _$$UserModelImplCopyWith<$Res>
   $Res call({
     String id,
     String email,
-    String fullName,
+    @JsonKey(name: 'full_name') String fullName,
     String phone,
     UserRole role,
-    String? avatarUrl,
-    DateTime createdAt,
-    DateTime updatedAt,
+    @JsonKey(name: 'avatar_url') String? avatarUrl,
+    @JsonKey(name: 'created_at') DateTime createdAt,
+    @JsonKey(name: 'updated_at') DateTime updatedAt,
   });
 }
 
@@ -210,12 +214,12 @@ class _$UserModelImpl implements _UserModel {
   const _$UserModelImpl({
     required this.id,
     required this.email,
-    required this.fullName,
+    @JsonKey(name: 'full_name') required this.fullName,
     required this.phone,
     required this.role,
-    this.avatarUrl,
-    required this.createdAt,
-    required this.updatedAt,
+    @JsonKey(name: 'avatar_url') this.avatarUrl,
+    @JsonKey(name: 'created_at') required this.createdAt,
+    @JsonKey(name: 'updated_at') required this.updatedAt,
   });
 
   factory _$UserModelImpl.fromJson(Map<String, dynamic> json) =>
@@ -226,16 +230,20 @@ class _$UserModelImpl implements _UserModel {
   @override
   final String email;
   @override
+  @JsonKey(name: 'full_name')
   final String fullName;
   @override
   final String phone;
   @override
   final UserRole role;
   @override
+  @JsonKey(name: 'avatar_url')
   final String? avatarUrl;
   @override
+  @JsonKey(name: 'created_at')
   final DateTime createdAt;
   @override
+  @JsonKey(name: 'updated_at')
   final DateTime updatedAt;
 
   @override
@@ -294,12 +302,12 @@ abstract class _UserModel implements UserModel {
   const factory _UserModel({
     required final String id,
     required final String email,
-    required final String fullName,
+    @JsonKey(name: 'full_name') required final String fullName,
     required final String phone,
     required final UserRole role,
-    final String? avatarUrl,
-    required final DateTime createdAt,
-    required final DateTime updatedAt,
+    @JsonKey(name: 'avatar_url') final String? avatarUrl,
+    @JsonKey(name: 'created_at') required final DateTime createdAt,
+    @JsonKey(name: 'updated_at') required final DateTime updatedAt,
   }) = _$UserModelImpl;
 
   factory _UserModel.fromJson(Map<String, dynamic> json) =
@@ -310,16 +318,20 @@ abstract class _UserModel implements UserModel {
   @override
   String get email;
   @override
+  @JsonKey(name: 'full_name')
   String get fullName;
   @override
   String get phone;
   @override
   UserRole get role;
   @override
+  @JsonKey(name: 'avatar_url')
   String? get avatarUrl;
   @override
+  @JsonKey(name: 'created_at')
   DateTime get createdAt;
   @override
+  @JsonKey(name: 'updated_at')
   DateTime get updatedAt;
 
   /// Create a copy of UserModel

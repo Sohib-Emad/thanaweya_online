@@ -1,15 +1,34 @@
--- RUN THIS IN SUPABASE SQL EDITOR
--- This adds INSERT policies for teachers and students
+-- ============================================================
+-- Migration: Add missing RLS INSERT/UPDATE policies
+-- Fixes: teacher registration, student registration,
+--        subscription activation, activation code redemption
+-- Run this in Supabase SQL Editor (or via MCP apply_migration).
+-- Idempotent: safe to re-run (each policy is created only if missing).
+-- ============================================================
 
--- Teachers: allow inserting own row
-DROP POLICY IF EXISTS "teachers_insert_own" ON public.teachers;
-CREATE POLICY "teachers_insert_own" ON public.teachers
-  FOR INSERT WITH CHECK (id = auth.uid());
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'users' AND policyname = 'users_insert_own') THEN
+    EXECUTE 'CREATE POLICY "users_insert_own" ON public.users FOR INSERT WITH CHECK (id = auth.uid())';
+  END IF;
 
--- Students: allow inserting own row
-DROP POLICY IF EXISTS "students_insert_own" ON public.students;
-CREATE POLICY "students_insert_own" ON public.students
-  FOR INSERT WITH CHECK (id = auth.uid());
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'teachers' AND policyname = 'teachers_insert_own') THEN
+    EXECUTE 'CREATE POLICY "teachers_insert_own" ON public.teachers FOR INSERT WITH CHECK (id = auth.uid())';
+  END IF;
 
--- Verify it worked (should show "teachers_insert_own")
-SELECT policyname, cmd FROM pg_policies WHERE tablename = 'teachers' AND schemaname = 'public';
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'students' AND policyname = 'students_insert_own') THEN
+    EXECUTE 'CREATE POLICY "students_insert_own" ON public.students FOR INSERT WITH CHECK (id = auth.uid())';
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'subscriptions' AND policyname = 'students_insert_own_subscriptions') THEN
+    EXECUTE 'CREATE POLICY "students_insert_own_subscriptions" ON public.subscriptions FOR INSERT WITH CHECK (student_id = auth.uid())';
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'subscriptions' AND policyname = 'students_update_own_subscriptions') THEN
+    EXECUTE 'CREATE POLICY "students_update_own_subscriptions" ON public.subscriptions FOR UPDATE USING (student_id = auth.uid())';
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'activation_codes' AND policyname = 'students_update_unused_codes') THEN
+    EXECUTE 'CREATE POLICY "students_update_unused_codes" ON public.activation_codes FOR UPDATE USING (is_used = false) WITH CHECK (is_used = true)';
+  END IF;
+END $$;

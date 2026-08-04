@@ -7,11 +7,11 @@ part 'lesson_progress_model.g.dart';
 class LessonProgressModel with _$LessonProgressModel {
   const factory LessonProgressModel({
     required String id,
-    required String studentId,
-    required String lessonId,
-    @Default(false) bool isCompleted,
-    @Default(0) int watchedSeconds,
-    required DateTime lastWatchedAt,
+    @JsonKey(name: 'student_id') required String studentId,
+    @JsonKey(name: 'lesson_id') required String lessonId,
+    @JsonKey(name: 'is_completed') @Default(false) bool isCompleted,
+    @JsonKey(name: 'watched_seconds') @Default(0) int watchedSeconds,
+    @JsonKey(name: 'last_watched_at') required DateTime lastWatchedAt,
   }) = _LessonProgressModel;
 
   factory LessonProgressModel.fromJson(Map<String, dynamic> json) =>

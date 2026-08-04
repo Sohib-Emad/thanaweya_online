@@ -27,6 +27,59 @@ class StudentCoursesCubit extends Cubit<StudentCoursesState> {
     );
   }
 
+  Future<void> loadMyCourses(String studentId) async {
+    emit(state.copyWith(myCoursesStatus: StudentCoursesStatus.loading));
+    final result = await _repo.getMyCourses(studentId);
+    result.when(
+      success: (courses) => emit(state.copyWith(
+        myCoursesStatus: StudentCoursesStatus.loaded,
+        myCourses: courses,
+      )),
+      failure: (message, _) => emit(state.copyWith(
+        myCoursesStatus: StudentCoursesStatus.error,
+        errorMessage: message,
+      )),
+    );
+  }
+
+  Future<void> loadCourse(String courseId) async {
+    emit(state.copyWith(courseStatus: StudentCoursesStatus.loading));
+    final result = await _repo.getCourse(courseId);
+    result.when(
+      success: (course) => emit(state.copyWith(
+        courseStatus: StudentCoursesStatus.loaded,
+        course: course,
+      )),
+      failure: (message, _) => emit(state.copyWith(
+        courseStatus: StudentCoursesStatus.error,
+        errorMessage: message,
+      )),
+    );
+  }
+
+  Future<void> loadSubjects() async {
+    final result = await _repo.getSubjects();
+    result.when(
+      success: (subjects) => emit(state.copyWith(subjects: subjects)),
+      failure: (_, __) {},
+    );
+  }
+
+  Future<void> loadApprovedTeachers() async {
+    emit(state.copyWith(teachersStatus: StudentCoursesStatus.loading));
+    final result = await _repo.getApprovedTeachers();
+    result.when(
+      success: (teachers) => emit(state.copyWith(
+        teachersStatus: StudentCoursesStatus.loaded,
+        approvedTeachers: teachers,
+      )),
+      failure: (message, _) => emit(state.copyWith(
+        teachersStatus: StudentCoursesStatus.error,
+        errorMessage: message,
+      )),
+    );
+  }
+
   Future<void> loadTeacherCourses(String teacherId) async {
     emit(state.copyWith(coursesStatus: StudentCoursesStatus.loading));
     final result = await _repo.getTeacherCourses(teacherId);
@@ -108,20 +161,34 @@ enum StudentCoursesStatus { initial, loading, loaded, error }
 class StudentCoursesState {
   final StudentCoursesStatus status;
   final List<Map<String, dynamic>> subscribedTeachers;
+  final StudentCoursesStatus myCoursesStatus;
+  final List<Map<String, dynamic>> myCourses;
+  final StudentCoursesStatus courseStatus;
+  final Map<String, dynamic>? course;
   final StudentCoursesStatus coursesStatus;
   final List<CourseModel> courses;
   final StudentCoursesStatus lessonsStatus;
   final List<LessonModel> lessons;
+  final StudentCoursesStatus teachersStatus;
+  final List<Map<String, dynamic>> approvedTeachers;
+  final List<Map<String, dynamic>> subjects;
   final List<LessonProgressModel> progress;
   final String? errorMessage;
 
   const StudentCoursesState({
     this.status = StudentCoursesStatus.initial,
     this.subscribedTeachers = const [],
+    this.myCoursesStatus = StudentCoursesStatus.initial,
+    this.myCourses = const [],
+    this.courseStatus = StudentCoursesStatus.initial,
+    this.course,
     this.coursesStatus = StudentCoursesStatus.initial,
     this.courses = const [],
     this.lessonsStatus = StudentCoursesStatus.initial,
     this.lessons = const [],
+    this.teachersStatus = StudentCoursesStatus.initial,
+    this.approvedTeachers = const [],
+    this.subjects = const [],
     this.progress = const [],
     this.errorMessage,
   });
@@ -129,20 +196,34 @@ class StudentCoursesState {
   StudentCoursesState copyWith({
     StudentCoursesStatus? status,
     List<Map<String, dynamic>>? subscribedTeachers,
+    StudentCoursesStatus? myCoursesStatus,
+    List<Map<String, dynamic>>? myCourses,
+    StudentCoursesStatus? courseStatus,
+    Map<String, dynamic>? course,
     StudentCoursesStatus? coursesStatus,
     List<CourseModel>? courses,
     StudentCoursesStatus? lessonsStatus,
     List<LessonModel>? lessons,
+    StudentCoursesStatus? teachersStatus,
+    List<Map<String, dynamic>>? approvedTeachers,
+    List<Map<String, dynamic>>? subjects,
     List<LessonProgressModel>? progress,
     String? errorMessage,
   }) {
     return StudentCoursesState(
       status: status ?? this.status,
       subscribedTeachers: subscribedTeachers ?? this.subscribedTeachers,
+      myCoursesStatus: myCoursesStatus ?? this.myCoursesStatus,
+      myCourses: myCourses ?? this.myCourses,
+      courseStatus: courseStatus ?? this.courseStatus,
+      course: course,
       coursesStatus: coursesStatus ?? this.coursesStatus,
       courses: courses ?? this.courses,
       lessonsStatus: lessonsStatus ?? this.lessonsStatus,
       lessons: lessons ?? this.lessons,
+      teachersStatus: teachersStatus ?? this.teachersStatus,
+      approvedTeachers: approvedTeachers ?? this.approvedTeachers,
+      subjects: subjects ?? this.subjects,
       progress: progress ?? this.progress,
       errorMessage: errorMessage,
     );

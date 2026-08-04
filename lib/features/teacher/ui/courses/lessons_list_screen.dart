@@ -1,17 +1,48 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:thanaweya_online/core/constants/app_colors.dart';
 import 'package:thanaweya_online/core/constants/app_strings.dart';
-import 'package:thanaweya_online/core/data/mock_data.dart';
 import 'package:thanaweya_online/core/router/app_router.dart';
+import 'package:thanaweya_online/features/teacher/data/repos/teacher_courses_repo.dart';
+import 'package:thanaweya_online/features/teacher/logic/teacher_courses_cubit.dart';
 
-class LessonsListScreen extends StatelessWidget {
+class LessonsListScreen extends StatefulWidget {
   final String courseId;
 
   const LessonsListScreen({super.key, required this.courseId});
+
+  @override
+  State<LessonsListScreen> createState() => _LessonsListScreenState();
+}
+
+class _LessonsListScreenState extends State<LessonsListScreen> {
+  final _cubit = TeacherCoursesCubit(repo: TeacherCoursesRepo());
+
+  @override
+  void initState() {
+    super.initState();
+    _cubit.loadLessons(widget.courseId);
+  }
+
+  @override
+  void dispose() {
+    _cubit.close();
+    super.dispose();
+  }
+
+  Future<void> _deleteLesson(String lessonId) async {
+    await _cubit.deleteLesson(lessonId);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تم حذف الدرس')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,24 +68,68 @@ class LessonsListScreen extends StatelessWidget {
             ),
           ),
         ),
-        body: ListView.separated(
-          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
-          itemCount: MockData.mockLessons.length,
-          separatorBuilder: (_, __) => SizedBox(height: 14.h),
-          itemBuilder: (context, index) {
-            final lesson = MockData.mockLessons[index];
-            final isFree = lesson['is_free_preview'] == true;
-
-            return _LessonCard(
-              title: lesson['title'] as String,
-              description: lesson['description'] as String,
-              isFree: isFree,
-              onDelete: () {
-                HapticFeedback.lightImpact();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('تم حذف الدرس')),
-                );
-              },
+        body: BlocBuilder<TeacherCoursesCubit, TeacherCoursesState>(
+          bloc: _cubit,
+          builder: (context, state) {
+            if (state.lessonsStatus == TeacherCoursesStatus.loading) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (state.lessonsStatus == TeacherCoursesStatus.error) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.error_outline_rounded, size: 48.r, color: AppColors.error),
+                    SizedBox(height: 12.h),
+                    Text(
+                      state.errorMessage ?? 'حدث خطأ أثناء تحميل الدروس',
+                      style: GoogleFonts.cairo(fontSize: 14.sp, color: AppColors.textSecondary),
+                    ),
+                    SizedBox(height: 16.h),
+                    ElevatedButton(
+                      onPressed: () => _cubit.loadLessons(widget.courseId),
+                      child: Text('إعادة المحاولة', style: GoogleFonts.cairo()),
+                    ),
+                  ],
+                ),
+              );
+            }
+            if (state.lessons.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.video_library_rounded, size: 64.r, color: AppColors.textTertiary),
+                    SizedBox(height: 16.h),
+                    Text(
+                      'لا توجد دروس بعد',
+                      style: GoogleFonts.cairo(fontSize: 16.sp, color: AppColors.textSecondary),
+                    ),
+                    SizedBox(height: 8.h),
+                    Text(
+                      'اضغط على زر + لإضافة أول درس',
+                      style: GoogleFonts.cairo(fontSize: 13.sp, color: AppColors.textTertiary),
+                    ),
+                  ],
+                ),
+              );
+            }
+            return RefreshIndicator(
+              onRefresh: () => _cubit.loadLessons(widget.courseId),
+              child: ListView.separated(
+                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+                itemCount: state.lessons.length,
+                separatorBuilder: (_, __) => SizedBox(height: 14.h),
+                itemBuilder: (context, index) {
+                  final lesson = state.lessons[index];
+                  return _LessonCard(
+                    title: lesson.title,
+                    description: lesson.description ?? '',
+                    isFree: lesson.isFreePreview,
+                    onDelete: () => _deleteLesson(lesson.id),
+                  );
+                },
+              ),
             );
           },
         ),
@@ -65,7 +140,7 @@ class LessonsListScreen extends StatelessWidget {
             Navigator.pushNamed(
               context,
               AppRouter.teacherAddLesson,
-              arguments: courseId,
+              arguments: widget.courseId,
             );
           },
           backgroundColor: AppColors.teacherPrimary,
@@ -154,17 +229,12 @@ class _LessonCard extends StatelessWidget {
                 ),
                 SizedBox(height: 8.h),
                 Container(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
                   decoration: BoxDecoration(
-                    color: isFree
-                        ? const Color(0xFFECFDF5)
-                        : const Color(0xFFF8FAFC),
+                    color: isFree ? const Color(0xFFECFDF5) : const Color(0xFFF8FAFC),
                     borderRadius: BorderRadius.circular(6.r),
                     border: Border.all(
-                      color: isFree
-                          ? const Color(0xFFA7F3D0)
-                          : const Color(0xFFE2E8F0),
+                      color: isFree ? const Color(0xFFA7F3D0) : const Color(0xFFE2E8F0),
                     ),
                   ),
                   child: Text(
@@ -172,9 +242,7 @@ class _LessonCard extends StatelessWidget {
                     style: GoogleFonts.cairo(
                       fontSize: 10.sp,
                       fontWeight: FontWeight.w800,
-                      color: isFree
-                          ? const Color(0xFF0FA37F)
-                          : const Color(0xFF64748B),
+                      color: isFree ? const Color(0xFF0FA37F) : const Color(0xFF64748B),
                     ),
                   ),
                 ),

@@ -9,9 +9,9 @@ enum StudentGradeLevel { first, second, third }
 class StudentModel with _$StudentModel {
   const factory StudentModel({
     required String id,
-    required StudentGradeLevel gradeLevel,
-    required String parentPhone,
-    required DateTime createdAt,
+    @JsonKey(name: 'grade_level') required StudentGradeLevel gradeLevel,
+    @JsonKey(name: 'parent_phone') required String parentPhone,
+    @JsonKey(name: 'created_at') required DateTime createdAt,
   }) = _StudentModel;
 
   factory StudentModel.fromJson(Map<String, dynamic> json) =>

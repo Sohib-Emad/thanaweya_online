@@ -57,6 +57,7 @@ import '../../features/admin/ui/subjects/manage_subjects_screen.dart';
 import '../../features/admin/ui/plans/subscription_plans_screen.dart';
 import '../../features/admin/ui/plans/edit_plan_screen.dart';
 import '../../features/shared/ui/notifications_screen.dart';
+import '../../features/shared/models/user_model.dart';
 
 class AppRouter {
   AppRouter._();
@@ -69,6 +70,17 @@ class AppRouter {
   static const String forgotPassword = '/forgot-password';
   static const String otp = '/otp';
   static const String notifications = '/notifications';
+
+  static String homeForRole(UserRole role) {
+    switch (role) {
+      case UserRole.superAdmin:
+        return adminDashboard;
+      case UserRole.teacher:
+        return teacherHome;
+      case UserRole.student:
+        return studentHome;
+    }
+  }
 
   // Teacher
   static const String teacherForm = '/teacher/form';
@@ -128,8 +140,17 @@ class AppRouter {
   static const String adminPlatformReports = '/admin/platform-reports';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
-    final page = _buildPage(settings);
-    return PageRouteBuilder(
+    if (settings.name == studentFilter) {
+      return _fadeRoute<CourseFilters>(
+        settings,
+        const CourseFilterScreen(),
+      );
+    }
+    return _fadeRoute<dynamic>(settings, _buildPage(settings));
+  }
+
+  static Route<T> _fadeRoute<T>(RouteSettings settings, Widget page) {
+    return PageRouteBuilder<T>(
       settings: settings,
       pageBuilder: (context, animation, secondaryAnimation) => page,
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
@@ -159,7 +180,8 @@ class AppRouter {
       case forgotPassword:
         return const ForgotPasswordScreen();
       case otp:
-        return const OtpScreen();
+        final email = settings.arguments as String? ?? '';
+        return OtpScreen(email: email);
       case notifications:
         return const NotificationsScreen();
       case teacherForm:
@@ -198,7 +220,11 @@ class AppRouter {
       case studentHome:
         return const StudentHomeScreen();
       case studentTeacherPage:
-        return const TeacherPageScreen();
+        final teacherArgs = settings.arguments as Map<String, dynamic>? ?? {};
+        return TeacherPageScreen(
+          teacherId: teacherArgs['teacherId'] ?? '',
+          title: teacherArgs['title'] ?? '',
+        );
       case studentCourseLessons:
         final courseId = settings.arguments as String? ?? '';
         return CourseLessonsScreen(courseId: courseId);
@@ -208,13 +234,16 @@ class AppRouter {
           lessonId: args['lessonId'] ?? '',
           videoUrl: args['videoUrl'] ?? '',
           title: args['title'] ?? '',
+          courseId: args['courseId'] ?? '',
         );
       case studentExams:
         return const StudentExamsListScreen();
       case studentExamStart:
-        return const ExamStartScreen();
+        final examArgs = settings.arguments as Map<String, dynamic>?;
+        return ExamStartScreen(examData: examArgs);
       case studentExamTaking:
-        return const ExamTakingScreen();
+        final takingArgs = settings.arguments as Map<String, dynamic>? ?? {};
+        return ExamTakingScreen(examId: takingArgs['examId'] as String? ?? '');
       case studentExamResult:
         return const ExamResultScreen();
       case studentGradeHistory:
@@ -227,7 +256,8 @@ class AppRouter {
       case studentBookmarks:
         return const MyBookmarksScreen();
       case studentCurriculum:
-        return const CourseCurriculumScreen();
+        final courseId = settings.arguments as String? ?? '';
+        return CourseCurriculumScreen(courseId: courseId);
       case studentCertificate:
         return const CourseCertificateScreen();
       case studentMyCourses:
@@ -238,9 +268,11 @@ class AppRouter {
         final args = settings.arguments as Map<String, dynamic>?;
         return EReceiptScreen(transactionData: args);
       case studentReviews:
-        return const CourseReviewsScreen();
+        final courseId = settings.arguments as String? ?? '';
+        return CourseReviewsScreen(courseId: courseId);
       case studentWriteReview:
-        return const WriteReviewScreen();
+        final courseId = settings.arguments as String? ?? '';
+        return WriteReviewScreen(courseId: courseId);
       case studentPaymentMethods:
         return const PaymentMethodsScreen();
       case studentComments:

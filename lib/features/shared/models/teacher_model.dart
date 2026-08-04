@@ -11,14 +11,14 @@ enum ApprovalStatus { pending, approved, rejected }
 class TeacherModel with _$TeacherModel {
   const factory TeacherModel({
     required String id,
-    required String subjectId,
+    @JsonKey(name: 'subject_id') required String subjectId,
     required TeacherStage stage,
     String? bio,
-    required ApprovalStatus approvalStatus,
-    String? rejectionReason,
-    String? subscriptionPlanId,
-    DateTime? subscriptionExpiresAt,
-    required DateTime createdAt,
+    @JsonKey(name: 'approval_status') required ApprovalStatus approvalStatus,
+    @JsonKey(name: 'rejection_reason') String? rejectionReason,
+    @JsonKey(name: 'subscription_plan_id') String? subscriptionPlanId,
+    @JsonKey(name: 'subscription_expires_at') DateTime? subscriptionExpiresAt,
+    @JsonKey(name: 'created_at') required DateTime createdAt,
   }) = _TeacherModel;
 
   factory TeacherModel.fromJson(Map<String, dynamic> json) =>

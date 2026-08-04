@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lottie/lottie.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:thanaweya_online/core/constants/app_colors.dart';
 import 'package:thanaweya_online/core/constants/app_strings.dart';
@@ -17,34 +18,68 @@ class PendingReviewScreen extends StatefulWidget {
 }
 
 class _PendingReviewScreenState extends State<PendingReviewScreen> {
-  Timer? _approvalTimer;
+  Timer? _pollTimer;
   Timer? _navigationTimer;
   bool _isApproved = false;
+  bool _isRejected = false;
+  String? _rejectionReason;
 
   @override
   void initState() {
     super.initState();
-    // Simulate Admin Approval after 6 seconds
-    _approvalTimer = Timer(const Duration(seconds: 6), () {
-      if (!mounted) return;
-      HapticFeedback.heavyImpact();
-      setState(() => _isApproved = true);
+    _startPolling();
+  }
 
-      // Navigate to Teacher Home 3 seconds after success animation plays
-      _navigationTimer = Timer(const Duration(seconds: 3), () {
-        if (!mounted) return;
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          AppRouter.teacherHome,
-          (route) => false,
-        );
-      });
+  void _startPolling() {
+    _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
+      if (!mounted) return;
+      await _checkApprovalStatus();
     });
+    _checkApprovalStatus();
+  }
+
+  Future<void> _checkApprovalStatus() async {
+    try {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) return;
+
+      final data = await Supabase.instance.client
+          .from('teachers')
+          .select('approval_status, rejection_reason')
+          .eq('id', userId)
+          .maybeSingle();
+
+      if (data == null || !mounted) return;
+
+      final status = data['approval_status'] as String?;
+
+      if (status == 'approved') {
+        _pollTimer?.cancel();
+        HapticFeedback.heavyImpact();
+        setState(() => _isApproved = true);
+        _navigationTimer = Timer(const Duration(seconds: 3), () {
+          if (!mounted) return;
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            AppRouter.teacherHome,
+            (route) => false,
+          );
+        });
+      } else if (status == 'rejected') {
+        _pollTimer?.cancel();
+        setState(() {
+          _isRejected = true;
+          _rejectionReason = data['rejection_reason'] as String?;
+        });
+      }
+    } catch (e) {
+      debugPrint('[PendingReview] poll error: $e');
+    }
   }
 
   @override
   void dispose() {
-    _approvalTimer?.cancel();
+    _pollTimer?.cancel();
     _navigationTimer?.cancel();
     super.dispose();
   }
@@ -58,7 +93,11 @@ class _PendingReviewScreenState extends State<PendingReviewScreen> {
         body: SafeArea(
           child: AnimatedSwitcher(
             duration: const Duration(milliseconds: 500),
-            child: _isApproved ? _buildSuccessView() : _buildPendingView(),
+            child: _isApproved
+              ? _buildSuccessView()
+              : _isRejected
+                  ? _buildRejectedView()
+                  : _buildPendingView(),
           ),
         ),
       ),
@@ -234,7 +273,81 @@ class _PendingReviewScreenState extends State<PendingReviewScreen> {
     );
   }
 
-  // View B: Approved Success View (Pure white screen with ONLY success.json Lottie)
+  // View B: Rejected View
+  Widget _buildRejectedView() {
+    return SingleChildScrollView(
+      key: const ValueKey('rejected_view'),
+      physics: const BouncingScrollPhysics(),
+      padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 40.h),
+      child: Column(
+        children: [
+          Container(
+            padding: EdgeInsets.all(20.r),
+            decoration: const BoxDecoration(
+              color: Color(0xFFFEF2F2),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.cancel_rounded,
+              color: const Color(0xFFEF4444),
+              size: 64.r,
+            ),
+          ),
+          SizedBox(height: 24.h),
+          Text(
+            'تم رفض طلبك',
+            style: GoogleFonts.cairo(
+              fontSize: 24.sp,
+              fontWeight: FontWeight.w900,
+              color: const Color(0xFFEF4444),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 12.h),
+          Text(
+            _rejectionReason ?? 'لم تتم الموافقة على طلبك. يرجى مراجعة بياناتك والتقديم مرة أخرى.',
+            style: GoogleFonts.cairo(
+              fontSize: 14.sp,
+              color: const Color(0xFF64748B),
+              height: 1.5,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 32.h),
+          SizedBox(
+            width: double.infinity,
+            height: 54.h,
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  AppRouter.roleSelection,
+                  (route) => false,
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.studentPrimary,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30.r),
+                ),
+              ),
+              child: Text(
+                'العودة للرئيسية',
+                style: GoogleFonts.cairo(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // View C: Approved Success View (Pure white screen with ONLY success.json Lottie)
   Widget _buildSuccessView() {
     return Center(
       key: const ValueKey('success_view'),

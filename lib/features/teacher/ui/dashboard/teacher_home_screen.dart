@@ -1,13 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
-
-import 'package:thanaweya_online/core/constants/app_colors.dart';
-import 'package:thanaweya_online/core/data/mock_data.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:thanaweya_online/core/router/app_router.dart';
+import 'package:thanaweya_online/features/shared/models/teacher_model.dart';
+import 'package:thanaweya_online/features/teacher/data/repos/teacher_profile_repo.dart';
+import 'package:thanaweya_online/features/teacher/data/repos/teacher_students_repo.dart';
+import 'package:thanaweya_online/features/teacher/logic/teacher_profile_cubit.dart';
 import 'package:thanaweya_online/features/teacher/ui/courses/courses_list_screen.dart';
 import 'package:thanaweya_online/features/teacher/ui/students/students_list_screen.dart';
+
+const _ink = Color(0xFF0F172A);
+const _inkSoft = Color(0xFF64748B);
+const _inkFaint = Color(0xFF94A3B8);
+const _hairline = Color(0xFFEEF2F7);
+const _canvas = Color(0xFFF8FAFC);
+const _brand = Color(0xFF0FA37F);
+const _brandDeep = Color(0xFF065F46);
+const _brandTint = Color(0xFFE6F7F2);
 
 class TeacherHomeScreen extends StatefulWidget {
   const TeacherHomeScreen({super.key});
@@ -18,31 +30,106 @@ class TeacherHomeScreen extends StatefulWidget {
 
 class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
   int _currentIndex = 0;
+  late final TeacherProfileCubit _profileCubit;
+  List<Map<String, dynamic>> _recentStudents = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _profileCubit = TeacherProfileCubit(repo: TeacherProfileRepo());
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return;
+    _profileCubit.loadProfile(userId);
+    _profileCubit.loadStats(userId);
+    await _loadRecentStudents(userId);
+  }
+
+  Future<void> _loadRecentStudents(String teacherId) async {
+    try {
+      final result = await TeacherStudentsRepo().getStudents(teacherId);
+      result.when(
+        success: (data) {
+          if (mounted) {
+            setState(() {
+              _recentStudents = data.length > 3 ? data.sublist(0, 3) : data;
+            });
+          }
+        },
+        failure: (_, _) {},
+      );
+    } catch (e) {
+      debugPrint('[TeacherHome] load recent students error: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    _profileCubit.close();
+    super.dispose();
+  }
+
+  // ---------- helpers ----------
+
+  String _greetingLabel() {
+    final hour = DateTime.now().hour;
+    return hour < 12 ? 'صباح الخير' : 'مساء الخير';
+  }
+
+  String _initialOf(String name) {
+    final trimmed = name.trim();
+    return trimmed.isEmpty ? 'م' : trimmed[0];
+  }
+
+  String _stageShortLabel(TeacherStage stage) {
+    switch (stage) {
+      case TeacherStage.first:
+        return 'الأول الثانوي';
+      case TeacherStage.second:
+        return 'الثاني الثانوي';
+      case TeacherStage.third:
+        return 'الثالث الثانوي';
+    }
+  }
+
+  String _stageShortOf(dynamic teacher) {
+    if (teacher == null) return '-';
+    return _stageShortLabel(teacher.stage as TeacherStage);
+  }
+
+  // ---------- root ----------
 
   @override
   Widget build(BuildContext context) {
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
-        body: SafeArea(
-          child: IndexedStack(
-            index: _currentIndex,
-            children: [
-              _buildHomeDashboardView(context),
-              const CoursesListScreen(),
-              const StudentsListScreen(),
-              const StudentsListScreen(),
-              _buildSettingsDashboardView(context),
-            ],
+    return BlocProvider.value(
+      value: _profileCubit,
+      child: Directionality(
+        textDirection: TextDirection.rtl,
+        child: Scaffold(
+          backgroundColor: _canvas,
+          body: SafeArea(
+            child: IndexedStack(
+              index: _currentIndex,
+              children: [
+                _buildHomeDashboardView(context),
+                const CoursesListScreen(),
+                const StudentsListScreen(),
+                const StudentsListScreen(),
+                _buildSettingsDashboardView(context),
+              ],
+            ),
           ),
+          bottomNavigationBar: _buildBottomNavBar(),
         ),
-        bottomNavigationBar: _buildFloatingBottomNavBar(),
       ),
     );
   }
 
-  // 1. Executive KPI Home Dashboard View (Tab 0)
+  // ---------- home ----------
+
   Widget _buildHomeDashboardView(BuildContext context) {
     return CustomScrollView(
       physics: const BouncingScrollPhysics(),
@@ -53,449 +140,48 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Top Header Row (Greeting + Profile Avatar)
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'مرحباً بك في لوحة التحكّم 👋',
-                          style: GoogleFonts.cairo(
-                            fontSize: 13.sp,
-                            color: const Color(0xFF64748B),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        SizedBox(height: 2.h),
-                        Text(
-                          MockData.mockUserName,
-                          style: GoogleFonts.cairo(
-                            fontSize: 22.sp,
-                            fontWeight: FontWeight.w900,
-                            color: const Color(0xFF0F172A),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    // Avatar Container with Emerald Border
-                    GestureDetector(
-                      onTap: () => setState(() => _currentIndex = 4),
-                      child: Container(
-                        padding: EdgeInsets.all(3.r),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: const Color(0xFFECFDF5),
-                          border: Border.all(
-                            color: const Color(0xFF0FA37F),
-                            width: 2,
-                          ),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Color(0x150FA37F),
-                              blurRadius: 10,
-                              offset: Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: CircleAvatar(
-                          radius: 22.r,
-                          backgroundColor: AppColors.teacherPrimaryLight,
-                          child: Icon(
-                            Icons.person_rounded,
-                            size: 26.r,
-                            color: AppColors.teacherPrimary,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                _buildHeader(context),
 
                 SizedBox(height: 20.h),
 
-                // Primary Featured Revenue & Subscription KPI Hero Card
-                Container(
-                  padding: EdgeInsets.all(20.r),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF0FA37F), Color(0xFF065F46)],
-                      begin: Alignment.topRight,
-                      end: Alignment.bottomLeft,
-                    ),
-                    borderRadius: BorderRadius.circular(24.r),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x250FA37F),
-                        blurRadius: 16,
-                        offset: Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Text(
-                                    'أرباح الشهر الحالي',
-                                    style: GoogleFonts.cairo(
-                                      fontSize: 12.sp,
-                                      color: const Color(0xFFA7F3D0),
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                  SizedBox(width: 8.w),
-                                  Container(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 8.w,
-                                      vertical: 2.h,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withAlpha(40),
-                                      borderRadius: BorderRadius.circular(12.r),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Icon(
-                                          Icons.trending_up_rounded,
-                                          color: Colors.white,
-                                          size: 12.r,
-                                        ),
-                                        SizedBox(width: 4.w),
-                                        Text(
-                                          '+18.5%',
-                                          style: GoogleFonts.cairo(
-                                            fontSize: 11.sp,
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.w800,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(height: 6.h),
-                              Text(
-                                '54,800 ج.م',
-                                style: GoogleFonts.cairo(
-                                  fontSize: 28.sp,
-                                  fontWeight: FontWeight.w900,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                          Container(
-                            padding: EdgeInsets.all(12.r),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withAlpha(35),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.account_balance_wallet_rounded,
-                              color: Colors.white,
-                              size: 28.r,
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 16.h),
-                      Divider(color: Colors.white.withAlpha(40), height: 1),
-                      SizedBox(height: 14.h),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _buildHeaderMetricItem(
-                            'الطلاب المتنشطين',
-                            '1,420 طالب',
-                          ),
-                          Container(
-                            height: 24.h,
-                            width: 1,
-                            color: Colors.white.withAlpha(40),
-                          ),
-                          _buildHeaderMetricItem('أكواد التفعيل', '980 كود'),
-                          Container(
-                            height: 24.h,
-                            width: 1,
-                            color: Colors.white.withAlpha(40),
-                          ),
-                          _buildHeaderMetricItem('عدد الكورسات', '12 كورس'),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-
-                SizedBox(height: 24.h),
-
-                // Core Key Performance Indicators (4 KPI Grid)
-                Row(
-                  children: [
-                    Text(
-                      'مؤشرات الأداء الرئيسية (KPIs)',
-                      style: GoogleFonts.cairo(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF0F172A),
-                      ),
-                    ),
-                    SizedBox(width: 8.w),
-                    Icon(
-                      Icons.analytics_rounded,
-                      color: AppColors.teacherPrimary,
-                      size: 20.r,
-                    ),
-                  ],
-                ),
-                SizedBox(height: 12.h),
-
-                GridView.count(
-                  crossAxisCount: 2,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisSpacing: 12.w,
-                  mainAxisSpacing: 12.h,
-                  childAspectRatio: 1.25,
-                  children: [
-                    _buildKpiCard(
-                      title: 'إجمالي المشتركين',
-                      value: '1,420',
-                      subtext: '+120 هذا الأسبوع',
-                      icon: Icons.people_alt_rounded,
-                      color: const Color(0xFF2563EB),
-                      bgColor: const Color(0xFFEFF6FF),
-                    ),
-                    _buildKpiCard(
-                      title: 'معدل الحضور',
-                      value: '94.2%',
-                      subtext: 'تفاعل ممتاز',
-                      icon: Icons.check_circle_rounded,
-                      color: const Color(0xFF10B981),
-                      bgColor: const Color(0xFFECFDF5),
-                    ),
-                    _buildKpiCard(
-                      title: 'نسبة النجاح',
-                      value: '88.5%',
-                      subtext: 'متوسط 88/100',
-                      icon: Icons.auto_awesome_rounded,
-                      color: const Color(0xFFD97706),
-                      bgColor: const Color(0xFFFFFBEB),
-                    ),
-                    _buildKpiCard(
-                      title: 'ساعات المشاهدة',
-                      value: '4,850 س',
-                      subtext: 'أكثر من الشهر الماضي',
-                      icon: Icons.play_circle_fill_rounded,
-                      color: const Color(0xFF9333EA),
-                      bgColor: const Color(0xFFF3E8FF),
-                    ),
-                  ],
+                BlocBuilder<TeacherProfileCubit, TeacherProfileState>(
+                  builder: (context, profileState) {
+                    return _buildStatsCard(context, profileState);
+                  },
                 ),
 
                 SizedBox(height: 28.h),
 
-                // Quick Action Buttons Section
-                Text(
-                  'الإجراءات السريعة',
-                  style: GoogleFonts.cairo(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w800,
-                    color: const Color(0xFF0F172A),
-                  ),
-                ),
-                SizedBox(height: 12.h),
-
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildQuickActionButton(
-                        icon: Icons.add_circle_outline_rounded,
-                        label: 'إضافة كورس',
-                        color: const Color(0xFF0FA37F),
-                        onTap: () => setState(() => _currentIndex = 1),
-                      ),
-                    ),
-                    SizedBox(width: 10.w),
-                    Expanded(
-                      child: _buildQuickActionButton(
-                        icon: Icons.qr_code_2_rounded,
-                        label: 'أكواد تفعيل',
-                        color: const Color(0xFF2563EB),
-                        onTap: () => Navigator.pushNamed(
-                          context,
-                          AppRouter.teacherActivationCodes,
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 10.w),
-                    Expanded(
-                      child: _buildQuickActionButton(
-                        icon: Icons.quiz_rounded,
-                        label: 'إنشاء امتحان',
-                        color: const Color(0xFFD97706),
-                        onTap: () => setState(() => _currentIndex = 3),
-                      ),
-                    ),
-                  ],
-                ),
-
-                SizedBox(height: 28.h),
-
-                // System Breakdown KPIs (الثانوية العامة vs البكالوريا IB)
-                Container(
-                  padding: EdgeInsets.all(18.r),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20.r),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x050F172A),
-                        blurRadius: 10,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'توزيع الطلاب حسب النظام 📊',
-                              style: GoogleFonts.cairo(
-                                fontSize: 14.sp,
-                                fontWeight: FontWeight.w800,
-                                color: const Color(0xFF0F172A),
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          SizedBox(width: 8.w),
-                          Text(
-                            '1,420 طالب',
-                            style: GoogleFonts.cairo(
-                              fontSize: 12.sp,
-                              fontWeight: FontWeight.w700,
-                              color: const Color(0xFF64748B),
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 14.h),
-
-                      // Stacked Progress Bar
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(10.r),
-                        child: SizedBox(
-                          height: 12.h,
-                          child: Row(
-                            children: [
-                              Expanded(
-                                flex: 78,
-                                child: Container(
-                                  color: const Color(0xFF0FA37F),
-                                ),
-                              ),
-                              Expanded(
-                                flex: 22,
-                                child: Container(
-                                  color: const Color(0xFF2563EB),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 14.h),
-
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _buildSystemLegendItem(
-                            title: 'الثانوية العامة (قديم)',
-                            percentage: '78%',
-                            count: '1,107 طالب',
-                            color: const Color(0xFF0FA37F),
-                          ),
-                          _buildSystemLegendItem(
-                            title: 'نظام البكالوريا (IB)',
-                            percentage: '22%',
-                            count: '313 طالب',
-                            color: const Color(0xFF2563EB),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-
-                SizedBox(height: 28.h),
-
-                // Recent Student Subscriptions Live Stream
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'أحدث المشتركين الجدد',
+                      'أحدث الطلاب',
                       style: GoogleFonts.cairo(
                         fontSize: 16.sp,
                         fontWeight: FontWeight.w800,
-                        color: const Color(0xFF0F172A),
+                        color: _ink,
                       ),
                     ),
                     TextButton(
                       onPressed: () => setState(() => _currentIndex = 2),
                       child: Text(
-                        'عرض قائمة الطلاب',
+                        'عرض الكل',
                         style: GoogleFonts.cairo(
                           fontSize: 12.sp,
-                          color: const Color(0xFF0FA37F),
+                          color: _brand,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
                   ],
                 ),
-                SizedBox(height: 10.h),
+                SizedBox(height: 12.h),
 
-                _buildRecentSubscriptionItem(
-                  studentName: 'أحمد محمود العبد',
-                  subject: 'مراجعة الفيزياء الكهربية',
-                  system: 'ثانوية عامة (قديم)',
-                  time: 'منذ 5 دقائق',
-                  isActivated: true,
-                ),
-                SizedBox(height: 10.h),
-                _buildRecentSubscriptionItem(
-                  studentName: 'سارة محمد الشريف',
-                  subject: 'مسار الطب وعلوم الحياة (IB)',
-                  system: 'البكالوريا (IB)',
-                  time: 'منذ 25 دقيقة',
-                  isActivated: true,
-                ),
-                SizedBox(height: 10.h),
-                _buildRecentSubscriptionItem(
-                  studentName: 'عمر خالد حسن',
-                  subject: 'الفيزياء الحديثة والتطبيقية',
-                  system: 'ثانوية عامة (قديم)',
-                  time: 'منذ ساعة',
-                  isActivated: false,
-                ),
+                if (_recentStudents.isEmpty)
+                  _buildEmptyRecent()
+                else
+                  _buildRecentList(),
               ],
             ),
           ),
@@ -504,303 +190,235 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
     );
   }
 
-  Widget _buildHeaderMetricItem(String label, String value) {
+  Widget _buildHeader(BuildContext context) {
+    final name =
+        Supabase.instance.client.auth.currentUser?.userMetadata?['full_name'] ??
+        'مستخدم';
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          label,
+          _greetingLabel(),
           style: GoogleFonts.cairo(
-            fontSize: 10.sp,
-            color: const Color(0xFFA7F3D0),
+            fontSize: 13.sp,
+            color: _inkSoft,
             fontWeight: FontWeight.w600,
           ),
         ),
         SizedBox(height: 2.h),
         Text(
-          value,
+          name,
           style: GoogleFonts.cairo(
-            fontSize: 13.sp,
-            fontWeight: FontWeight.w800,
-            color: Colors.white,
+            fontSize: 22.sp,
+            fontWeight: FontWeight.w900,
+            color: _ink,
           ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
       ],
     );
   }
 
-  Widget _buildKpiCard({
-    required String title,
-    required String value,
-    required String subtext,
-    required IconData icon,
-    required Color color,
-    required Color bgColor,
-  }) {
+  // A single plain card with every number on this screen.
+  Widget _buildStatsCard(BuildContext context, TeacherProfileState state) {
     return Container(
-      padding: EdgeInsets.all(14.r),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x050F172A),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: EdgeInsets.all(8.r),
-                decoration: BoxDecoration(
-                  color: bgColor,
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-                child: Icon(icon, color: color, size: 20.r),
-              ),
-              Icon(
-                Icons.trending_up_rounded,
-                color: const Color(0xFF10B981),
-                size: 16.r,
-              ),
-            ],
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                value,
-                style: GoogleFonts.cairo(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.w900,
-                  color: const Color(0xFF0F172A),
-                ),
-              ),
-              SizedBox(height: 2.h),
-              Text(
-                title,
-                style: GoogleFonts.cairo(
-                  fontSize: 11.sp,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF64748B),
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              Text(
-                subtext,
-                style: GoogleFonts.cairo(
-                  fontSize: 9.sp,
-                  fontWeight: FontWeight.w700,
-                  color: color,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuickActionButton({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        onTap();
-      },
-      child: Container(
-        padding: EdgeInsets.symmetric(vertical: 14.h, horizontal: 8.w),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18.r),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x050F172A),
-              blurRadius: 8,
-              offset: Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: EdgeInsets.all(10.r),
-              decoration: BoxDecoration(
-                color: color.withAlpha(25),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: color, size: 22.r),
-            ),
-            SizedBox(height: 8.h),
-            Text(
-              label,
-              style: GoogleFonts.cairo(
-                fontSize: 12.sp,
-                fontWeight: FontWeight.w800,
-                color: const Color(0xFF0F172A),
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSystemLegendItem({
-    required String title,
-    required String percentage,
-    required String count,
-    required Color color,
-  }) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 8.r,
-          height: 8.r,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
-        SizedBox(width: 6.w),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '$title ($percentage)',
-              style: GoogleFonts.cairo(
-                fontSize: 11.sp,
-                fontWeight: FontWeight.w800,
-                color: const Color(0xFF0F172A),
-              ),
-            ),
-            Text(
-              count,
-              style: GoogleFonts.cairo(
-                fontSize: 10.sp,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF64748B),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRecentSubscriptionItem({
-    required String studentName,
-    required String subject,
-    required String system,
-    required String time,
-    required bool isActivated,
-  }) {
-    return Container(
-      padding: EdgeInsets.all(14.r),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18.r),
-        border: Border.all(color: const Color(0xFFF1F5F9)),
+        border: Border.all(color: _hairline),
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 20.r,
-            backgroundColor: const Color(0xFFECFDF5),
-            child: Icon(
-              Icons.person_rounded,
-              color: const Color(0xFF0FA37F),
-              size: 22.r,
+          Expanded(
+            child: _buildStatCell(
+              label: 'طالب',
+              value: '${state.studentsCount}',
+              onTap: () => setState(() => _currentIndex = 2),
             ),
           ),
-          SizedBox(width: 12.w),
+          Container(width: 1, height: 32.h, color: _hairline),
+          Expanded(
+            child: _buildStatCell(
+              label: 'دورة',
+              value: '${state.coursesCount}',
+              onTap: () => setState(() => _currentIndex = 1),
+            ),
+          ),
+          Container(width: 1, height: 32.h, color: _hairline),
+          Expanded(
+            child: _buildStatCell(
+              label: 'امتحان',
+              value: '${state.examsCount}',
+              onTap: () => setState(() => _currentIndex = 3),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatCell({
+    required String label,
+    required String value,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: 18.h, horizontal: 4.w),
+        child: Column(
+          children: [
+            Text(
+              value,
+              style: GoogleFonts.cairo(
+                fontSize: 20.sp,
+                fontWeight: FontWeight.w800,
+                color: _ink,
+              ),
+            ),
+            SizedBox(height: 2.h),
+            Text(
+              label,
+              style: GoogleFonts.cairo(
+                fontSize: 11.sp,
+                fontWeight: FontWeight.w600,
+                color: _inkFaint,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecentList() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20.r),
+        border: Border.all(color: _hairline),
+      ),
+      child: Column(
+        children: [
+          for (var i = 0; i < _recentStudents.length; i++) ...[
+            if (i > 0)
+              Divider(
+                color: _hairline,
+                height: 1,
+                indent: 14.w,
+                endIndent: 14.w,
+              ),
+            _buildRecentRow(_recentStudents[i]),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecentRow(Map<String, dynamic> student) {
+    final users = student['users'] as Map<String, dynamic>? ?? {};
+    final name = users['full_name'] as String? ?? 'طالب';
+    final grade =
+        (student['students'] as Map<String, dynamic>?)?['grade_level']
+            as String? ??
+        '';
+    final active = student['status'] == 'active';
+    final time = student['created_at']?.toString().substring(0, 10) ?? '';
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+      child: Row(
+        children: [
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      studentName,
-                      style: GoogleFonts.cairo(
-                        fontSize: 13.sp,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF0F172A),
-                      ),
-                    ),
-                    Text(
-                      time,
-                      style: GoogleFonts.cairo(
-                        fontSize: 10.sp,
-                        color: const Color(0xFF94A3B8),
-                      ),
-                    ),
-                  ],
+                Text(
+                  name,
+                  style: GoogleFonts.cairo(
+                    fontSize: 13.5.sp,
+                    fontWeight: FontWeight.w800,
+                    color: _ink,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                SizedBox(height: 2.h),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        subject,
-                        style: GoogleFonts.cairo(
-                          fontSize: 11.sp,
-                          color: const Color(0xFF64748B),
-                          fontWeight: FontWeight.w600,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    SizedBox(width: 6.w),
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 6.w,
-                        vertical: 1.h,
-                      ),
-                      decoration: BoxDecoration(
-                        color: system.contains('IB')
-                            ? const Color(0xFFEFF6FF)
-                            : const Color(0xFFECFDF5),
-                        borderRadius: BorderRadius.circular(6.r),
-                      ),
-                      child: Text(
-                        system,
-                        style: GoogleFonts.cairo(
-                          fontSize: 9.sp,
-                          color: system.contains('IB')
-                              ? const Color(0xFF2563EB)
-                              : const Color(0xFF0FA37F),
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ],
+                SizedBox(height: 3.h),
+                Text(
+                  grade.isNotEmpty ? 'المرحلة: $grade' : 'طالب جديد',
+                  style: GoogleFonts.cairo(
+                    fontSize: 11.sp,
+                    fontWeight: FontWeight.w600,
+                    color: _inkSoft,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
+          ),
+          SizedBox(width: 12.w),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                time,
+                style: GoogleFonts.cairo(fontSize: 10.sp, color: _inkFaint),
+              ),
+              SizedBox(height: 4.h),
+              Text(
+                active ? 'نشط' : 'غير نشط',
+                style: GoogleFonts.cairo(
+                  fontSize: 11.sp,
+                  fontWeight: FontWeight.w700,
+                  color: active ? _brand : _inkFaint,
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  // 3. Settings View (Tab 4)
+  Widget _buildEmptyRecent() {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(20.r),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20.r),
+        border: Border.all(color: _hairline),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.people_alt_rounded, size: 28.r, color: _inkFaint),
+          SizedBox(height: 8.h),
+          Text(
+            'لا يوجد طلاب بعد',
+            style: GoogleFonts.cairo(
+              fontSize: 13.sp,
+              fontWeight: FontWeight.w700,
+              color: _inkSoft,
+            ),
+          ),
+          SizedBox(height: 2.h),
+          Text(
+            'عندما ينضم طالب جديد ستجده هنا',
+            style: GoogleFonts.cairo(fontSize: 11.sp, color: _inkFaint),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ---------- settings ----------
+
   Widget _buildSettingsDashboardView(BuildContext context) {
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
@@ -809,86 +427,105 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'الإعدادات والملف الشخصي ⚙️',
+            'حسابك وإعداداتك',
             style: GoogleFonts.cairo(
-              fontSize: 20.sp,
-              fontWeight: FontWeight.w900,
-              color: const Color(0xFF0F172A),
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w800,
+              color: _ink,
             ),
           ),
           SizedBox(height: 20.h),
 
-          // Profile Header Card
           Container(
             padding: EdgeInsets.all(18.r),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(24.r),
-              border: Border.all(color: const Color(0xFFF1F5F9)),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x060F172A),
-                  blurRadius: 10,
-                  offset: Offset(0, 4),
-                ),
-              ],
+              borderRadius: BorderRadius.circular(20.r),
+              border: Border.all(color: _hairline),
             ),
             child: Row(
               children: [
                 CircleAvatar(
-                  radius: 28.r,
-                  backgroundColor: AppColors.teacherPrimaryLight,
-                  child: Icon(
-                    Icons.person_rounded,
-                    size: 32.r,
-                    color: AppColors.teacherPrimary,
+                  radius: 25.r,
+                  backgroundColor: _brandTint,
+                  child: Text(
+                    _initialOf(
+                      Supabase
+                              .instance
+                              .client
+                              .auth
+                              .currentUser
+                              ?.userMetadata?['full_name'] ??
+                          'م',
+                    ),
+                    style: GoogleFonts.cairo(
+                      fontSize: 22.sp,
+                      fontWeight: FontWeight.w900,
+                      color: _brand,
+                    ),
                   ),
                 ),
                 SizedBox(width: 14.w),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        MockData.mockUserName,
-                        style: GoogleFonts.cairo(
-                          fontSize: 17.sp,
-                          fontWeight: FontWeight.w900,
-                          color: const Color(0xFF0F172A),
-                        ),
-                      ),
-                      SizedBox(height: 2.h),
-                      Text(
-                        'معلم فيزياء | الثانوية العامة',
-                        style: GoogleFonts.cairo(
-                          fontSize: 12.sp,
-                          color: const Color(0xFF64748B),
-                        ),
-                      ),
-                    ],
+                  child: BlocBuilder<TeacherProfileCubit, TeacherProfileState>(
+                    builder: (context, profileState) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            profileState.user?.fullName ??
+                                Supabase
+                                    .instance
+                                    .client
+                                    .auth
+                                    .currentUser
+                                    ?.userMetadata?['full_name'] ??
+                                'مستخدم',
+                            style: GoogleFonts.cairo(
+                              fontSize: 17.sp,
+                              fontWeight: FontWeight.w900,
+                              color: _ink,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          SizedBox(height: 2.h),
+                          Text(
+                            profileState.teacher != null
+                                ? 'معلم · ${_stageShortOf(profileState.teacher)}'
+                                : 'معلم',
+                            style: GoogleFonts.cairo(
+                              fontSize: 12.sp,
+                              color: _inkSoft,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ),
               ],
             ),
           ),
 
-          SizedBox(height: 24.h),
+          SizedBox(height: 20.h),
 
-          _LightSettingsOptionRow(
+          _SettingsOptionRow(
             icon: Icons.person_outline_rounded,
-            title: 'تعديل الملف الشخصي والبيانات',
+            title: 'تعديل الملف الشخصي',
             onTap: () {},
           ),
           SizedBox(height: 10.h),
-          _LightSettingsOptionRow(
+          _SettingsOptionRow(
             icon: Icons.notifications_none_rounded,
-            title: 'إعدادات الإشعارات والتنبيهات',
+            title: 'إعدادات الإشعارات',
             onTap: () {
               Navigator.pushNamed(context, AppRouter.notifications);
             },
           ),
           SizedBox(height: 10.h),
-          _LightSettingsOptionRow(
+          _SettingsOptionRow(
             icon: Icons.qr_code_2_rounded,
             title: 'أكواد التفعيل المتاحة',
             onTap: () {
@@ -896,9 +533,8 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
             },
           ),
 
-          SizedBox(height: 32.h),
+          SizedBox(height: 28.h),
 
-          // Logout Button
           SizedBox(
             width: double.infinity,
             height: 52.h,
@@ -933,81 +569,65 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
     );
   }
 
-  // Floating Light Bottom Navigation Bar with Central Hero Circular Action Button
-  Widget _buildFloatingBottomNavBar() {
+  // ---------- navigation ----------
+
+  Widget _buildBottomNavBar() {
     return Container(
-      color: const Color(0xFFF8FAFC),
+      color: _canvas,
       padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
       child: Container(
-        height: 64.h,
+        height: 68.h,
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(32.r),
-          border: Border.all(color: const Color(0xFFF1F5F9)),
+          borderRadius: BorderRadius.circular(34.r),
+          border: Border.all(color: _hairline),
           boxShadow: const [
             BoxShadow(
-              color: Color(0x0F0F172A),
-              blurRadius: 20,
-              offset: Offset(0, 8),
+              color: Color(0x140F172A),
+              blurRadius: 24,
+              offset: Offset(0, 10),
             ),
           ],
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            _LightNavBarItem(
-              icon: Icons.home_filled,
+            _NavBarItem(
+              icon: Icons.home_rounded,
+              label: 'الرئيسية',
               isSelected: _currentIndex == 0,
               onTap: () {
                 HapticFeedback.selectionClick();
                 setState(() => _currentIndex = 0);
               },
             ),
-            _LightNavBarItem(
+            _NavBarItem(
               icon: Icons.grid_view_rounded,
+              label: 'الكورسات',
               isSelected: _currentIndex == 1,
               onTap: () {
                 HapticFeedback.selectionClick();
                 setState(() => _currentIndex = 1);
               },
             ),
-
-            // Central Hero Floating Circular Action Button (Add Course / Action)
-            GestureDetector(
+            _CenterAction(
               onTap: () {
                 HapticFeedback.heavyImpact();
                 _showQuickCreateModal(context);
               },
-              child: Container(
-                width: 48.r,
-                height: 48.r,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF0FA37F), Color(0xFF10B981)],
-                  ),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x500FA37F),
-                      blurRadius: 14,
-                      offset: Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Icon(Icons.add_rounded, color: Colors.white, size: 28.r),
-              ),
             ),
-
-            _LightNavBarItem(
+            _NavBarItem(
               icon: Icons.people_alt_rounded,
+              label: 'الطلاب',
               isSelected: _currentIndex == 3,
               onTap: () {
                 HapticFeedback.selectionClick();
                 setState(() => _currentIndex = 3);
               },
             ),
-            _LightNavBarItem(
+            _NavBarItem(
               icon: Icons.person_rounded,
+              label: 'حسابي',
               isSelected: _currentIndex == 4,
               onTap: () {
                 HapticFeedback.selectionClick();
@@ -1031,7 +651,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
         return Directionality(
           textDirection: TextDirection.rtl,
           child: Padding(
-            padding: EdgeInsets.all(24.r),
+            padding: EdgeInsets.all(20.r),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -1043,34 +663,28 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                     borderRadius: BorderRadius.circular(10.r),
                   ),
                 ),
-                SizedBox(height: 20.h),
+                SizedBox(height: 16.h),
                 Text(
-                  'إجراء سريع جديد ✨',
+                  'إنشاء جديد',
                   style: GoogleFonts.cairo(
-                    fontSize: 18.sp,
+                    fontSize: 17.sp,
                     fontWeight: FontWeight.w900,
-                    color: const Color(0xFF0F172A),
+                    color: _ink,
                   ),
                 ),
-                SizedBox(height: 20.h),
+                SizedBox(height: 12.h),
                 ListTile(
-                  leading: Container(
-                    padding: EdgeInsets.all(10.r),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFECFDF5),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.add_circle_outline_rounded,
-                      color: const Color(0xFF0FA37F),
-                      size: 24.r,
-                    ),
+                  leading: Icon(
+                    Icons.add_circle_outline_rounded,
+                    color: _brand,
+                    size: 26.r,
                   ),
                   title: Text(
-                    'إنشاء دورة تعليمية جديدة',
+                    'دورة تعليمية جديدة',
                     style: GoogleFonts.cairo(
-                      color: const Color(0xFF0F172A),
+                      color: _ink,
                       fontWeight: FontWeight.w800,
+                      fontSize: 13.5.sp,
                     ),
                   ),
                   onTap: () {
@@ -1080,23 +694,17 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                 ),
                 const Divider(color: Color(0xFFF1F5F9)),
                 ListTile(
-                  leading: Container(
-                    padding: EdgeInsets.all(10.r),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFFEF3C7),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.quiz_outlined,
-                      color: const Color(0xFFD97706),
-                      size: 24.r,
-                    ),
+                  leading: Icon(
+                    Icons.quiz_outlined,
+                    color: const Color(0xFFD97706),
+                    size: 26.r,
                   ),
                   title: Text(
-                    'إنشاء اختبار إلكتروني جديد',
+                    'اختبار إلكتروني جديد',
                     style: GoogleFonts.cairo(
-                      color: const Color(0xFF0F172A),
+                      color: _ink,
                       fontWeight: FontWeight.w800,
+                      fontSize: 13.5.sp,
                     ),
                   ),
                   onTap: () {
@@ -1106,23 +714,17 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                 ),
                 const Divider(color: Color(0xFFF1F5F9)),
                 ListTile(
-                  leading: Container(
-                    padding: EdgeInsets.all(10.r),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFF3E8FF),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.qr_code_2_rounded,
-                      color: const Color(0xFF9333EA),
-                      size: 24.r,
-                    ),
+                  leading: Icon(
+                    Icons.qr_code_2_rounded,
+                    color: const Color(0xFF7C3AED),
+                    size: 26.r,
                   ),
                   title: Text(
-                    'توليد أكواد تفعيل للطلاب',
+                    'أكواد تفعيل للطلاب',
                     style: GoogleFonts.cairo(
-                      color: const Color(0xFF0F172A),
+                      color: _ink,
                       fontWeight: FontWeight.w800,
+                      fontSize: 13.5.sp,
                     ),
                   ),
                   onTap: () {
@@ -1133,7 +735,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                     );
                   },
                 ),
-                SizedBox(height: 12.h),
+                SizedBox(height: 8.h),
               ],
             ),
           ),
@@ -1143,46 +745,94 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
   }
 }
 
-// Light Navigation Bar Item Widget
-class _LightNavBarItem extends StatelessWidget {
+// ---------- small widgets ----------
+
+class _NavBarItem extends StatelessWidget {
   final IconData icon;
+  final String label;
   final bool isSelected;
   final VoidCallback onTap;
 
-  const _LightNavBarItem({
+  const _NavBarItem({
     required this.icon,
+    required this.label,
     required this.isSelected,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final color = isSelected ? _brand : _inkFaint;
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: EdgeInsets.all(10.r),
+        curve: Curves.easeOut,
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFECFDF5) : Colors.transparent,
-          shape: BoxShape.circle,
+          color: isSelected ? _brandTint : Colors.transparent,
+          borderRadius: BorderRadius.circular(24.r),
         ),
-        child: Icon(
-          icon,
-          size: 24.r,
-          color: isSelected ? const Color(0xFF0FA37F) : const Color(0xFF94A3B8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 22.r, color: color),
+            SizedBox(height: 2.h),
+            Text(
+              label,
+              style: GoogleFonts.cairo(
+                fontSize: 9.sp,
+                fontWeight: FontWeight.w700,
+                color: color,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _LightSettingsOptionRow extends StatelessWidget {
+class _CenterAction extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _CenterAction({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 48.r,
+        height: 48.r,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: const LinearGradient(
+            colors: [_brand, _brandDeep],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x4D0FA37F),
+              blurRadius: 12,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Icon(Icons.add_rounded, color: Colors.white, size: 28.r),
+      ),
+    );
+  }
+}
+
+class _SettingsOptionRow extends StatelessWidget {
   final IconData icon;
   final String title;
   final VoidCallback onTap;
 
-  const _LightSettingsOptionRow({
+  const _SettingsOptionRow({
     required this.icon,
     required this.title,
     required this.onTap,
@@ -1199,19 +849,12 @@ class _LightSettingsOptionRow extends StatelessWidget {
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(18.r),
-          border: Border.all(color: const Color(0xFFF1F5F9)),
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(color: _hairline),
         ),
         child: Row(
           children: [
-            Container(
-              padding: EdgeInsets.all(8.r),
-              decoration: const BoxDecoration(
-                color: Color(0xFFF8FAFC),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: const Color(0xFF64748B), size: 20.r),
-            ),
+            Icon(icon, color: _inkSoft, size: 20.r),
             SizedBox(width: 14.w),
             Expanded(
               child: Text(
@@ -1219,15 +862,11 @@ class _LightSettingsOptionRow extends StatelessWidget {
                 style: GoogleFonts.cairo(
                   fontSize: 14.sp,
                   fontWeight: FontWeight.w700,
-                  color: const Color(0xFF0F172A),
+                  color: _ink,
                 ),
               ),
             ),
-            Icon(
-              Icons.chevron_left_rounded,
-              size: 22.r,
-              color: const Color(0xFF94A3B8),
-            ),
+            Icon(Icons.chevron_left_rounded, size: 22.r, color: _inkFaint),
           ],
         ),
       ),

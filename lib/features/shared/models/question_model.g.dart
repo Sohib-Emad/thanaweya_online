@@ -9,35 +9,35 @@ part of 'question_model.dart';
 _$QuestionModelImpl _$$QuestionModelImplFromJson(Map<String, dynamic> json) =>
     _$QuestionModelImpl(
       id: json['id'] as String,
-      examId: json['examId'] as String,
-      questionType: $enumDecode(_$QuestionTypeEnumMap, json['questionType']),
+      examId: json['exam_id'] as String,
+      questionType: $enumDecode(_$QuestionTypeEnumMap, json['question_type']),
       text: json['text'] as String,
       options:
           (json['options'] as List<dynamic>?)
               ?.map((e) => e as String)
               .toList() ??
           const [],
-      correctAnswer: json['correctAnswer'] as String?,
-      points: (json['points'] as num?)?.toInt() ?? 1,
+      correctAnswer: json['correct_answer'] as String?,
+      points: (json['points'] as num).toInt(),
       order: (json['order'] as num?)?.toInt() ?? 0,
-      createdAt: DateTime.parse(json['createdAt'] as String),
+      createdAt: DateTime.parse(json['created_at'] as String),
     );
 
 Map<String, dynamic> _$$QuestionModelImplToJson(_$QuestionModelImpl instance) =>
     <String, dynamic>{
       'id': instance.id,
-      'examId': instance.examId,
-      'questionType': _$QuestionTypeEnumMap[instance.questionType]!,
+      'exam_id': instance.examId,
+      'question_type': _$QuestionTypeEnumMap[instance.questionType]!,
       'text': instance.text,
       'options': instance.options,
-      'correctAnswer': instance.correctAnswer,
+      'correct_answer': instance.correctAnswer,
       'points': instance.points,
       'order': instance.order,
-      'createdAt': instance.createdAt.toIso8601String(),
+      'created_at': instance.createdAt.toIso8601String(),
     };
 
 const _$QuestionTypeEnumMap = {
   QuestionType.mcq: 'mcq',
-  QuestionType.trueFalse: 'trueFalse',
+  QuestionType.trueFalse: 'true_false',
   QuestionType.essay: 'essay',
 };

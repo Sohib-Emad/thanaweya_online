@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'package:thanaweya_online/features/student/data/repos/student_payments_repo.dart';
+import 'package:thanaweya_online/features/student/logic/student_payments_cubit.dart';
 
 import '../../../../core/constants/app_colors.dart';
 
@@ -13,10 +17,103 @@ class StudentAddCardScreen extends StatefulWidget {
 }
 
 class _StudentAddCardScreenState extends State<StudentAddCardScreen> {
-  final _cardNameController = TextEditingController(text: 'صهيب عماد (ALEX)');
-  final _cardNumberController = TextEditingController(text: '1234 5678 8765 0876');
-  final _expiryController = TextEditingController(text: '12/28');
-  final _cvvController = TextEditingController(text: '789');
+  final _cardNameController = TextEditingController();
+  final _cardNumberController = TextEditingController();
+  final _expiryController = TextEditingController();
+  final _cvvController = TextEditingController();
+
+  final _cubit = StudentPaymentsCubit(repo: StudentPaymentsRepo());
+
+  @override
+  void dispose() {
+    _cubit.close();
+    _cardNameController.dispose();
+    _cardNumberController.dispose();
+    _expiryController.dispose();
+    _cvvController.dispose();
+    super.dispose();
+  }
+
+  String _detectBrand(String number) {
+    if (number.startsWith('4')) return 'Visa';
+    if (number.startsWith('5')) return 'MasterCard';
+    return 'Card';
+  }
+
+  void _showSnack(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: GoogleFonts.cairo(fontWeight: FontWeight.w700),
+        ),
+        backgroundColor: const Color(0xFFEF4444),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Future<void> _saveCard() async {
+    final cardHolder = _cardNameController.text.trim();
+    final cardNumber = _cardNumberController.text
+        .replaceAll(' ', '')
+        .replaceAll('-', '');
+    final expiry = _expiryController.text.trim();
+
+    if (cardHolder.isEmpty) {
+      _showSnack('يرجى إدخال اسم صاحب البطاقة');
+      return;
+    }
+    if (cardNumber.length < 4) {
+      _showSnack('يرجى إدخال رقم بطاقة صحيح');
+      return;
+    }
+
+    final parts = expiry.split('/');
+    int? expiryMonth;
+    int? expiryYear;
+    if (parts.length == 2) {
+      expiryMonth = int.tryParse(parts[0].trim());
+      final yy = int.tryParse(parts[1].trim());
+      if (yy != null) expiryYear = 2000 + yy;
+    }
+    if (expiryMonth == null || expiryYear == null) {
+      _showSnack('يرجى إدخال تاريخ انتهاء صحيح (MM/YY)');
+      return;
+    }
+
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) {
+      _showSnack('يجب تسجيل الدخول أولاً');
+      return;
+    }
+
+    final cardLast4 = cardNumber.substring(cardNumber.length - 4);
+    final saved = await _cubit.addPaymentMethod(
+      studentId: userId,
+      cardHolder: cardHolder,
+      cardLast4: cardLast4,
+      cardBrand: _detectBrand(cardNumber),
+      expiryMonth: expiryMonth,
+      expiryYear: expiryYear,
+    );
+    if (!mounted) return;
+    if (saved) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'تمت إضافة البطاقة بنجاح 💳',
+            style: GoogleFonts.cairo(fontWeight: FontWeight.w700),
+          ),
+          backgroundColor: AppColors.studentPrimary,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      Navigator.pop(context, true);
+    } else {
+      _showSnack('حدث خطأ أثناء إضافة البطاقة، حاول مرة أخرى');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -232,17 +329,7 @@ class _StudentAddCardScreenState extends State<StudentAddCardScreen> {
                 child: ElevatedButton(
                   onPressed: () {
                     HapticFeedback.mediumImpact();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'تمت إضافة البطاقة بنجاح 💳',
-                          style: GoogleFonts.cairo(fontWeight: FontWeight.w700),
-                        ),
-                        backgroundColor: AppColors.studentPrimary,
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                    Navigator.pop(context);
+                    _saveCard();
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF2563EB),
@@ -326,7 +413,10 @@ class _StudentAddCardScreenState extends State<StudentAddCardScreen> {
                 color: const Color(0xFF94A3B8),
               ),
               border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 16.w,
+                vertical: 12.h,
+              ),
             ),
           ),
         ),

@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:thanaweya_online/core/constants/app_colors.dart';
 import 'package:thanaweya_online/core/router/app_router.dart';
+import 'package:thanaweya_online/features/student/data/repos/student_courses_repo.dart';
+import 'package:thanaweya_online/features/student/logic/student_courses_cubit.dart';
 
 class CourseLessonsScreen extends StatefulWidget {
   final String courseId;
@@ -18,6 +22,8 @@ class CourseLessonsScreen extends StatefulWidget {
 class _CourseLessonsScreenState extends State<CourseLessonsScreen> {
   int _selectedGradeIndex = 2;
 
+  late final StudentCoursesCubit _coursesCubit;
+
   final List<String> _grades = [
     'الصف 9',
     'الصف 10',
@@ -25,36 +31,32 @@ class _CourseLessonsScreenState extends State<CourseLessonsScreen> {
     'الصف 12 (ثانوية)',
   ];
 
-  final List<Map<String, dynamic>> _chapters = [
-    {
-      'number': 'الفصل 01',
-      'title': 'تركيب الخلية والعمليات الحيوية',
-      'subtitle': 'شرح الخلية الحيوانية والنباتية ووظائف العضيات',
-      'lessonsCount': '6 دروس',
-      'icon': Icons.bubble_chart_rounded,
-    },
-    {
-      'number': 'الفصل 02',
-      'title': 'فسيولوجيا النبات والبناء الضوئي',
-      'subtitle': 'تعلم كيف تنمو النباتات وامتصاص الماء والتنفس الخلوي',
-      'lessonsCount': '8 دروس',
-      'icon': Icons.eco_rounded,
-    },
-    {
-      'number': 'الفصل 03',
-      'title': 'علم الوراثة والجينات DNA',
-      'subtitle': 'قوانين مندل وتركيب الحمض النووي والطفور',
-      'lessonsCount': '5 دروس',
-      'icon': Icons.biotech_rounded,
-    },
-    {
-      'number': 'الفصل 04',
-      'title': 'التكاثر في الكائنات الحية',
-      'subtitle': 'انقسام الخلية والتكاثر الجنسي واللاجنسي',
-      'lessonsCount': '7 دروس',
-      'icon': Icons.grain_rounded,
-    },
+  final List<IconData> _chapterIcons = const [
+    Icons.bubble_chart_rounded,
+    Icons.eco_rounded,
+    Icons.biotech_rounded,
+    Icons.grain_rounded,
+    Icons.science_rounded,
+    Icons.water_drop_rounded,
+    Icons.calculate_rounded,
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _coursesCubit = StudentCoursesCubit(repo: StudentCoursesRepo());
+    _coursesCubit.loadCourseLessons(widget.courseId);
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId != null) {
+      _coursesCubit.loadProgress(userId);
+    }
+  }
+
+  @override
+  void dispose() {
+    _coursesCubit.close();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -241,92 +243,141 @@ class _CourseLessonsScreenState extends State<CourseLessonsScreen> {
                     SizedBox(height: 16.h),
 
                     // Chapters List
-                    ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _chapters.length,
-                      separatorBuilder: (_, _) => SizedBox(height: 12.h),
-                      itemBuilder: (context, index) {
-                        final ch = _chapters[index];
+                    BlocBuilder<StudentCoursesCubit, StudentCoursesState>(
+                      bloc: _coursesCubit,
+                      builder: (context, state) {
+                        if (state.lessonsStatus ==
+                                StudentCoursesStatus.loading &&
+                            state.lessons.isEmpty) {
+                          return const Padding(
+                            padding: EdgeInsets.only(top: 40),
+                            child: Center(child: CircularProgressIndicator()),
+                          );
+                        }
 
-                        return GestureDetector(
-                          onTap: () {
-                            HapticFeedback.lightImpact();
-                            Navigator.pushNamed(
-                              context,
-                              AppRouter.studentTeacherPage,
+                        final completedIds = {
+                          for (final p in state.progress)
+                            if (p.isCompleted) p.lessonId,
+                        };
+
+                        return ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: state.lessons.length,
+                          separatorBuilder: (_, _) => SizedBox(height: 12.h),
+                          itemBuilder: (context, index) {
+                            final lesson = state.lessons[index];
+                            final isCompleted =
+                                completedIds.contains(lesson.id);
+                            final number =
+                                'الدرس ${(index + 1).toString().padLeft(2, '0')}';
+                            final icon =
+                                _chapterIcons[index % _chapterIcons.length];
+
+                            return GestureDetector(
+                              onTap: () {
+                                HapticFeedback.lightImpact();
+                                Navigator.pushNamed(
+                                  context,
+                                  AppRouter.studentVideoPlayer,
+                                  arguments: {
+                                    'lessonId': lesson.id,
+                                    'videoUrl': lesson.videoUrlOrId,
+                                    'title': lesson.title,
+                                    'courseId': widget.courseId,
+                                  },
+                                );
+                              },
+                              child: Container(
+                                padding: EdgeInsets.all(16.r),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(20.r),
+                                  border: Border.all(
+                                    color: const Color(0xFFF1F5F9),
+                                  ),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: Color(0x060F172A),
+                                      blurRadius: 10,
+                                      offset: Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: EdgeInsets.all(12.r),
+                                      decoration: BoxDecoration(
+                                        color: isCompleted
+                                            ? const Color(0xFFECFDF5)
+                                            : AppColors.studentPrimaryLight,
+                                        borderRadius:
+                                            BorderRadius.circular(16.r),
+                                      ),
+                                      child: Icon(
+                                        isCompleted
+                                            ? Icons.check_circle_rounded
+                                            : icon,
+                                        color: isCompleted
+                                            ? const Color(0xFF10B981)
+                                            : AppColors.studentPrimary,
+                                        size: 24.r,
+                                      ),
+                                    ),
+                                    SizedBox(width: 14.w),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            '$number • ${lesson.title}',
+                                            style: GoogleFonts.cairo(
+                                              fontSize: 14.sp,
+                                              fontWeight: FontWeight.w800,
+                                              color: const Color(0xFF0F172A),
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          SizedBox(height: 3.h),
+                                          Text(
+                                            lesson.description ?? '',
+                                            style: GoogleFonts.cairo(
+                                              fontSize: 11.sp,
+                                              color: const Color(0xFF64748B),
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Container(
+                                      width: 34.r,
+                                      height: 34.r,
+                                      decoration: BoxDecoration(
+                                        color: isCompleted
+                                            ? const Color(0xFFECFDF5)
+                                            : const Color(0xFFF1F5F9),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        isCompleted
+                                            ? Icons.check_circle_rounded
+                                            : Icons.play_arrow_rounded,
+                                        color: isCompleted
+                                            ? const Color(0xFF10B981)
+                                            : AppColors.studentPrimary,
+                                        size: 22.r,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             );
                           },
-                          child: Container(
-                            padding: EdgeInsets.all(16.r),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(20.r),
-                              border: Border.all(color: const Color(0xFFF1F5F9)),
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Color(0x060F172A),
-                                  blurRadius: 10,
-                                  offset: Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: EdgeInsets.all(12.r),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.studentPrimaryLight,
-                                    borderRadius: BorderRadius.circular(16.r),
-                                  ),
-                                  child: Icon(
-                                    ch['icon'] as IconData,
-                                    color: AppColors.studentPrimary,
-                                    size: 24.r,
-                                  ),
-                                ),
-                                SizedBox(width: 14.w),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        '${ch['number']} • ${ch['title']}',
-                                        style: GoogleFonts.cairo(
-                                          fontSize: 14.sp,
-                                          fontWeight: FontWeight.w800,
-                                          color: const Color(0xFF0F172A),
-                                        ),
-                                      ),
-                                      SizedBox(height: 3.h),
-                                      Text(
-                                        ch['subtitle'] as String,
-                                        style: GoogleFonts.cairo(
-                                          fontSize: 11.sp,
-                                          color: const Color(0xFF64748B),
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Container(
-                                  width: 34.r,
-                                  height: 34.r,
-                                  decoration: const BoxDecoration(
-                                    color: Color(0xFFF1F5F9),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(
-                                    Icons.play_arrow_rounded,
-                                    color: AppColors.studentPrimary,
-                                    size: 22.r,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
                         );
                       },
                     ),

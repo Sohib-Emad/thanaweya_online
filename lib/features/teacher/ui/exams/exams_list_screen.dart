@@ -1,14 +1,44 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:thanaweya_online/core/constants/app_colors.dart';
-import 'package:thanaweya_online/core/data/mock_data.dart';
 import 'package:thanaweya_online/core/router/app_router.dart';
+import 'package:thanaweya_online/features/shared/models/exam_model.dart';
+import 'package:thanaweya_online/features/teacher/data/repos/teacher_exams_repo.dart';
+import 'package:thanaweya_online/features/teacher/logic/teacher_exams_cubit.dart';
 
-class ExamsListScreen extends StatelessWidget {
+class ExamsListScreen extends StatefulWidget {
   const ExamsListScreen({super.key});
+
+  @override
+  State<ExamsListScreen> createState() => _ExamsListScreenState();
+}
+
+class _ExamsListScreenState extends State<ExamsListScreen> {
+  final _cubit = TeacherExamsCubit(repo: TeacherExamsRepo());
+
+  @override
+  void initState() {
+    super.initState();
+    _loadExams();
+  }
+
+  @override
+  void dispose() {
+    _cubit.close();
+    super.dispose();
+  }
+
+  Future<void> _loadExams() async {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId != null) {
+      _cubit.loadExams(userId);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,25 +67,77 @@ class ExamsListScreen extends StatelessWidget {
             ),
           ),
         ),
-        body: ListView.separated(
-          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
-          itemCount: MockData.mockExams.length,
-          separatorBuilder: (_, __) => SizedBox(height: 14.h),
-          itemBuilder: (context, index) {
-            final exam = MockData.mockExams[index];
-            final isPublished = exam['is_published'] == true;
-            return _ExamCard(
-              title: exam['title'] as String,
-              duration: exam['duration_minutes'] as int? ?? 45,
-              isPublished: isPublished,
-              onTap: () {
-                HapticFeedback.lightImpact();
-                Navigator.pushNamed(
-                  context,
-                  AppRouter.teacherAddQuestion,
-                  arguments: exam['id'] as String,
-                );
-              },
+        body: BlocBuilder<TeacherExamsCubit, TeacherExamsState>(
+          bloc: _cubit,
+          builder: (context, state) {
+            if (state.status == TeacherExamsStatus.loading) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (state.status == TeacherExamsStatus.error) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.error_outline_rounded, size: 48.r, color: AppColors.error),
+                    SizedBox(height: 12.h),
+                    Text(
+                      state.errorMessage ?? 'حدث خطأ أثناء تحميل الاختبارات',
+                      style: GoogleFonts.cairo(fontSize: 14.sp, color: AppColors.textSecondary),
+                    ),
+                    SizedBox(height: 16.h),
+                    ElevatedButton(
+                      onPressed: _loadExams,
+                      child: Text('إعادة المحاولة', style: GoogleFonts.cairo()),
+                    ),
+                  ],
+                ),
+              );
+            }
+            if (state.exams.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.quiz_rounded, size: 64.r, color: AppColors.textTertiary),
+                    SizedBox(height: 16.h),
+                    Text(
+                      'لا توجد اختبارات بعد',
+                      style: GoogleFonts.cairo(fontSize: 16.sp, color: AppColors.textSecondary),
+                    ),
+                    SizedBox(height: 8.h),
+                    Text(
+                      'اضغط على زر + لإنشاء أول اختبار',
+                      style: GoogleFonts.cairo(fontSize: 13.sp, color: AppColors.textTertiary),
+                    ),
+                  ],
+                ),
+              );
+            }
+            return RefreshIndicator(
+              onRefresh: _loadExams,
+              child: ListView.separated(
+                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+                itemCount: state.exams.length,
+                separatorBuilder: (_, __) => SizedBox(height: 14.h),
+                itemBuilder: (context, index) {
+                  final exam = state.exams[index];
+                  return _ExamCard(
+                    title: exam.title,
+                    duration: exam.durationMinutes,
+                    isPublished: exam.isPublished,
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      Navigator.pushNamed(
+                        context,
+                        AppRouter.teacherAddQuestion,
+                        arguments: exam.id,
+                      );
+                    },
+                    onDelete: () => _cubit.deleteExam(exam.id),
+                    onPublish: () => _cubit.publishExam(exam.id),
+                  );
+                },
+              ),
             );
           },
         ),
@@ -176,11 +258,23 @@ class ExamsListScreen extends StatelessWidget {
                   height: 52.h,
                   child: ElevatedButton(
                     onPressed: () {
+                      final title = titleController.text.trim();
+                      final duration = int.tryParse(durationController.text) ?? 45;
+                      if (title.isEmpty) return;
+
+                      final userId = Supabase.instance.client.auth.currentUser?.id;
+                      if (userId != null) {
+                        _cubit.createExam(
+                          teacherId: userId,
+                          title: title,
+                          durationMinutes: duration,
+                          startAt: DateTime.now(),
+                          endAt: DateTime.now().add(const Duration(days: 30)),
+                        );
+                      }
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('تم إنشاء الاختبار وحفظه بنجاح 🎉'),
-                        ),
+                        const SnackBar(content: Text('جاري إنشاء الاختبار...')),
                       );
                     },
                     style: ElevatedButton.styleFrom(
@@ -213,12 +307,16 @@ class _ExamCard extends StatelessWidget {
   final int duration;
   final bool isPublished;
   final VoidCallback onTap;
+  final VoidCallback onDelete;
+  final VoidCallback onPublish;
 
   const _ExamCard({
     required this.title,
     required this.duration,
     required this.isPublished,
     required this.onTap,
+    required this.onDelete,
+    required this.onPublish,
   });
 
   @override
@@ -245,16 +343,12 @@ class _ExamCard extends StatelessWidget {
               width: 52.r,
               height: 52.r,
               decoration: BoxDecoration(
-                color: isPublished
-                    ? const Color(0xFFECFDF5)
-                    : const Color(0xFFFEF3C7),
+                color: isPublished ? const Color(0xFFECFDF5) : const Color(0xFFFEF3C7),
                 borderRadius: BorderRadius.circular(16.r),
               ),
               child: Icon(
                 Icons.assignment_turned_in_rounded,
-                color: isPublished
-                    ? const Color(0xFF0FA37F)
-                    : const Color(0xFFD97706),
+                color: isPublished ? const Color(0xFF0FA37F) : const Color(0xFFD97706),
                 size: 26.r,
               ),
             ),
@@ -274,34 +368,26 @@ class _ExamCard extends StatelessWidget {
                   SizedBox(height: 6.h),
                   Row(
                     children: [
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 8.w,
-                          vertical: 3.h,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isPublished
-                              ? const Color(0xFFECFDF5)
-                              : const Color(0xFFFEF3C7),
-                          borderRadius: BorderRadius.circular(8.r),
-                        ),
-                        child: Text(
-                          isPublished ? 'منشور ✓' : 'مسودة ⏳',
-                          style: GoogleFonts.cairo(
-                            fontSize: 11.sp,
-                            fontWeight: FontWeight.w800,
-                            color: isPublished
-                                ? const Color(0xFF0FA37F)
-                                : const Color(0xFFD97706),
+                      GestureDetector(
+                        onTap: isPublished ? null : onPublish,
+                        child: Container(
+                          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+                          decoration: BoxDecoration(
+                            color: isPublished ? const Color(0xFFECFDF5) : const Color(0xFFFEF3C7),
+                            borderRadius: BorderRadius.circular(8.r),
+                          ),
+                          child: Text(
+                            isPublished ? 'منشور ✓' : 'مسودة ⏳',
+                            style: GoogleFonts.cairo(
+                              fontSize: 11.sp,
+                              fontWeight: FontWeight.w800,
+                              color: isPublished ? const Color(0xFF0FA37F) : const Color(0xFFD97706),
+                            ),
                           ),
                         ),
                       ),
                       SizedBox(width: 8.w),
-                      Icon(
-                        Icons.timer_outlined,
-                        size: 13.r,
-                        color: const Color(0xFF64748B),
-                      ),
+                      Icon(Icons.timer_outlined, size: 13.r, color: const Color(0xFF64748B)),
                       SizedBox(width: 4.w),
                       Text(
                         '$duration دقيقة',
@@ -315,11 +401,11 @@ class _ExamCard extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(
-              Icons.chevron_left_rounded,
-              size: 24.r,
-              color: const Color(0xFF94A3B8),
+            IconButton(
+              onPressed: onDelete,
+              icon: Icon(Icons.delete_outline_rounded, color: Colors.red[300], size: 20.r),
             ),
+            Icon(Icons.chevron_left_rounded, size: 24.r, color: const Color(0xFF94A3B8)),
           ],
         ),
       ),

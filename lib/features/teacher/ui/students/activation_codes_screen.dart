@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:thanaweya_online/core/constants/app_colors.dart';
 import 'package:thanaweya_online/core/constants/app_strings.dart';
-import 'package:thanaweya_online/core/data/mock_data.dart';
+import 'package:thanaweya_online/features/teacher/data/repos/teacher_students_repo.dart';
+import 'package:thanaweya_online/features/teacher/logic/teacher_students_cubit.dart';
 
 class ActivationCodesScreen extends StatefulWidget {
   const ActivationCodesScreen({super.key});
@@ -15,25 +18,33 @@ class ActivationCodesScreen extends StatefulWidget {
 }
 
 class _ActivationCodesScreenState extends State<ActivationCodesScreen> {
-  late List<Map<String, dynamic>> _codes;
+  final _cubit = TeacherStudentsCubit(repo: TeacherStudentsRepo());
 
   @override
   void initState() {
     super.initState();
-    _codes = List.from(MockData.mockActivationCodes);
+    _loadCodes();
   }
 
-  void _generateNewCode() {
+  @override
+  void dispose() {
+    _cubit.close();
+    super.dispose();
+  }
+
+  Future<void> _loadCodes() async {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId != null) {
+      _cubit.loadActivationCodes(userId);
+    }
+  }
+
+  void _generateCode() {
     HapticFeedback.heavyImpact();
-    final newCode = {
-      'id': 'code_${DateTime.now().millisecondsSinceEpoch}',
-      'code':
-          'THN-${(1000 + _codes.length).toString()}-${(8000 + _codes.length).toString()}',
-      'is_used': false,
-    };
-    setState(() {
-      _codes.insert(0, newCode);
-    });
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId != null) {
+      _cubit.generateCodes(teacherId: userId, count: 1);
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('تم توليد كود تفعيل جديد بنجاح 🎉')),
     );
@@ -49,11 +60,7 @@ class _ActivationCodesScreenState extends State<ActivationCodesScreen> {
           backgroundColor: Colors.white,
           elevation: 0,
           leading: IconButton(
-            icon: Icon(
-              Icons.chevron_right_rounded,
-              color: const Color(0xFF0F172A),
-              size: 28.r,
-            ),
+            icon: Icon(Icons.chevron_right_rounded, color: const Color(0xFF0F172A), size: 28.r),
             onPressed: () => Navigator.pop(context),
           ),
           centerTitle: true,
@@ -66,55 +73,62 @@ class _ActivationCodesScreenState extends State<ActivationCodesScreen> {
             ),
           ),
         ),
-        body: Column(
-          children: [
-            // Top Action Header
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
-              child: SizedBox(
-                width: double.infinity,
-                height: 52.h,
-                child: ElevatedButton.icon(
-                  onPressed: _generateNewCode,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.teacherPrimary,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30.r),
-                    ),
-                  ),
-                  icon: Icon(
-                    Icons.key_rounded,
-                    color: Colors.white,
-                    size: 20.r,
-                  ),
-                  label: Text(
-                    'توليد كود تفعيل جديد 🔑',
-                    style: GoogleFonts.cairo(
-                      fontSize: 15.sp,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
+        body: BlocBuilder<TeacherStudentsCubit, TeacherStudentsState>(
+          bloc: _cubit,
+          builder: (context, state) {
+            return Column(
+              children: [
+                // Top Action Header
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 52.h,
+                    child: ElevatedButton.icon(
+                      onPressed: state.codesStatus == TeacherStudentsStatus.loading ? null : _generateCode,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.teacherPrimary,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30.r)),
+                      ),
+                      icon: Icon(Icons.key_rounded, color: Colors.white, size: 20.r),
+                      label: Text(
+                        'توليد كود تفعيل جديد 🔑',
+                        style: GoogleFonts.cairo(fontSize: 15.sp, fontWeight: FontWeight.w800, color: Colors.white),
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ),
 
-            Expanded(
-              child: ListView.separated(
-                padding: EdgeInsets.fromLTRB(20.w, 4.h, 20.w, 20.h),
-                itemCount: _codes.length,
-                separatorBuilder: (_, __) => SizedBox(height: 12.h),
-                itemBuilder: (context, index) {
-                  final code = _codes[index];
-                  final isUsed = code['is_used'] as bool;
-                  final codeStr = code['code'] as String;
-
-                  return _CodeCard(codeStr: codeStr, isUsed: isUsed);
-                },
-              ),
-            ),
-          ],
+                if (state.codesStatus == TeacherStudentsStatus.loading && state.activationCodes.isEmpty)
+                  const Expanded(child: Center(child: CircularProgressIndicator()))
+                else if (state.activationCodes.isEmpty)
+                  const Expanded(
+                    child: Center(
+                      child: Text('لا توجد أكواد تفعيل بعد', style: TextStyle(color: Color(0xFF94A3B8))),
+                    ),
+                  )
+                else
+                  Expanded(
+                    child: RefreshIndicator(
+                      onRefresh: _loadCodes,
+                      child: ListView.separated(
+                        padding: EdgeInsets.fromLTRB(20.w, 4.h, 20.w, 20.h),
+                        itemCount: state.activationCodes.length,
+                        separatorBuilder: (_, __) => SizedBox(height: 12.h),
+                        itemBuilder: (context, index) {
+                          final code = state.activationCodes[index];
+                          return _CodeCard(
+                            codeStr: code.code,
+                            isUsed: code.isUsed,
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -135,13 +149,7 @@ class _CodeCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20.r),
         border: Border.all(color: const Color(0xFFF1F5F9)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x050F172A),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
+        boxShadow: const [BoxShadow(color: Color(0x050F172A), blurRadius: 10, offset: Offset(0, 4))],
       ),
       child: Row(
         children: [
@@ -164,20 +172,13 @@ class _CodeCard extends StatelessWidget {
               children: [
                 Text(
                   codeStr,
-                  style: GoogleFonts.robotoMono(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF0F172A),
-                    letterSpacing: 1.2,
-                  ),
+                  style: GoogleFonts.robotoMono(fontSize: 16.sp, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A), letterSpacing: 1.2),
                 ),
                 SizedBox(height: 4.h),
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
                   decoration: BoxDecoration(
-                    color: isUsed
-                        ? const Color(0xFFFEF3C7)
-                        : const Color(0xFFECFDF5),
+                    color: isUsed ? const Color(0xFFFEF3C7) : const Color(0xFFECFDF5),
                     borderRadius: BorderRadius.circular(6.r),
                   ),
                   child: Text(
@@ -185,9 +186,7 @@ class _CodeCard extends StatelessWidget {
                     style: GoogleFonts.cairo(
                       fontSize: 10.sp,
                       fontWeight: FontWeight.w800,
-                      color: isUsed
-                          ? const Color(0xFFD97706)
-                          : const Color(0xFF0FA37F),
+                      color: isUsed ? const Color(0xFFD97706) : const Color(0xFF0FA37F),
                     ),
                   ),
                 ),
@@ -199,16 +198,10 @@ class _CodeCard extends StatelessWidget {
               HapticFeedback.selectionClick();
               Clipboard.setData(ClipboardData(text: codeStr));
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('تم نسخ الكود ($codeStr) إلى الحافظة 📋'),
-                ),
+                SnackBar(content: Text('تم نسخ الكود ($codeStr) إلى الحافظة 📋')),
               );
             },
-            icon: Icon(
-              Icons.content_copy_rounded,
-              color: const Color(0xFF2563EB),
-              size: 20.r,
-            ),
+            icon: Icon(Icons.content_copy_rounded, color: const Color(0xFF2563EB), size: 20.r),
           ),
         ],
       ),

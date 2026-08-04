@@ -22,13 +22,19 @@ TeacherModel _$TeacherModelFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$TeacherModel {
   String get id => throw _privateConstructorUsedError;
+  @JsonKey(name: 'subject_id')
   String get subjectId => throw _privateConstructorUsedError;
   TeacherStage get stage => throw _privateConstructorUsedError;
   String? get bio => throw _privateConstructorUsedError;
+  @JsonKey(name: 'approval_status')
   ApprovalStatus get approvalStatus => throw _privateConstructorUsedError;
+  @JsonKey(name: 'rejection_reason')
   String? get rejectionReason => throw _privateConstructorUsedError;
+  @JsonKey(name: 'subscription_plan_id')
   String? get subscriptionPlanId => throw _privateConstructorUsedError;
+  @JsonKey(name: 'subscription_expires_at')
   DateTime? get subscriptionExpiresAt => throw _privateConstructorUsedError;
+  @JsonKey(name: 'created_at')
   DateTime get createdAt => throw _privateConstructorUsedError;
 
   /// Serializes this TeacherModel to a JSON map.
@@ -50,14 +56,14 @@ abstract class $TeacherModelCopyWith<$Res> {
   @useResult
   $Res call({
     String id,
-    String subjectId,
+    @JsonKey(name: 'subject_id') String subjectId,
     TeacherStage stage,
     String? bio,
-    ApprovalStatus approvalStatus,
-    String? rejectionReason,
-    String? subscriptionPlanId,
-    DateTime? subscriptionExpiresAt,
-    DateTime createdAt,
+    @JsonKey(name: 'approval_status') ApprovalStatus approvalStatus,
+    @JsonKey(name: 'rejection_reason') String? rejectionReason,
+    @JsonKey(name: 'subscription_plan_id') String? subscriptionPlanId,
+    @JsonKey(name: 'subscription_expires_at') DateTime? subscriptionExpiresAt,
+    @JsonKey(name: 'created_at') DateTime createdAt,
   });
 }
 
@@ -141,14 +147,14 @@ abstract class _$$TeacherModelImplCopyWith<$Res>
   @useResult
   $Res call({
     String id,
-    String subjectId,
+    @JsonKey(name: 'subject_id') String subjectId,
     TeacherStage stage,
     String? bio,
-    ApprovalStatus approvalStatus,
-    String? rejectionReason,
-    String? subscriptionPlanId,
-    DateTime? subscriptionExpiresAt,
-    DateTime createdAt,
+    @JsonKey(name: 'approval_status') ApprovalStatus approvalStatus,
+    @JsonKey(name: 'rejection_reason') String? rejectionReason,
+    @JsonKey(name: 'subscription_plan_id') String? subscriptionPlanId,
+    @JsonKey(name: 'subscription_expires_at') DateTime? subscriptionExpiresAt,
+    @JsonKey(name: 'created_at') DateTime createdAt,
   });
 }
 
@@ -224,14 +230,14 @@ class __$$TeacherModelImplCopyWithImpl<$Res>
 class _$TeacherModelImpl implements _TeacherModel {
   const _$TeacherModelImpl({
     required this.id,
-    required this.subjectId,
+    @JsonKey(name: 'subject_id') required this.subjectId,
     required this.stage,
     this.bio,
-    required this.approvalStatus,
-    this.rejectionReason,
-    this.subscriptionPlanId,
-    this.subscriptionExpiresAt,
-    required this.createdAt,
+    @JsonKey(name: 'approval_status') required this.approvalStatus,
+    @JsonKey(name: 'rejection_reason') this.rejectionReason,
+    @JsonKey(name: 'subscription_plan_id') this.subscriptionPlanId,
+    @JsonKey(name: 'subscription_expires_at') this.subscriptionExpiresAt,
+    @JsonKey(name: 'created_at') required this.createdAt,
   });
 
   factory _$TeacherModelImpl.fromJson(Map<String, dynamic> json) =>
@@ -240,20 +246,26 @@ class _$TeacherModelImpl implements _TeacherModel {
   @override
   final String id;
   @override
+  @JsonKey(name: 'subject_id')
   final String subjectId;
   @override
   final TeacherStage stage;
   @override
   final String? bio;
   @override
+  @JsonKey(name: 'approval_status')
   final ApprovalStatus approvalStatus;
   @override
+  @JsonKey(name: 'rejection_reason')
   final String? rejectionReason;
   @override
+  @JsonKey(name: 'subscription_plan_id')
   final String? subscriptionPlanId;
   @override
+  @JsonKey(name: 'subscription_expires_at')
   final DateTime? subscriptionExpiresAt;
   @override
+  @JsonKey(name: 'created_at')
   final DateTime createdAt;
 
   @override
@@ -315,14 +327,16 @@ class _$TeacherModelImpl implements _TeacherModel {
 abstract class _TeacherModel implements TeacherModel {
   const factory _TeacherModel({
     required final String id,
-    required final String subjectId,
+    @JsonKey(name: 'subject_id') required final String subjectId,
     required final TeacherStage stage,
     final String? bio,
+    @JsonKey(name: 'approval_status')
     required final ApprovalStatus approvalStatus,
-    final String? rejectionReason,
-    final String? subscriptionPlanId,
+    @JsonKey(name: 'rejection_reason') final String? rejectionReason,
+    @JsonKey(name: 'subscription_plan_id') final String? subscriptionPlanId,
+    @JsonKey(name: 'subscription_expires_at')
     final DateTime? subscriptionExpiresAt,
-    required final DateTime createdAt,
+    @JsonKey(name: 'created_at') required final DateTime createdAt,
   }) = _$TeacherModelImpl;
 
   factory _TeacherModel.fromJson(Map<String, dynamic> json) =
@@ -331,20 +345,26 @@ abstract class _TeacherModel implements TeacherModel {
   @override
   String get id;
   @override
+  @JsonKey(name: 'subject_id')
   String get subjectId;
   @override
   TeacherStage get stage;
   @override
   String? get bio;
   @override
+  @JsonKey(name: 'approval_status')
   ApprovalStatus get approvalStatus;
   @override
+  @JsonKey(name: 'rejection_reason')
   String? get rejectionReason;
   @override
+  @JsonKey(name: 'subscription_plan_id')
   String? get subscriptionPlanId;
   @override
+  @JsonKey(name: 'subscription_expires_at')
   DateTime? get subscriptionExpiresAt;
   @override
+  @JsonKey(name: 'created_at')
   DateTime get createdAt;
 
   /// Create a copy of TeacherModel

@@ -22,10 +22,15 @@ LessonProgressModel _$LessonProgressModelFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$LessonProgressModel {
   String get id => throw _privateConstructorUsedError;
+  @JsonKey(name: 'student_id')
   String get studentId => throw _privateConstructorUsedError;
+  @JsonKey(name: 'lesson_id')
   String get lessonId => throw _privateConstructorUsedError;
+  @JsonKey(name: 'is_completed')
   bool get isCompleted => throw _privateConstructorUsedError;
+  @JsonKey(name: 'watched_seconds')
   int get watchedSeconds => throw _privateConstructorUsedError;
+  @JsonKey(name: 'last_watched_at')
   DateTime get lastWatchedAt => throw _privateConstructorUsedError;
 
   /// Serializes this LessonProgressModel to a JSON map.
@@ -47,11 +52,11 @@ abstract class $LessonProgressModelCopyWith<$Res> {
   @useResult
   $Res call({
     String id,
-    String studentId,
-    String lessonId,
-    bool isCompleted,
-    int watchedSeconds,
-    DateTime lastWatchedAt,
+    @JsonKey(name: 'student_id') String studentId,
+    @JsonKey(name: 'lesson_id') String lessonId,
+    @JsonKey(name: 'is_completed') bool isCompleted,
+    @JsonKey(name: 'watched_seconds') int watchedSeconds,
+    @JsonKey(name: 'last_watched_at') DateTime lastWatchedAt,
   });
 }
 
@@ -120,11 +125,11 @@ abstract class _$$LessonProgressModelImplCopyWith<$Res>
   @useResult
   $Res call({
     String id,
-    String studentId,
-    String lessonId,
-    bool isCompleted,
-    int watchedSeconds,
-    DateTime lastWatchedAt,
+    @JsonKey(name: 'student_id') String studentId,
+    @JsonKey(name: 'lesson_id') String lessonId,
+    @JsonKey(name: 'is_completed') bool isCompleted,
+    @JsonKey(name: 'watched_seconds') int watchedSeconds,
+    @JsonKey(name: 'last_watched_at') DateTime lastWatchedAt,
   });
 }
 
@@ -185,11 +190,11 @@ class __$$LessonProgressModelImplCopyWithImpl<$Res>
 class _$LessonProgressModelImpl implements _LessonProgressModel {
   const _$LessonProgressModelImpl({
     required this.id,
-    required this.studentId,
-    required this.lessonId,
-    this.isCompleted = false,
-    this.watchedSeconds = 0,
-    required this.lastWatchedAt,
+    @JsonKey(name: 'student_id') required this.studentId,
+    @JsonKey(name: 'lesson_id') required this.lessonId,
+    @JsonKey(name: 'is_completed') this.isCompleted = false,
+    @JsonKey(name: 'watched_seconds') this.watchedSeconds = 0,
+    @JsonKey(name: 'last_watched_at') required this.lastWatchedAt,
   });
 
   factory _$LessonProgressModelImpl.fromJson(Map<String, dynamic> json) =>
@@ -198,16 +203,19 @@ class _$LessonProgressModelImpl implements _LessonProgressModel {
   @override
   final String id;
   @override
+  @JsonKey(name: 'student_id')
   final String studentId;
   @override
+  @JsonKey(name: 'lesson_id')
   final String lessonId;
   @override
-  @JsonKey()
+  @JsonKey(name: 'is_completed')
   final bool isCompleted;
   @override
-  @JsonKey()
+  @JsonKey(name: 'watched_seconds')
   final int watchedSeconds;
   @override
+  @JsonKey(name: 'last_watched_at')
   final DateTime lastWatchedAt;
 
   @override
@@ -265,11 +273,11 @@ class _$LessonProgressModelImpl implements _LessonProgressModel {
 abstract class _LessonProgressModel implements LessonProgressModel {
   const factory _LessonProgressModel({
     required final String id,
-    required final String studentId,
-    required final String lessonId,
-    final bool isCompleted,
-    final int watchedSeconds,
-    required final DateTime lastWatchedAt,
+    @JsonKey(name: 'student_id') required final String studentId,
+    @JsonKey(name: 'lesson_id') required final String lessonId,
+    @JsonKey(name: 'is_completed') final bool isCompleted,
+    @JsonKey(name: 'watched_seconds') final int watchedSeconds,
+    @JsonKey(name: 'last_watched_at') required final DateTime lastWatchedAt,
   }) = _$LessonProgressModelImpl;
 
   factory _LessonProgressModel.fromJson(Map<String, dynamic> json) =
@@ -278,14 +286,19 @@ abstract class _LessonProgressModel implements LessonProgressModel {
   @override
   String get id;
   @override
+  @JsonKey(name: 'student_id')
   String get studentId;
   @override
+  @JsonKey(name: 'lesson_id')
   String get lessonId;
   @override
+  @JsonKey(name: 'is_completed')
   bool get isCompleted;
   @override
+  @JsonKey(name: 'watched_seconds')
   int get watchedSeconds;
   @override
+  @JsonKey(name: 'last_watched_at')
   DateTime get lastWatchedAt;
 
   /// Create a copy of LessonProgressModel

@@ -1,28 +1,48 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'package:thanaweya_online/core/constants/app_colors.dart';
 import 'package:thanaweya_online/core/constants/app_strings.dart';
 import 'package:thanaweya_online/core/constants/app_text_styles.dart';
-import 'package:thanaweya_online/core/data/mock_data.dart';
 import 'package:thanaweya_online/features/shared/widgets/app_card.dart';
+import 'package:thanaweya_online/features/admin/data/repos/admin_plans_repo.dart';
+import 'package:thanaweya_online/features/admin/logic/admin_plans_cubit.dart';
 
 class SubscriptionPlansScreen extends StatefulWidget {
   const SubscriptionPlansScreen({super.key});
 
   @override
-  State<SubscriptionPlansScreen> createState() =>
-      _SubscriptionPlansScreenState();
+  State<SubscriptionPlansScreen> createState() => _SubscriptionPlansScreenState();
 }
 
 class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
-  late List<Map<String, dynamic>> _plans;
+  final _cubit = AdminPlansCubit(repo: AdminPlansRepo());
 
   @override
   void initState() {
     super.initState();
-    _plans = List<Map<String, dynamic>>.from(MockData.mockPlans);
+    _cubit.loadPlans();
+  }
+
+  @override
+  void dispose() {
+    _cubit.close();
+    super.dispose();
+  }
+
+  String _periodText(String period) {
+    switch (period) {
+      case 'monthly':
+        return 'شهري';
+      case 'term':
+        return 'فترة';
+      case 'yearly':
+        return 'سنوي';
+      default:
+        return period;
+    }
   }
 
   @override
@@ -39,29 +59,37 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
             ),
           ],
         ),
-        body: _plans.isEmpty
-            ? Center(
+        body: BlocBuilder<AdminPlansCubit, AdminPlansState>(
+          bloc: _cubit,
+          builder: (context, state) {
+            if (state.status == AdminPlansStatus.loading) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (state.plans.isEmpty) {
+              return Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.card_membership,
-                        size: 56.r, color: AppColors.textTertiary),
+                    Icon(Icons.card_membership, size: 56.r, color: AppColors.textTertiary),
                     SizedBox(height: 16.h),
                     Text(AppStrings.noData, style: AppTextStyles.body2),
                   ],
                 ),
-              )
-            : ListView.builder(
+              );
+            }
+            return RefreshIndicator(
+              onRefresh: () => _cubit.loadPlans(),
+              child: ListView.builder(
                 padding: EdgeInsets.symmetric(vertical: 8.h),
-                itemCount: _plans.length,
+                itemCount: state.plans.length,
                 itemBuilder: (context, index) {
-                  final plan = _plans[index];
+                  final plan = state.plans[index];
+                  final planId = plan['id'] as String? ?? '';
                   final isActive = plan['is_active'] == true;
-                  final period = plan['billing_period'] == 'monthly'
-                      ? 'شهري'
-                      : plan['billing_period'] == 'term'
-                          ? 'فترة'
-                          : 'سنوي';
+                  final name = plan['name'] as String? ?? '';
+                  final price = plan['price'] ?? 0;
+                  final period = _periodText(plan['billing_period'] as String? ?? '');
+
                   return AppCard(
                     child: Row(
                       children: [
@@ -69,16 +97,12 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
                           width: 40.r,
                           height: 40.r,
                           decoration: BoxDecoration(
-                            color: isActive
-                                ? AppColors.success.withValues(alpha: 0.1)
-                                : AppColors.surfaceVariant,
+                            color: isActive ? AppColors.success.withValues(alpha: 0.1) : AppColors.surfaceVariant,
                             borderRadius: BorderRadius.circular(10.r),
                           ),
                           child: Icon(
                             Icons.card_membership,
-                            color: isActive
-                                ? AppColors.success
-                                : AppColors.textTertiary,
+                            color: isActive ? AppColors.success : AppColors.textTertiary,
                             size: 20.r,
                           ),
                         ),
@@ -87,12 +111,9 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(plan['name'] ?? '', style: AppTextStyles.h3),
+                              Text(name, style: AppTextStyles.h3),
                               SizedBox(height: 2.h),
-                              Text(
-                                '${plan['price']} ج.م - $period',
-                                style: AppTextStyles.caption,
-                              ),
+                              Text('$price ج.م - $period', style: AppTextStyles.caption),
                             ],
                           ),
                         ),
@@ -100,9 +121,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
                           value: isActive,
                           onChanged: (v) {
                             HapticFeedback.selectionClick();
-                            setState(() {
-                              _plans[index] = {...plan, 'is_active': v};
-                            });
+                            _cubit.togglePlanStatus(planId, v);
                           },
                           activeThumbColor: AppColors.success,
                         ),
@@ -111,6 +130,9 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
                   );
                 },
               ),
+            );
+          },
+        ),
       ),
     );
   }

@@ -5,6 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'package:thanaweya_online/core/constants/app_colors.dart';
 import 'package:thanaweya_online/core/constants/app_strings.dart';
+import 'package:thanaweya_online/features/teacher/data/repos/teacher_exams_repo.dart';
+import 'package:thanaweya_online/features/teacher/logic/teacher_exams_cubit.dart';
 
 class AddQuestionsScreen extends StatefulWidget {
   final String examId;
@@ -24,9 +26,18 @@ class _AddQuestionsScreenState extends State<AddQuestionsScreen> {
   );
   int _correctAnswer = 0;
   String _tfAnswer = 'true';
+  bool _isSaving = false;
+  late final TeacherExamsCubit _cubit;
+
+  @override
+  void initState() {
+    super.initState();
+    _cubit = TeacherExamsCubit(repo: TeacherExamsRepo());
+  }
 
   @override
   void dispose() {
+    _cubit.close();
     _questionController.dispose();
     for (final c in _optionControllers) {
       c.dispose();
@@ -317,15 +328,75 @@ class _AddQuestionsScreenState extends State<AddQuestionsScreen> {
                   width: double.infinity,
                   height: 54.h,
                   child: ElevatedButton(
-                    onPressed: () {
-                      HapticFeedback.mediumImpact();
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('تم إضافة السؤال بنجاح 🎉'),
-                        ),
-                      );
-                    },
+                    onPressed: _isSaving
+                        ? null
+                        : () async {
+                            if (_questionController.text.trim().isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('برجاء إدخال نص السؤال'),
+                                ),
+                              );
+                              return;
+                            }
+
+                            if (_selectedType == 'mcq') {
+                              for (final c in _optionControllers) {
+                                if (c.text.trim().isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                          'برجاء إدخال جميع الخيارات'),
+                                    ),
+                                  );
+                                  return;
+                                }
+                              }
+                            }
+
+                            HapticFeedback.mediumImpact();
+                            setState(() => _isSaving = true);
+
+                            String? correctAnswer;
+                            List<String> options;
+
+                            if (_selectedType == 'mcq') {
+                              final letters = ['أ', 'ب', 'ج', 'د'];
+                              options = _optionControllers
+                                  .map((c) => c.text.trim())
+                                  .toList();
+                              correctAnswer = letters[_correctAnswer];
+                            } else if (_selectedType == 'tf') {
+                              options = ['صحيح', 'خطأ'];
+                              correctAnswer = _tfAnswer == 'true'
+                                  ? 'صحيح'
+                                  : 'خطأ';
+                            } else {
+                              options = [];
+                            }
+
+                            await _cubit.addQuestion(
+                              examId: widget.examId,
+                              questionType: _selectedType == 'tf'
+                                  ? 'true_false'
+                                  : _selectedType,
+                              text: _questionController.text.trim(),
+                              options: options,
+                              correctAnswer: correctAnswer,
+                              points: 1,
+                            );
+
+                            if (mounted) {
+                              setState(() => _isSaving = false);
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('تم إضافة السؤال بنجاح'),
+                                  backgroundColor: Color(0xFF10B981),
+                                ),
+                              );
+                            }
+                          },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.teacherPrimary,
                       elevation: 0,
@@ -333,14 +404,23 @@ class _AddQuestionsScreenState extends State<AddQuestionsScreen> {
                         borderRadius: BorderRadius.circular(30.r),
                       ),
                     ),
-                    child: Text(
-                      AppStrings.save,
-                      style: GoogleFonts.cairo(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                      ),
-                    ),
+                    child: _isSaving
+                        ? SizedBox(
+                            width: 24.r,
+                            height: 24.r,
+                            child: const CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2.5,
+                            ),
+                          )
+                        : Text(
+                            AppStrings.save,
+                            style: GoogleFonts.cairo(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                            ),
+                          ),
                   ),
                 ),
               ],

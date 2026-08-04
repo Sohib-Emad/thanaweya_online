@@ -3,6 +3,34 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'package:thanaweya_online/features/student/data/repos/student_courses_repo.dart';
+
+/// Selections returned to the caller when the user taps "تطبيق الفلترة".
+class CourseFilters {
+  const CourseFilters({
+    this.subjectIds = const {},
+    this.stages = const {},
+  });
+
+  final Set<String> subjectIds;
+  final Set<String> stages;
+
+  bool get isActive => subjectIds.isNotEmpty || stages.isNotEmpty;
+
+  /// Whether a course map (with `subject_id` and `stage` keys) passes the filter.
+  bool matches(Map<String, dynamic> course) {
+    if (subjectIds.isNotEmpty) {
+      final subjectId = course['subject_id'] as String?;
+      if (subjectId == null || !subjectIds.contains(subjectId)) return false;
+    }
+    if (stages.isNotEmpty) {
+      final stage = course['stage'] as String?;
+      if (stage == null || !stages.contains(stage)) return false;
+    }
+    return true;
+  }
+}
+
 class CourseFilterScreen extends StatefulWidget {
   const CourseFilterScreen({super.key});
 
@@ -11,66 +39,55 @@ class CourseFilterScreen extends StatefulWidget {
 }
 
 class _CourseFilterScreenState extends State<CourseFilterScreen> {
-  // Selected options state
-  final Set<String> _selectedSubCategories = {
-    'تطوير الويب',
-    'انيميشن ثلاثي الأبعاد',
+  static const Map<String, String> _stageLabels = {
+    'first': 'الصف الأول الثانوي',
+    'second': 'الصف الثاني الثانوي',
+    'third': 'الصف الثالث الثانوي',
   };
-  final Set<String> _selectedLevels = {'مبتدئ', 'متوسط'};
-  final Set<String> _selectedPrice = {'مدفوع'};
-  final Set<String> _selectedFeatures = {};
-  final Set<String> _selectedRating = {};
-  final Set<String> _selectedDurations = {};
 
-  final List<String> _subCategories = [
-    'تصميم ثلاثي الأبعاد',
-    'تطوير الويب',
-    'انيميشن ثلاثي الأبعاد',
-    'التصميم الجرافيكي',
-    'تسويق وسيو',
-    'الفنون والإنسانيات',
-  ];
+  final StudentCoursesRepo _repo = StudentCoursesRepo();
 
-  final List<String> _levels = [
-    'جميع المستويات',
-    'مبتدئ',
-    'متوسط',
-    'متقدم وخبير',
-  ];
+  final Set<String> _selectedSubjectIds = {};
+  final Set<String> _selectedStages = {};
 
-  final List<String> _priceOptions = ['مدفوع', 'مجاني'];
+  List<Map<String, dynamic>> _subjects = [];
+  bool _subjectsLoading = true;
 
-  final List<String> _features = [
-    'ترجمة مصاحبة الشرح',
-    'اختبارات تفاعلية',
-    'تمارين وتطبيقات عملية',
-    'نماذج امتحانات تدريبية',
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadSubjects();
+  }
 
-  final List<String> _ratings = [
-    '4.5 فأعلى',
-    '4.0 فأعلى',
-    '3.5 فأعلى',
-    '3.0 فأعلى',
-  ];
-
-  final List<String> _durations = [
-    '0 - 2 ساعات',
-    '3 - 6 ساعات',
-    '7 - 16 ساعة',
-    '17+ ساعة',
-  ];
+  Future<void> _loadSubjects() async {
+    final result = await _repo.getSubjects();
+    if (!mounted) return;
+    result.when(
+      success: (subjects) => setState(() {
+        _subjects = subjects;
+        _subjectsLoading = false;
+      }),
+      failure: (_, __) => setState(() => _subjectsLoading = false),
+    );
+  }
 
   void _clearAll() {
     HapticFeedback.mediumImpact();
     setState(() {
-      _selectedSubCategories.clear();
-      _selectedLevels.clear();
-      _selectedPrice.clear();
-      _selectedFeatures.clear();
-      _selectedRating.clear();
-      _selectedDurations.clear();
+      _selectedSubjectIds.clear();
+      _selectedStages.clear();
     });
+  }
+
+  void _apply() {
+    HapticFeedback.selectionClick();
+    Navigator.pop(
+      context,
+      CourseFilters(
+        subjectIds: _selectedSubjectIds,
+        stages: _selectedStages,
+      ),
+    );
   }
 
   @override
@@ -92,7 +109,7 @@ class _CourseFilterScreenState extends State<CourseFilterScreen> {
           ),
           centerTitle: false,
           title: Text(
-            'تصفية النتائج (Filter)',
+            'تصفية النتائج',
             style: GoogleFonts.cairo(
               fontSize: 18.sp,
               fontWeight: FontWeight.w800,
@@ -122,124 +139,63 @@ class _CourseFilterScreenState extends State<CourseFilterScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 1. SubCategories
-                  _buildSectionTitle('التخصصات والمواد الفرعية:'),
+                  _buildSectionTitle('المواد الدراسية:'),
                   SizedBox(height: 10.h),
-                  ..._subCategories.map(
-                    (item) => _buildCustomCheckboxTile(
-                      label: item,
-                      isSelected: _selectedSubCategories.contains(item),
-                      onChanged: (val) {
-                        setState(() {
-                          if (val) {
-                            _selectedSubCategories.add(item);
-                          } else {
-                            _selectedSubCategories.remove(item);
-                          }
-                        });
-                      },
+                  if (_subjectsLoading)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: Color(0xFF0FA37F),
+                        ),
+                      ),
+                    )
+                  else if (_subjects.isEmpty)
+                    Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8.h),
+                      child: Text(
+                        'لا توجد مواد متاحة حالياً',
+                        style: GoogleFonts.cairo(
+                          fontSize: 13.sp,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF94A3B8),
+                        ),
+                      ),
+                    )
+                  else
+                    ..._subjects.map(
+                      (subject) => _buildCustomCheckboxTile(
+                        label: subject['name_ar'] as String? ?? '',
+                        isSelected: _selectedSubjectIds
+                            .contains(subject['id'] as String),
+                        onChanged: (val) {
+                          setState(() {
+                            final id = subject['id'] as String;
+                            if (val) {
+                              _selectedSubjectIds.add(id);
+                            } else {
+                              _selectedSubjectIds.remove(id);
+                            }
+                          });
+                        },
+                      ),
                     ),
-                  ),
 
                   SizedBox(height: 24.h),
 
-                  // 2. Levels
-                  _buildSectionTitle('المستوى الدراسية:'),
+                  _buildSectionTitle('المرحلة الدراسية:'),
                   SizedBox(height: 10.h),
-                  ..._levels.map(
-                    (item) => _buildCustomCheckboxTile(
-                      label: item,
-                      isSelected: _selectedLevels.contains(item),
+                  ..._stageLabels.entries.map(
+                    (entry) => _buildCustomCheckboxTile(
+                      label: entry.value,
+                      isSelected: _selectedStages.contains(entry.key),
                       onChanged: (val) {
                         setState(() {
                           if (val) {
-                            _selectedLevels.add(item);
+                            _selectedStages.add(entry.key);
                           } else {
-                            _selectedLevels.remove(item);
-                          }
-                        });
-                      },
-                    ),
-                  ),
-
-                  SizedBox(height: 24.h),
-
-                  // 3. Price
-                  _buildSectionTitle('السعر:'),
-                  SizedBox(height: 10.h),
-                  ..._priceOptions.map(
-                    (item) => _buildCustomCheckboxTile(
-                      label: item,
-                      isSelected: _selectedPrice.contains(item),
-                      onChanged: (val) {
-                        setState(() {
-                          if (val) {
-                            _selectedPrice.add(item);
-                          } else {
-                            _selectedPrice.remove(item);
-                          }
-                        });
-                      },
-                    ),
-                  ),
-
-                  SizedBox(height: 24.h),
-
-                  // 4. Features
-                  _buildSectionTitle('المميزات:'),
-                  SizedBox(height: 10.h),
-                  ..._features.map(
-                    (item) => _buildCustomCheckboxTile(
-                      label: item,
-                      isSelected: _selectedFeatures.contains(item),
-                      onChanged: (val) {
-                        setState(() {
-                          if (val) {
-                            _selectedFeatures.add(item);
-                          } else {
-                            _selectedFeatures.remove(item);
-                          }
-                        });
-                      },
-                    ),
-                  ),
-
-                  SizedBox(height: 24.h),
-
-                  // 5. Rating
-                  _buildSectionTitle('التقييم:'),
-                  SizedBox(height: 10.h),
-                  ..._ratings.map(
-                    (item) => _buildCustomCheckboxTile(
-                      label: item,
-                      isSelected: _selectedRating.contains(item),
-                      onChanged: (val) {
-                        setState(() {
-                          if (val) {
-                            _selectedRating.add(item);
-                          } else {
-                            _selectedRating.remove(item);
-                          }
-                        });
-                      },
-                    ),
-                  ),
-
-                  SizedBox(height: 24.h),
-
-                  // 6. Video Durations
-                  _buildSectionTitle('مدة الفيديو:'),
-                  SizedBox(height: 10.h),
-                  ..._durations.map(
-                    (item) => _buildCustomCheckboxTile(
-                      label: item,
-                      isSelected: _selectedDurations.contains(item),
-                      onChanged: (val) {
-                        setState(() {
-                          if (val) {
-                            _selectedDurations.add(item);
-                          } else {
-                            _selectedDurations.remove(item);
+                            _selectedStages.remove(entry.key);
                           }
                         });
                       },
@@ -258,10 +214,7 @@ class _CourseFilterScreenState extends State<CourseFilterScreen> {
                 child: SizedBox(
                   height: 54.h,
                   child: ElevatedButton(
-                    onPressed: () {
-                      HapticFeedback.selectionClick();
-                      Navigator.pop(context);
-                    },
+                    onPressed: _apply,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF0FA37F),
                       elevation: 4,
@@ -276,7 +229,11 @@ class _CourseFilterScreenState extends State<CourseFilterScreen> {
                       children: [
                         const SizedBox(width: 32),
                         Text(
-                          'تطبيق الفلترة (Apply)',
+                          _selectedSubjectIds.isEmpty &&
+                                  _selectedStages.isEmpty
+                              ? 'عرض كل الدورات'
+                              : 'تطبيق الفلترة'
+                                  ' (${_selectedSubjectIds.length + _selectedStages.length})',
                           style: GoogleFonts.cairo(
                             fontSize: 16.sp,
                             fontWeight: FontWeight.w800,
@@ -291,8 +248,7 @@ class _CourseFilterScreenState extends State<CourseFilterScreen> {
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
-                            Icons
-                                .arrow_back_rounded, // Arabic RTL direction back/forward arrow
+                            Icons.arrow_back_rounded,
                             color: const Color(0xFF0FA37F),
                             size: 20.r,
                           ),

@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/router/app_router.dart';
+import 'package:thanaweya_online/features/student/data/repos/student_courses_repo.dart';
+import 'package:thanaweya_online/features/student/logic/student_courses_cubit.dart';
+import 'package:thanaweya_online/features/student/ui/courses/course_filter_screen.dart';
 
 class StudentMyCoursesListScreen extends StatefulWidget {
   const StudentMyCoursesListScreen({super.key});
@@ -18,47 +23,15 @@ class _StudentMyCoursesListScreenState
     extends State<StudentMyCoursesListScreen> {
   int _selectedTab = 1; // 0 = Completed, 1 = Ongoing
 
-  final List<Map<String, dynamic>> _ongoingCourses = [
-    {
-      'subject': 'الفيزياء الكهربية',
-      'title': 'مبادئ الفيزياء والتطبيق للثانوية',
-      'progress': 0.75,
-      'completedCount': 75,
-      'totalCount': 100,
-      'rating': '4.8',
-      'enrolledCount': '7830 طالب',
-      'color': const Color(0xFF0FA37F),
-    },
-    {
-      'subject': 'البرمجة وتطوير الويب',
-      'title': 'دورة تصميم المواقع الإلكترونية بالكامل',
-      'progress': 0.50,
-      'completedCount': 50,
-      'totalCount': 100,
-      'rating': '4.9',
-      'enrolledCount': '12400 طالب',
-      'color': const Color(0xFFEA580C),
-    },
-    {
-      'subject': 'الرياضيات والـ UI/UX',
-      'title': 'تصميم الواجهات 3D Blender والهندسة',
-      'progress': 0.20,
-      'completedCount': 4,
-      'totalCount': 20,
-      'rating': '4.7',
-      'enrolledCount': '3200 طالب',
-      'color': const Color(0xFF2563EB),
-    },
-    {
-      'subject': 'علم النفس والإنسان',
-      'title': 'دراسة دراسات تجربة المستخدم UX Personas',
-      'progress': 0.10,
-      'completedCount': 1,
-      'totalCount': 10,
-      'rating': '4.8',
-      'enrolledCount': '5100 طالب',
-      'color': const Color(0xFF7C3AED),
-    },
+  late final StudentCoursesCubit _coursesCubit;
+
+  CourseFilters? _activeFilters;
+
+  final List<Color> _courseColors = const [
+    Color(0xFF0FA37F),
+    Color(0xFFEA580C),
+    Color(0xFF2563EB),
+    Color(0xFF7C3AED),
   ];
 
   final List<Map<String, dynamic>> _completedCourses = [
@@ -75,10 +48,32 @@ class _StudentMyCoursesListScreenState
   ];
 
   @override
-  Widget build(BuildContext context) {
-    final currentList =
-        _selectedTab == 1 ? _ongoingCourses : _completedCourses;
+  void initState() {
+    super.initState();
+    _coursesCubit = StudentCoursesCubit(repo: StudentCoursesRepo());
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId != null) {
+      _coursesCubit.loadMyCourses(userId);
+    }
+  }
 
+  @override
+  void dispose() {
+    _coursesCubit.close();
+    super.dispose();
+  }
+
+  int _lessonCountOf(dynamic lessons) {
+    if (lessons is Map) return (lessons['count'] as int?) ?? 0;
+    if (lessons is List && lessons.isNotEmpty) {
+      final first = lessons.first;
+      if (first is Map) return (first['count'] as int?) ?? 0;
+    }
+    return 0;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
@@ -140,9 +135,14 @@ class _StudentMyCoursesListScreenState
                   ),
                   SizedBox(width: 12.w),
                   GestureDetector(
-                    onTap: () {
+                    onTap: () async {
                       HapticFeedback.lightImpact();
-                      Navigator.pushNamed(context, AppRouter.studentFilter);
+                      final result = await Navigator.pushNamed<CourseFilters>(
+                        context,
+                        AppRouter.studentFilter,
+                      );
+                      if (!mounted) return;
+                      setState(() => _activeFilters = result);
                     },
                     child: Container(
                       width: 48.r,
@@ -237,28 +237,123 @@ class _StudentMyCoursesListScreenState
               ),
             ),
 
+            // Active filter banner
+            if (_activeFilters != null &&
+                _activeFilters!.isActive &&
+                _selectedTab == 1)
+              Padding(
+                padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 0),
+                child: Container(
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE6F7F2),
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.filter_alt_rounded,
+                        color: AppColors.studentPrimary,
+                        size: 16.r,
+                      ),
+                      SizedBox(width: 8.w),
+                      Expanded(
+                        child: Text(
+                          'تم التصفية: ${_coursesCubit.state.myCourses.where(_activeFilters!.matches).length} دورة',
+                          style: GoogleFonts.cairo(
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF0F766E),
+                          ),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () =>
+                            setState(() => _activeFilters = null),
+                        child: Text(
+                          'مسح',
+                          style: GoogleFonts.cairo(
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.studentPrimary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
             // Courses List
             Expanded(
-              child: ListView.builder(
-                padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 30.h),
-                physics: const BouncingScrollPhysics(),
-                itemCount: currentList.length,
-                itemBuilder: (context, index) {
-                  final course = currentList[index];
-                  final color = course['color'] as Color;
-                  final double progress = course['progress'];
-                  final int done = course['completedCount'];
-                  final int total = course['totalCount'];
+              child: BlocBuilder<StudentCoursesCubit, StudentCoursesState>(
+                bloc: _coursesCubit,
+                builder: (context, state) {
+                  final allCourses = _selectedTab == 1
+                      ? state.myCourses
+                      : _completedCourses;
+                  final currentList =
+                      (_activeFilters != null && _activeFilters!.isActive)
+                          ? allCourses.where(_activeFilters!.matches).toList()
+                          : allCourses;
 
-                  return GestureDetector(
-                    onTap: () {
-                      HapticFeedback.lightImpact();
-                      if (_selectedTab == 0) {
-                        Navigator.pushNamed(context, AppRouter.studentCertificate);
-                      } else {
-                        Navigator.pushNamed(context, AppRouter.studentCurriculum);
-                      }
-                    },
+                  if (_selectedTab == 1 &&
+                      state.myCoursesStatus == StudentCoursesStatus.loading &&
+                      state.myCourses.isEmpty) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  if (currentList.isEmpty) {
+                    return Center(
+                      child: Text(
+                        'لا توجد دورات مطابقة',
+                        style: GoogleFonts.cairo(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF94A3B8),
+                        ),
+                      ),
+                    );
+                  }
+
+                  return ListView.builder(
+                    padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 30.h),
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: currentList.length,
+                    itemBuilder: (context, index) {
+                      final course = currentList[index];
+                      final color =
+                          _courseColors[index % _courseColors.length];
+                      final double progress =
+                          (course['progress'] as double?) ?? 0.0;
+                      final int done =
+                          (course['completedCount'] as int?) ?? 0;
+                      final int total = (course['totalCount'] as int?) ??
+                          _lessonCountOf(course['lessons']);
+                      final subject = (course['subject_name'] as String?) ??
+                          (course['subject'] as String?) ??
+                          '';
+                      final title = course['title'] as String? ?? '';
+                      final teacherName =
+                          course['teacher_name'] as String? ?? '';
+
+                      return GestureDetector(
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          if (_selectedTab == 0) {
+                            Navigator.pushNamed(
+                              context,
+                              AppRouter.studentCertificate,
+                            );
+                          } else {
+                            Navigator.pushNamed(
+                              context,
+                              AppRouter.studentCurriculum,
+                              arguments: course['id'] as String,
+                            );
+                          }
+                        },
                     child: Container(
                       margin: EdgeInsets.only(bottom: 14.h),
                       padding: EdgeInsets.all(14.r),
@@ -301,7 +396,7 @@ class _StudentMyCoursesListScreenState
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  course['subject'],
+                                  subject,
                                   style: GoogleFonts.cairo(
                                     fontSize: 11.sp,
                                     fontWeight: FontWeight.w700,
@@ -310,7 +405,7 @@ class _StudentMyCoursesListScreenState
                                 ),
                                 SizedBox(height: 2.h),
                                 Text(
-                                  course['title'],
+                                  title,
                                   style: GoogleFonts.cairo(
                                     fontSize: 13.sp,
                                     fontWeight: FontWeight.w800,
@@ -363,7 +458,7 @@ class _StudentMyCoursesListScreenState
                                     ),
                                     SizedBox(width: 4.w),
                                     Text(
-                                      course['rating'],
+                                      '4.8',
                                       style: GoogleFonts.cairo(
                                         fontSize: 11.sp,
                                         fontWeight: FontWeight.w700,
@@ -372,16 +467,20 @@ class _StudentMyCoursesListScreenState
                                     ),
                                     SizedBox(width: 12.w),
                                     Icon(
-                                      Icons.people_outline_rounded,
+                                      Icons.person_outline_rounded,
                                       color: const Color(0xFF94A3B8),
                                       size: 14.r,
                                     ),
                                     SizedBox(width: 4.w),
-                                    Text(
-                                      course['enrolledCount'],
-                                      style: GoogleFonts.cairo(
-                                        fontSize: 11.sp,
-                                        color: const Color(0xFF64748B),
+                                    Expanded(
+                                      child: Text(
+                                        teacherName,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: GoogleFonts.cairo(
+                                          fontSize: 11.sp,
+                                          color: const Color(0xFF64748B),
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -394,6 +493,8 @@ class _StudentMyCoursesListScreenState
                     ),
                   );
                 },
+                );
+              },
               ),
             ),
           ],

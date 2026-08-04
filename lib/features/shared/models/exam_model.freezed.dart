@@ -22,14 +22,22 @@ ExamModel _$ExamModelFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$ExamModel {
   String get id => throw _privateConstructorUsedError;
+  @JsonKey(name: 'teacher_id')
   String get teacherId => throw _privateConstructorUsedError;
+  @JsonKey(name: 'course_id')
   String? get courseId => throw _privateConstructorUsedError;
   String get title => throw _privateConstructorUsedError;
+  @JsonKey(name: 'duration_minutes')
   int get durationMinutes => throw _privateConstructorUsedError;
+  @JsonKey(name: 'start_at')
   DateTime get startAt => throw _privateConstructorUsedError;
+  @JsonKey(name: 'end_at')
   DateTime get endAt => throw _privateConstructorUsedError;
+  @JsonKey(name: 'max_score')
   int get maxScore => throw _privateConstructorUsedError;
+  @JsonKey(name: 'is_published')
   bool get isPublished => throw _privateConstructorUsedError;
+  @JsonKey(name: 'created_at')
   DateTime get createdAt => throw _privateConstructorUsedError;
 
   /// Serializes this ExamModel to a JSON map.
@@ -49,15 +57,15 @@ abstract class $ExamModelCopyWith<$Res> {
   @useResult
   $Res call({
     String id,
-    String teacherId,
-    String? courseId,
+    @JsonKey(name: 'teacher_id') String teacherId,
+    @JsonKey(name: 'course_id') String? courseId,
     String title,
-    int durationMinutes,
-    DateTime startAt,
-    DateTime endAt,
-    int maxScore,
-    bool isPublished,
-    DateTime createdAt,
+    @JsonKey(name: 'duration_minutes') int durationMinutes,
+    @JsonKey(name: 'start_at') DateTime startAt,
+    @JsonKey(name: 'end_at') DateTime endAt,
+    @JsonKey(name: 'max_score') int maxScore,
+    @JsonKey(name: 'is_published') bool isPublished,
+    @JsonKey(name: 'created_at') DateTime createdAt,
   });
 }
 
@@ -146,15 +154,15 @@ abstract class _$$ExamModelImplCopyWith<$Res>
   @useResult
   $Res call({
     String id,
-    String teacherId,
-    String? courseId,
+    @JsonKey(name: 'teacher_id') String teacherId,
+    @JsonKey(name: 'course_id') String? courseId,
     String title,
-    int durationMinutes,
-    DateTime startAt,
-    DateTime endAt,
-    int maxScore,
-    bool isPublished,
-    DateTime createdAt,
+    @JsonKey(name: 'duration_minutes') int durationMinutes,
+    @JsonKey(name: 'start_at') DateTime startAt,
+    @JsonKey(name: 'end_at') DateTime endAt,
+    @JsonKey(name: 'max_score') int maxScore,
+    @JsonKey(name: 'is_published') bool isPublished,
+    @JsonKey(name: 'created_at') DateTime createdAt,
   });
 }
 
@@ -235,15 +243,15 @@ class __$$ExamModelImplCopyWithImpl<$Res>
 class _$ExamModelImpl implements _ExamModel {
   const _$ExamModelImpl({
     required this.id,
-    required this.teacherId,
-    this.courseId,
+    @JsonKey(name: 'teacher_id') required this.teacherId,
+    @JsonKey(name: 'course_id') this.courseId,
     required this.title,
-    required this.durationMinutes,
-    required this.startAt,
-    required this.endAt,
-    this.maxScore = 0,
-    this.isPublished = false,
-    required this.createdAt,
+    @JsonKey(name: 'duration_minutes') required this.durationMinutes,
+    @JsonKey(name: 'start_at') required this.startAt,
+    @JsonKey(name: 'end_at') required this.endAt,
+    @JsonKey(name: 'max_score') this.maxScore = 0,
+    @JsonKey(name: 'is_published') this.isPublished = false,
+    @JsonKey(name: 'created_at') required this.createdAt,
   });
 
   factory _$ExamModelImpl.fromJson(Map<String, dynamic> json) =>
@@ -252,24 +260,30 @@ class _$ExamModelImpl implements _ExamModel {
   @override
   final String id;
   @override
+  @JsonKey(name: 'teacher_id')
   final String teacherId;
   @override
+  @JsonKey(name: 'course_id')
   final String? courseId;
   @override
   final String title;
   @override
+  @JsonKey(name: 'duration_minutes')
   final int durationMinutes;
   @override
+  @JsonKey(name: 'start_at')
   final DateTime startAt;
   @override
+  @JsonKey(name: 'end_at')
   final DateTime endAt;
   @override
-  @JsonKey()
+  @JsonKey(name: 'max_score')
   final int maxScore;
   @override
-  @JsonKey()
+  @JsonKey(name: 'is_published')
   final bool isPublished;
   @override
+  @JsonKey(name: 'created_at')
   final DateTime createdAt;
 
   @override
@@ -333,15 +347,15 @@ class _$ExamModelImpl implements _ExamModel {
 abstract class _ExamModel implements ExamModel {
   const factory _ExamModel({
     required final String id,
-    required final String teacherId,
-    final String? courseId,
+    @JsonKey(name: 'teacher_id') required final String teacherId,
+    @JsonKey(name: 'course_id') final String? courseId,
     required final String title,
-    required final int durationMinutes,
-    required final DateTime startAt,
-    required final DateTime endAt,
-    final int maxScore,
-    final bool isPublished,
-    required final DateTime createdAt,
+    @JsonKey(name: 'duration_minutes') required final int durationMinutes,
+    @JsonKey(name: 'start_at') required final DateTime startAt,
+    @JsonKey(name: 'end_at') required final DateTime endAt,
+    @JsonKey(name: 'max_score') final int maxScore,
+    @JsonKey(name: 'is_published') final bool isPublished,
+    @JsonKey(name: 'created_at') required final DateTime createdAt,
   }) = _$ExamModelImpl;
 
   factory _ExamModel.fromJson(Map<String, dynamic> json) =
@@ -350,22 +364,30 @@ abstract class _ExamModel implements ExamModel {
   @override
   String get id;
   @override
+  @JsonKey(name: 'teacher_id')
   String get teacherId;
   @override
+  @JsonKey(name: 'course_id')
   String? get courseId;
   @override
   String get title;
   @override
+  @JsonKey(name: 'duration_minutes')
   int get durationMinutes;
   @override
+  @JsonKey(name: 'start_at')
   DateTime get startAt;
   @override
+  @JsonKey(name: 'end_at')
   DateTime get endAt;
   @override
+  @JsonKey(name: 'max_score')
   int get maxScore;
   @override
+  @JsonKey(name: 'is_published')
   bool get isPublished;
   @override
+  @JsonKey(name: 'created_at')
   DateTime get createdAt;
 
   /// Create a copy of ExamModel

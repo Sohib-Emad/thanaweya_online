@@ -22,13 +22,17 @@ QuestionModel _$QuestionModelFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$QuestionModel {
   String get id => throw _privateConstructorUsedError;
+  @JsonKey(name: 'exam_id')
   String get examId => throw _privateConstructorUsedError;
+  @JsonKey(name: 'question_type')
   QuestionType get questionType => throw _privateConstructorUsedError;
   String get text => throw _privateConstructorUsedError;
   List<String> get options => throw _privateConstructorUsedError;
+  @JsonKey(name: 'correct_answer')
   String? get correctAnswer => throw _privateConstructorUsedError;
   int get points => throw _privateConstructorUsedError;
   int get order => throw _privateConstructorUsedError;
+  @JsonKey(name: 'created_at')
   DateTime get createdAt => throw _privateConstructorUsedError;
 
   /// Serializes this QuestionModel to a JSON map.
@@ -50,14 +54,14 @@ abstract class $QuestionModelCopyWith<$Res> {
   @useResult
   $Res call({
     String id,
-    String examId,
-    QuestionType questionType,
+    @JsonKey(name: 'exam_id') String examId,
+    @JsonKey(name: 'question_type') QuestionType questionType,
     String text,
     List<String> options,
-    String? correctAnswer,
+    @JsonKey(name: 'correct_answer') String? correctAnswer,
     int points,
     int order,
-    DateTime createdAt,
+    @JsonKey(name: 'created_at') DateTime createdAt,
   });
 }
 
@@ -141,14 +145,14 @@ abstract class _$$QuestionModelImplCopyWith<$Res>
   @useResult
   $Res call({
     String id,
-    String examId,
-    QuestionType questionType,
+    @JsonKey(name: 'exam_id') String examId,
+    @JsonKey(name: 'question_type') QuestionType questionType,
     String text,
     List<String> options,
-    String? correctAnswer,
+    @JsonKey(name: 'correct_answer') String? correctAnswer,
     int points,
     int order,
-    DateTime createdAt,
+    @JsonKey(name: 'created_at') DateTime createdAt,
   });
 }
 
@@ -224,14 +228,14 @@ class __$$QuestionModelImplCopyWithImpl<$Res>
 class _$QuestionModelImpl implements _QuestionModel {
   const _$QuestionModelImpl({
     required this.id,
-    required this.examId,
-    required this.questionType,
+    @JsonKey(name: 'exam_id') required this.examId,
+    @JsonKey(name: 'question_type') required this.questionType,
     required this.text,
     final List<String> options = const [],
-    this.correctAnswer,
-    this.points = 1,
+    @JsonKey(name: 'correct_answer') this.correctAnswer,
+    required this.points,
     this.order = 0,
-    required this.createdAt,
+    @JsonKey(name: 'created_at') required this.createdAt,
   }) : _options = options;
 
   factory _$QuestionModelImpl.fromJson(Map<String, dynamic> json) =>
@@ -240,8 +244,10 @@ class _$QuestionModelImpl implements _QuestionModel {
   @override
   final String id;
   @override
+  @JsonKey(name: 'exam_id')
   final String examId;
   @override
+  @JsonKey(name: 'question_type')
   final QuestionType questionType;
   @override
   final String text;
@@ -255,14 +261,15 @@ class _$QuestionModelImpl implements _QuestionModel {
   }
 
   @override
+  @JsonKey(name: 'correct_answer')
   final String? correctAnswer;
   @override
-  @JsonKey()
   final int points;
   @override
   @JsonKey()
   final int order;
   @override
+  @JsonKey(name: 'created_at')
   final DateTime createdAt;
 
   @override
@@ -321,14 +328,14 @@ class _$QuestionModelImpl implements _QuestionModel {
 abstract class _QuestionModel implements QuestionModel {
   const factory _QuestionModel({
     required final String id,
-    required final String examId,
-    required final QuestionType questionType,
+    @JsonKey(name: 'exam_id') required final String examId,
+    @JsonKey(name: 'question_type') required final QuestionType questionType,
     required final String text,
     final List<String> options,
-    final String? correctAnswer,
-    final int points,
+    @JsonKey(name: 'correct_answer') final String? correctAnswer,
+    required final int points,
     final int order,
-    required final DateTime createdAt,
+    @JsonKey(name: 'created_at') required final DateTime createdAt,
   }) = _$QuestionModelImpl;
 
   factory _QuestionModel.fromJson(Map<String, dynamic> json) =
@@ -337,20 +344,24 @@ abstract class _QuestionModel implements QuestionModel {
   @override
   String get id;
   @override
+  @JsonKey(name: 'exam_id')
   String get examId;
   @override
+  @JsonKey(name: 'question_type')
   QuestionType get questionType;
   @override
   String get text;
   @override
   List<String> get options;
   @override
+  @JsonKey(name: 'correct_answer')
   String? get correctAnswer;
   @override
   int get points;
   @override
   int get order;
   @override
+  @JsonKey(name: 'created_at')
   DateTime get createdAt;
 
   /// Create a copy of QuestionModel

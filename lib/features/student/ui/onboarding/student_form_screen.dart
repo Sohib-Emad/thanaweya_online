@@ -2,13 +2,18 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:thanaweya_online/core/constants/app_colors.dart';
 import 'package:thanaweya_online/core/constants/app_strings.dart';
 import 'package:thanaweya_online/core/router/app_router.dart';
+import 'package:thanaweya_online/features/auth/data/repos/auth_repo.dart';
+import 'package:thanaweya_online/features/auth/logic/auth_cubit.dart';
+import 'package:thanaweya_online/features/auth/logic/auth_state.dart' as local;
 
 class StudentFormScreen extends StatefulWidget {
   const StudentFormScreen({super.key});
@@ -24,10 +29,10 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   String? _selectedGrade;
-  bool _isLoading = false;
   XFile? _avatarFile;
 
   final ImagePicker _picker = ImagePicker();
+  late final AuthCubit _authCubit;
 
   final _grades = [
     {'value': 'first', 'name': AppStrings.firstStage},
@@ -36,7 +41,14 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _authCubit = AuthCubit(authRepo: AuthRepo());
+  }
+
+  @override
   void dispose() {
+    _authCubit.close();
     _nameController.dispose();
     _parentPhoneController.dispose();
     _emailController.dispose();
@@ -186,246 +198,290 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        body: SafeArea(
-          child: Column(
-            children: [
-              // Top Navigation Bar
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Text(
-                      AppStrings.studentRegistration,
-                      style: GoogleFonts.cairo(
-                        fontSize: 20.sp,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF0F172A),
-                      ),
-                    ),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: Icon(
-                          Icons.chevron_right_rounded,
+    return BlocProvider.value(
+      value: _authCubit,
+      child: Directionality(
+        textDirection: TextDirection.rtl,
+        child: Scaffold(
+          backgroundColor: Colors.white,
+          body: SafeArea(
+            child: Column(
+              children: [
+                // Top Navigation Bar
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Text(
+                        AppStrings.studentRegistration,
+                        style: GoogleFonts.cairo(
+                          fontSize: 20.sp,
+                          fontWeight: FontWeight.w800,
                           color: const Color(0xFF0F172A),
-                          size: 30.r,
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 24.w,
-                    vertical: 12.h,
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: Icon(
+                            Icons.chevron_right_rounded,
+                            color: const Color(0xFF0F172A),
+                            size: 30.r,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(height: 12.h),
-                        // Avatar Header
-                        Center(
-                          child: GestureDetector(
-                            onTap: () {
-                              _showImageSourcePicker(
-                                title: 'اختيار صورة البروفايل',
-                                onImageSelected: (file) {
-                                  setState(() => _avatarFile = file);
-                                },
-                              );
-                            },
-                            child: Stack(
-                              alignment: Alignment.bottomRight,
-                              children: [
-                                Container(
-                                  width: 96.r,
-                                  height: 96.r,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.studentPrimaryLight,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: AppColors.studentPrimary
-                                          .withValues(alpha: 0.3),
-                                      width: 2,
+                ),
+
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 24.w,
+                      vertical: 12.h,
+                    ),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(height: 12.h),
+                          // Avatar Header
+                          Center(
+                            child: GestureDetector(
+                              onTap: () {
+                                _showImageSourcePicker(
+                                  title: 'اختيار صورة البروفايل',
+                                  onImageSelected: (file) {
+                                    setState(() => _avatarFile = file);
+                                  },
+                                );
+                              },
+                              child: Stack(
+                                alignment: Alignment.bottomRight,
+                                children: [
+                                  Container(
+                                    width: 96.r,
+                                    height: 96.r,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.studentPrimaryLight,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: AppColors.studentPrimary
+                                            .withValues(alpha: 0.3),
+                                        width: 2,
+                                      ),
+                                      image: _avatarFile != null
+                                          ? DecorationImage(
+                                              image: FileImage(
+                                                File(_avatarFile!.path),
+                                              ),
+                                              fit: BoxFit.cover,
+                                            )
+                                          : null,
                                     ),
-                                    image: _avatarFile != null
-                                        ? DecorationImage(
-                                            image: FileImage(
-                                              File(_avatarFile!.path),
-                                            ),
-                                            fit: BoxFit.cover,
+                                    child: _avatarFile == null
+                                        ? Icon(
+                                            Icons.person_outlined,
+                                            size: 46.r,
+                                            color: AppColors.studentPrimary,
                                           )
                                         : null,
                                   ),
-                                  child: _avatarFile == null
-                                      ? Icon(
-                                          Icons.person_outlined,
-                                          size: 46.r,
-                                          color: AppColors.studentPrimary,
-                                        )
-                                      : null,
-                                ),
-                                Container(
-                                  padding: EdgeInsets.all(7.r),
-                                  decoration: const BoxDecoration(
-                                    color: AppColors.studentPrimary,
-                                    shape: BoxShape.circle,
+                                  Container(
+                                    padding: EdgeInsets.all(7.r),
+                                    decoration: const BoxDecoration(
+                                      color: AppColors.studentPrimary,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      Icons.camera_alt_rounded,
+                                      size: 15.r,
+                                      color: Colors.white,
+                                    ),
                                   ),
-                                  child: Icon(
-                                    Icons.camera_alt_rounded,
-                                    size: 15.r,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 28.h),
-
-                        // Full Name
-                        const _FieldLabel(label: AppStrings.fullName),
-                        SizedBox(height: 6.h),
-                        _DesignTextField(
-                          controller: _nameController,
-                          hintText: 'أدخل الاسم الكامل...',
-                          prefixIcon: Icons.person_outline_rounded,
-                          validator: (v) =>
-                              v!.isEmpty ? AppStrings.fieldRequired : null,
-                        ),
-                        SizedBox(height: 18.h),
-
-                        // Grade Level
-                        const _FieldLabel(label: AppStrings.gradeLevel),
-                        SizedBox(height: 6.h),
-                        _DesignDropdown(
-                          value: _selectedGrade,
-                          hintText: 'اختر المستوى الدراسي...',
-                          prefixIcon: Icons.school_outlined,
-                          items: _grades.map((g) {
-                            return DropdownMenuItem(
-                              value: g['value'],
-                              child: Text(g['name']!),
-                            );
-                          }).toList(),
-                          onChanged: (v) => setState(() => _selectedGrade = v),
-                          validator: (v) =>
-                              v == null ? AppStrings.fieldRequired : null,
-                        ),
-                        SizedBox(height: 18.h),
-
-                        // Parent Phone
-                        const _FieldLabel(label: AppStrings.parentPhone),
-                        SizedBox(height: 6.h),
-                        _DesignTextField(
-                          controller: _parentPhoneController,
-                          hintText: '010XXXXXXXX',
-                          prefixIcon: Icons.phone_outlined,
-                          keyboardType: TextInputType.phone,
-                          textDirection: TextDirection.ltr,
-                          validator: (v) =>
-                              v!.isEmpty ? AppStrings.fieldRequired : null,
-                        ),
-                        SizedBox(height: 18.h),
-
-                        // Email
-                        const _FieldLabel(label: AppStrings.email),
-                        SizedBox(height: 6.h),
-                        _DesignTextField(
-                          controller: _emailController,
-                          hintText: 'example@email.com',
-                          prefixIcon: Icons.mail_outline_rounded,
-                          keyboardType: TextInputType.emailAddress,
-                          textDirection: TextDirection.ltr,
-                          validator: (v) =>
-                              v!.isEmpty ? AppStrings.fieldRequired : null,
-                        ),
-                        SizedBox(height: 18.h),
-
-                        // Password
-                        const _FieldLabel(label: AppStrings.password),
-                        SizedBox(height: 6.h),
-                        _DesignTextField(
-                          controller: _passwordController,
-                          hintText: '••••••••',
-                          prefixIcon: Icons.lock_outline_rounded,
-                          obscureText: true,
-                          textDirection: TextDirection.ltr,
-                          validator: (v) =>
-                              v!.isEmpty ? AppStrings.fieldRequired : null,
-                        ),
-                        SizedBox(height: 32.h),
-
-                        // Submit Button
-                        SizedBox(
-                          width: double.infinity,
-                          height: 54.h,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              if (_formKey.currentState!.validate()) {
-                                HapticFeedback.lightImpact();
-                                setState(() => _isLoading = true);
-                                Future.delayed(
-                                  const Duration(milliseconds: 800),
-                                  () {
-                                    if (!mounted) return;
-                                    setState(() => _isLoading = false);
-                                    Navigator.pushNamed(
-                                      context,
-                                      AppRouter.studentActivation,
-                                    );
-                                  },
-                                );
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.studentPrimary,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(30.r),
+                                ],
                               ),
                             ),
-                            child: _isLoading
-                                ? SizedBox(
-                                    width: 24.r,
-                                    height: 24.r,
-                                    child: const CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2.5,
-                                    ),
-                                  )
-                                : Text(
-                                    AppStrings.register,
-                                    style: GoogleFonts.cairo(
-                                      fontSize: 16.sp,
-                                      fontWeight: FontWeight.w800,
-                                      color: Colors.white,
+                          ),
+                          SizedBox(height: 28.h),
+
+                          // Full Name
+                          const _FieldLabel(label: AppStrings.fullName),
+                          SizedBox(height: 6.h),
+                          _DesignTextField(
+                            controller: _nameController,
+                            hintText: 'أدخل الاسم الكامل...',
+                            prefixIcon: Icons.person_outline_rounded,
+                            validator: (v) =>
+                                v!.isEmpty ? AppStrings.fieldRequired : null,
+                          ),
+                          SizedBox(height: 18.h),
+
+                          // Grade Level
+                          const _FieldLabel(label: AppStrings.gradeLevel),
+                          SizedBox(height: 6.h),
+                          _DesignDropdown(
+                            value: _selectedGrade,
+                            hintText: 'اختر المستوى الدراسي...',
+                            prefixIcon: Icons.school_outlined,
+                            items: _grades.map((g) {
+                              return DropdownMenuItem(
+                                value: g['value'],
+                                child: Text(g['name']!),
+                              );
+                            }).toList(),
+                            onChanged: (v) => setState(() => _selectedGrade = v),
+                            validator: (v) =>
+                                v == null ? AppStrings.fieldRequired : null,
+                          ),
+                          SizedBox(height: 18.h),
+
+                          // Parent Phone
+                          const _FieldLabel(label: AppStrings.parentPhone),
+                          SizedBox(height: 6.h),
+                          _DesignTextField(
+                            controller: _parentPhoneController,
+                            hintText: '010XXXXXXXX',
+                            prefixIcon: Icons.phone_outlined,
+                            keyboardType: TextInputType.phone,
+                            textDirection: TextDirection.ltr,
+                            validator: (v) =>
+                                v!.isEmpty ? AppStrings.fieldRequired : null,
+                          ),
+                          SizedBox(height: 18.h),
+
+                          // Email
+                          const _FieldLabel(label: AppStrings.email),
+                          SizedBox(height: 6.h),
+                          _DesignTextField(
+                            controller: _emailController,
+                            hintText: 'example@email.com',
+                            prefixIcon: Icons.mail_outline_rounded,
+                            keyboardType: TextInputType.emailAddress,
+                            textDirection: TextDirection.ltr,
+                            validator: (v) =>
+                                v!.isEmpty ? AppStrings.fieldRequired : null,
+                          ),
+                          SizedBox(height: 18.h),
+
+                          // Password
+                          const _FieldLabel(label: AppStrings.password),
+                          SizedBox(height: 6.h),
+                          _DesignTextField(
+                            controller: _passwordController,
+                            hintText: '••••••••',
+                            prefixIcon: Icons.lock_outline_rounded,
+                            obscureText: true,
+                            textDirection: TextDirection.ltr,
+                            validator: (v) =>
+                                v!.isEmpty ? AppStrings.fieldRequired : null,
+                          ),
+                          SizedBox(height: 32.h),
+
+                          // Submit Button
+                          BlocConsumer<AuthCubit, local.AuthState>(
+                            listener: (context, state) {
+                              switch (state.status) {
+                                case local.AuthStatus.authenticated:
+                                  _upsertStudentData();
+                                  Navigator.pushNamed(
+                                    context,
+                                    AppRouter.studentActivation,
+                                  );
+                                  break;
+                                case local.AuthStatus.error:
+                                  if (state.errorMessage != null) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(state.errorMessage!),
+                                        backgroundColor: AppColors.error,
+                                      ),
+                                    );
+                                  }
+                                  break;
+                                default:
+                                  break;
+                              }
+                            },
+                            builder: (context, state) {
+                              final isLoading =
+                                  state.status == local.AuthStatus.loading;
+                              return SizedBox(
+                                width: double.infinity,
+                                height: 54.h,
+                                child: ElevatedButton(
+                                  onPressed: isLoading ? null : _onSubmit,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.studentPrimary,
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(30.r),
                                     ),
                                   ),
+                                  child: isLoading
+                                      ? SizedBox(
+                                          width: 24.r,
+                                          height: 24.r,
+                                          child: const CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2.5,
+                                          ),
+                                        )
+                                      : Text(
+                                          AppStrings.register,
+                                          style: GoogleFonts.cairo(
+                                            fontSize: 16.sp,
+                                            fontWeight: FontWeight.w800,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                ),
+                              );
+                            },
                           ),
-                        ),
-                        SizedBox(height: 24.h),
-                      ],
+                          SizedBox(height: 24.h),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
+  }
+
+  void _onSubmit() {
+    if (_formKey.currentState!.validate()) {
+      HapticFeedback.lightImpact();
+      _authCubit.signUp(
+            email: _emailController.text.trim(),
+            password: _passwordController.text,
+            fullName: _nameController.text.trim(),
+            phone: _parentPhoneController.text.trim(),
+            role: 'student',
+          );
+    }
+  }
+
+  Future<void> _upsertStudentData() async {
+    try {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId != null) {
+        await Supabase.instance.client.from('students').upsert({
+          'id': userId,
+          'grade_level': _selectedGrade,
+          'parent_phone': _parentPhoneController.text.trim(),
+        }, onConflict: 'id');
+      }
+    } catch (e) {
+      debugPrint('[StudentForm] upsert student data failed: $e');
+    }
   }
 }
 

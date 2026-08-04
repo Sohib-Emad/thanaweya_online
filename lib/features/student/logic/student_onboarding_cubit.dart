@@ -34,9 +34,9 @@ class StudentOnboardingCubit extends Cubit<StudentOnboardingState> {
     emit(state.copyWith(selectedSubjectIds: selected));
   }
 
-  Future<void> loadTeachersForSubject(String subjectId) async {
+  Future<void> loadTeachers() async {
     emit(state.copyWith(teachersStatus: StudentOnboardingStatus.loading));
-    final result = await _repo.getTeachersBySubject(subjectId);
+    final result = await _repo.getTeachers();
     result.when(
       success: (teachers) => emit(state.copyWith(
         teachersStatus: StudentOnboardingStatus.loaded,
@@ -83,7 +83,7 @@ class StudentOnboardingCubit extends Cubit<StudentOnboardingState> {
 
   Future<void> activateSubscription({
     required String studentId,
-    required String teacherId,
+    String? teacherId,
     required String activationCode,
   }) async {
     emit(state.copyWith(activationStatus: StudentOnboardingStatus.loading));
@@ -98,7 +98,7 @@ class StudentOnboardingCubit extends Cubit<StudentOnboardingState> {
       )),
       failure: (message, _) => emit(state.copyWith(
         activationStatus: StudentOnboardingStatus.error,
-        errorMessage: message,
+        activationError: message,
       )),
     );
   }
@@ -130,6 +130,7 @@ class StudentOnboardingState {
   final List<String> selectedTeacherIds;
   final StudentOnboardingStatus registrationStatus;
   final StudentOnboardingStatus activationStatus;
+  final String? activationError;
   final StudentOnboardingStatus subscriptionsStatus;
   final List<Map<String, dynamic>> subscriptions;
   final String? errorMessage;
@@ -143,6 +144,7 @@ class StudentOnboardingState {
     this.selectedTeacherIds = const [],
     this.registrationStatus = StudentOnboardingStatus.initial,
     this.activationStatus = StudentOnboardingStatus.initial,
+    this.activationError,
     this.subscriptionsStatus = StudentOnboardingStatus.initial,
     this.subscriptions = const [],
     this.errorMessage,
@@ -157,6 +159,7 @@ class StudentOnboardingState {
     List<String>? selectedTeacherIds,
     StudentOnboardingStatus? registrationStatus,
     StudentOnboardingStatus? activationStatus,
+    String? activationError,
     StudentOnboardingStatus? subscriptionsStatus,
     List<Map<String, dynamic>>? subscriptions,
     String? errorMessage,
@@ -170,6 +173,7 @@ class StudentOnboardingState {
       selectedTeacherIds: selectedTeacherIds ?? this.selectedTeacherIds,
       registrationStatus: registrationStatus ?? this.registrationStatus,
       activationStatus: activationStatus ?? this.activationStatus,
+      activationError: activationError,
       subscriptionsStatus: subscriptionsStatus ?? this.subscriptionsStatus,
       subscriptions: subscriptions ?? this.subscriptions,
       errorMessage: errorMessage,

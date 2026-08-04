@@ -7,14 +7,14 @@ part 'course_model.g.dart';
 class CourseModel with _$CourseModel {
   const factory CourseModel({
     required String id,
-    required String teacherId,
+    @JsonKey(name: 'teacher_id') required String teacherId,
     required String title,
     String? description,
-    String? coverImageUrl,
-    @Default(false) bool isPublished,
+    @JsonKey(name: 'cover_image_url') String? coverImageUrl,
+    @JsonKey(name: 'is_published') @Default(false) bool isPublished,
     @Default(0) int order,
-    required DateTime createdAt,
-    required DateTime updatedAt,
+    @JsonKey(name: 'created_at') required DateTime createdAt,
+    @JsonKey(name: 'updated_at') required DateTime updatedAt,
   }) = _CourseModel;
 
   factory CourseModel.fromJson(Map<String, dynamic> json) =>

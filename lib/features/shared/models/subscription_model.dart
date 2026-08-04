@@ -9,13 +9,13 @@ enum SubscriptionStatus { active, suspended, expired }
 class SubscriptionModel with _$SubscriptionModel {
   const factory SubscriptionModel({
     required String id,
-    required String studentId,
-    required String teacherId,
-    String? activationCodeId,
+    @JsonKey(name: 'student_id') required String studentId,
+    @JsonKey(name: 'teacher_id') required String teacherId,
+    @JsonKey(name: 'activation_code_id') String? activationCodeId,
     required SubscriptionStatus status,
-    required DateTime startsAt,
-    DateTime? expiresAt,
-    required DateTime createdAt,
+    @JsonKey(name: 'starts_at') required DateTime startsAt,
+    @JsonKey(name: 'expires_at') DateTime? expiresAt,
+    @JsonKey(name: 'created_at') required DateTime createdAt,
   }) = _SubscriptionModel;
 
   factory SubscriptionModel.fromJson(Map<String, dynamic> json) =>

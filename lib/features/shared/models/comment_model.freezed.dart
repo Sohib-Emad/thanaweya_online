@@ -22,9 +22,12 @@ CommentModel _$CommentModelFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$CommentModel {
   String get id => throw _privateConstructorUsedError;
+  @JsonKey(name: 'lesson_id')
   String get lessonId => throw _privateConstructorUsedError;
+  @JsonKey(name: 'author_id')
   String get authorId => throw _privateConstructorUsedError;
   String get text => throw _privateConstructorUsedError;
+  @JsonKey(name: 'created_at')
   DateTime get createdAt => throw _privateConstructorUsedError;
 
   /// Serializes this CommentModel to a JSON map.
@@ -46,10 +49,10 @@ abstract class $CommentModelCopyWith<$Res> {
   @useResult
   $Res call({
     String id,
-    String lessonId,
-    String authorId,
+    @JsonKey(name: 'lesson_id') String lessonId,
+    @JsonKey(name: 'author_id') String authorId,
     String text,
-    DateTime createdAt,
+    @JsonKey(name: 'created_at') DateTime createdAt,
   });
 }
 
@@ -113,10 +116,10 @@ abstract class _$$CommentModelImplCopyWith<$Res>
   @useResult
   $Res call({
     String id,
-    String lessonId,
-    String authorId,
+    @JsonKey(name: 'lesson_id') String lessonId,
+    @JsonKey(name: 'author_id') String authorId,
     String text,
-    DateTime createdAt,
+    @JsonKey(name: 'created_at') DateTime createdAt,
   });
 }
 
@@ -172,10 +175,10 @@ class __$$CommentModelImplCopyWithImpl<$Res>
 class _$CommentModelImpl implements _CommentModel {
   const _$CommentModelImpl({
     required this.id,
-    required this.lessonId,
-    required this.authorId,
+    @JsonKey(name: 'lesson_id') required this.lessonId,
+    @JsonKey(name: 'author_id') required this.authorId,
     required this.text,
-    required this.createdAt,
+    @JsonKey(name: 'created_at') required this.createdAt,
   });
 
   factory _$CommentModelImpl.fromJson(Map<String, dynamic> json) =>
@@ -184,12 +187,15 @@ class _$CommentModelImpl implements _CommentModel {
   @override
   final String id;
   @override
+  @JsonKey(name: 'lesson_id')
   final String lessonId;
   @override
+  @JsonKey(name: 'author_id')
   final String authorId;
   @override
   final String text;
   @override
+  @JsonKey(name: 'created_at')
   final DateTime createdAt;
 
   @override
@@ -234,10 +240,10 @@ class _$CommentModelImpl implements _CommentModel {
 abstract class _CommentModel implements CommentModel {
   const factory _CommentModel({
     required final String id,
-    required final String lessonId,
-    required final String authorId,
+    @JsonKey(name: 'lesson_id') required final String lessonId,
+    @JsonKey(name: 'author_id') required final String authorId,
     required final String text,
-    required final DateTime createdAt,
+    @JsonKey(name: 'created_at') required final DateTime createdAt,
   }) = _$CommentModelImpl;
 
   factory _CommentModel.fromJson(Map<String, dynamic> json) =
@@ -246,12 +252,15 @@ abstract class _CommentModel implements CommentModel {
   @override
   String get id;
   @override
+  @JsonKey(name: 'lesson_id')
   String get lessonId;
   @override
+  @JsonKey(name: 'author_id')
   String get authorId;
   @override
   String get text;
   @override
+  @JsonKey(name: 'created_at')
   DateTime get createdAt;
 
   /// Create a copy of CommentModel

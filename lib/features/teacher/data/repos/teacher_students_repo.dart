@@ -13,12 +13,51 @@ class TeacherStudentsRepo {
   Future<ApiResult<List<Map<String, dynamic>>>> getStudents(
       String teacherId) async {
     try {
-      final data = await _client.from('subscriptions').select('''
-            id, status, created_at,
-            students!inner(id, grade_level, parent_phone, created_at),
-            users!inner(id, full_name, email, phone)
-          ''').eq('teacher_id', teacherId);
-      return ApiResult.success(data);
+      final subData = await _client
+          .from('subscriptions')
+          .select('id, student_id, status, created_at')
+          .eq('teacher_id', teacherId);
+
+      if (subData.isEmpty) return const ApiResult.success([]);
+
+      final studentIds = subData
+          .map((e) => e['student_id'] as String?)
+          .whereType<String>()
+          .toList();
+
+      if (studentIds.isEmpty) return const ApiResult.success([]);
+
+      final studentsData = await _client
+          .from('students')
+          .select('id, grade_level, parent_phone, created_at')
+          .inFilter('id', studentIds);
+
+      final usersData = await _client
+          .from('users')
+          .select('id, full_name, email, phone')
+          .inFilter('id', studentIds);
+
+      final usersMap = {
+        for (final u in usersData)
+          if (u['id'] != null) (u['id'] as String? ?? ''): u
+      };
+      final studentsMap = {
+        for (final s in studentsData)
+          if (s['id'] != null) (s['id'] as String? ?? ''): s
+      };
+
+      final result = <Map<String, dynamic>>[];
+      for (final sub in subData) {
+        final studentId = sub['student_id'] as String?;
+        if (studentId == null) continue;
+        result.add({
+          ...sub,
+          'students': studentsMap[studentId] ?? {},
+          'users': usersMap[studentId] ?? {},
+        });
+      }
+
+      return ApiResult.success(result);
     } catch (e) {
       return ApiErrorHandler.handleException(e);
     }

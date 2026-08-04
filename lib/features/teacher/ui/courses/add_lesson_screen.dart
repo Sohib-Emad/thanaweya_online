@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:thanaweya_online/core/constants/app_colors.dart';
 import 'package:thanaweya_online/core/constants/app_strings.dart';
+import 'package:thanaweya_online/features/teacher/data/repos/teacher_courses_repo.dart';
+import 'package:thanaweya_online/features/teacher/logic/teacher_courses_cubit.dart';
 
 class AddLessonScreen extends StatefulWidget {
   final String courseId;
@@ -23,15 +26,19 @@ class _AddLessonScreenState extends State<AddLessonScreen>
   final _descriptionController = TextEditingController();
   final _youtubeController = TextEditingController();
   bool _isFreePreview = false;
+  bool _isSaving = false;
+  late final TeacherCoursesCubit _cubit;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _cubit = TeacherCoursesCubit(repo: TeacherCoursesRepo());
   }
 
   @override
   void dispose() {
+    _cubit.close();
     _tabController.dispose();
     _titleController.dispose();
     _descriptionController.dispose();
@@ -282,17 +289,49 @@ class _AddLessonScreenState extends State<AddLessonScreen>
                     width: double.infinity,
                     height: 54.h,
                     child: ElevatedButton(
-                      onPressed: () {
-                        if (_formKey.currentState!.validate()) {
-                          HapticFeedback.mediumImpact();
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('تم حفظ وإضافة الدرس بنجاح 🎉'),
-                            ),
-                          );
-                        }
-                      },
+                      onPressed: _isSaving
+                          ? null
+                          : () async {
+                              if (_formKey.currentState!.validate()) {
+                                HapticFeedback.mediumImpact();
+                                setState(() => _isSaving = true);
+
+                                final videoType =
+                                    _tabController.index == 0 ? 'youtube' : 'upload';
+                                final userId = Supabase.instance.client
+                                    .auth.currentUser?.id;
+
+                                if (userId == null) {
+                                  setState(() => _isSaving = false);
+                                  return;
+                                }
+
+                                await _cubit.addLesson(
+                                  courseId: widget.courseId,
+                                  title: _titleController.text.trim(),
+                                  description:
+                                      _descriptionController.text.trim().isNotEmpty
+                                          ? _descriptionController.text.trim()
+                                          : null,
+                                  videoSourceType: videoType,
+                                  videoUrlOrId:
+                                      _youtubeController.text.trim(),
+                                  isFreePreview: _isFreePreview,
+                                );
+
+                                if (mounted) {
+                                  setState(() => _isSaving = false);
+                                  Navigator.pop(context);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content:
+                                          Text('تم حفظ وإضافة الدرس بنجاح'),
+                                      backgroundColor: Color(0xFF10B981),
+                                    ),
+                                  );
+                                }
+                              }
+                            },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.teacherPrimary,
                         elevation: 0,
@@ -300,14 +339,23 @@ class _AddLessonScreenState extends State<AddLessonScreen>
                           borderRadius: BorderRadius.circular(30.r),
                         ),
                       ),
-                      child: Text(
-                        AppStrings.save,
-                        style: GoogleFonts.outfit(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                        ),
-                      ),
+                      child: _isSaving
+                          ? SizedBox(
+                              width: 24.r,
+                              height: 24.r,
+                              child: const CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2.5,
+                              ),
+                            )
+                          : Text(
+                              AppStrings.save,
+                              style: GoogleFonts.outfit(
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                              ),
+                            ),
                     ),
                   ),
                 ],

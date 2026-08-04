@@ -22,12 +22,18 @@ ActivationCodeModel _$ActivationCodeModelFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$ActivationCodeModel {
   String get id => throw _privateConstructorUsedError;
+  @JsonKey(name: 'teacher_id')
   String get teacherId => throw _privateConstructorUsedError;
+  @JsonKey(name: 'course_id')
   String? get courseId => throw _privateConstructorUsedError;
   String get code => throw _privateConstructorUsedError;
+  @JsonKey(name: 'is_used')
   bool get isUsed => throw _privateConstructorUsedError;
+  @JsonKey(name: 'used_by')
   String? get usedBy => throw _privateConstructorUsedError;
+  @JsonKey(name: 'used_at')
   DateTime? get usedAt => throw _privateConstructorUsedError;
+  @JsonKey(name: 'created_at')
   DateTime get createdAt => throw _privateConstructorUsedError;
 
   /// Serializes this ActivationCodeModel to a JSON map.
@@ -49,13 +55,13 @@ abstract class $ActivationCodeModelCopyWith<$Res> {
   @useResult
   $Res call({
     String id,
-    String teacherId,
-    String? courseId,
+    @JsonKey(name: 'teacher_id') String teacherId,
+    @JsonKey(name: 'course_id') String? courseId,
     String code,
-    bool isUsed,
-    String? usedBy,
-    DateTime? usedAt,
-    DateTime createdAt,
+    @JsonKey(name: 'is_used') bool isUsed,
+    @JsonKey(name: 'used_by') String? usedBy,
+    @JsonKey(name: 'used_at') DateTime? usedAt,
+    @JsonKey(name: 'created_at') DateTime createdAt,
   });
 }
 
@@ -134,13 +140,13 @@ abstract class _$$ActivationCodeModelImplCopyWith<$Res>
   @useResult
   $Res call({
     String id,
-    String teacherId,
-    String? courseId,
+    @JsonKey(name: 'teacher_id') String teacherId,
+    @JsonKey(name: 'course_id') String? courseId,
     String code,
-    bool isUsed,
-    String? usedBy,
-    DateTime? usedAt,
-    DateTime createdAt,
+    @JsonKey(name: 'is_used') bool isUsed,
+    @JsonKey(name: 'used_by') String? usedBy,
+    @JsonKey(name: 'used_at') DateTime? usedAt,
+    @JsonKey(name: 'created_at') DateTime createdAt,
   });
 }
 
@@ -211,13 +217,13 @@ class __$$ActivationCodeModelImplCopyWithImpl<$Res>
 class _$ActivationCodeModelImpl implements _ActivationCodeModel {
   const _$ActivationCodeModelImpl({
     required this.id,
-    required this.teacherId,
-    this.courseId,
+    @JsonKey(name: 'teacher_id') required this.teacherId,
+    @JsonKey(name: 'course_id') this.courseId,
     required this.code,
-    this.isUsed = false,
-    this.usedBy,
-    this.usedAt,
-    required this.createdAt,
+    @JsonKey(name: 'is_used') this.isUsed = false,
+    @JsonKey(name: 'used_by') this.usedBy,
+    @JsonKey(name: 'used_at') this.usedAt,
+    @JsonKey(name: 'created_at') required this.createdAt,
   });
 
   factory _$ActivationCodeModelImpl.fromJson(Map<String, dynamic> json) =>
@@ -226,19 +232,24 @@ class _$ActivationCodeModelImpl implements _ActivationCodeModel {
   @override
   final String id;
   @override
+  @JsonKey(name: 'teacher_id')
   final String teacherId;
   @override
+  @JsonKey(name: 'course_id')
   final String? courseId;
   @override
   final String code;
   @override
-  @JsonKey()
+  @JsonKey(name: 'is_used')
   final bool isUsed;
   @override
+  @JsonKey(name: 'used_by')
   final String? usedBy;
   @override
+  @JsonKey(name: 'used_at')
   final DateTime? usedAt;
   @override
+  @JsonKey(name: 'created_at')
   final DateTime createdAt;
 
   @override
@@ -298,13 +309,13 @@ class _$ActivationCodeModelImpl implements _ActivationCodeModel {
 abstract class _ActivationCodeModel implements ActivationCodeModel {
   const factory _ActivationCodeModel({
     required final String id,
-    required final String teacherId,
-    final String? courseId,
+    @JsonKey(name: 'teacher_id') required final String teacherId,
+    @JsonKey(name: 'course_id') final String? courseId,
     required final String code,
-    final bool isUsed,
-    final String? usedBy,
-    final DateTime? usedAt,
-    required final DateTime createdAt,
+    @JsonKey(name: 'is_used') final bool isUsed,
+    @JsonKey(name: 'used_by') final String? usedBy,
+    @JsonKey(name: 'used_at') final DateTime? usedAt,
+    @JsonKey(name: 'created_at') required final DateTime createdAt,
   }) = _$ActivationCodeModelImpl;
 
   factory _ActivationCodeModel.fromJson(Map<String, dynamic> json) =
@@ -313,18 +324,24 @@ abstract class _ActivationCodeModel implements ActivationCodeModel {
   @override
   String get id;
   @override
+  @JsonKey(name: 'teacher_id')
   String get teacherId;
   @override
+  @JsonKey(name: 'course_id')
   String? get courseId;
   @override
   String get code;
   @override
+  @JsonKey(name: 'is_used')
   bool get isUsed;
   @override
+  @JsonKey(name: 'used_by')
   String? get usedBy;
   @override
+  @JsonKey(name: 'used_at')
   DateTime? get usedAt;
   @override
+  @JsonKey(name: 'created_at')
   DateTime get createdAt;
 
   /// Create a copy of ActivationCodeModel

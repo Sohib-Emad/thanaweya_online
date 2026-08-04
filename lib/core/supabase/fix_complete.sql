@@ -258,9 +258,13 @@ ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.lesson_progress ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.exam_submissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.bookmarks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.course_reviews ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.payment_methods ENABLE ROW LEVEL SECURITY;
 
 -- 7. USERS policies
 CREATE POLICY "users_select_own" ON public.users FOR SELECT USING (id = auth.uid());
+CREATE POLICY "users_select_teacher_profiles" ON public.users FOR SELECT TO anon, authenticated USING (id IN (SELECT id FROM public.teachers WHERE approval_status = 'approved'));
 CREATE POLICY "users_insert_own" ON public.users FOR INSERT WITH CHECK (id = auth.uid());
 CREATE POLICY "users_update_own" ON public.users FOR UPDATE USING (id = auth.uid());
 CREATE POLICY "admin_all_users" ON public.users FOR ALL USING ((auth.jwt()->'user_metadata'->>'role') = 'super_admin');
@@ -336,6 +340,23 @@ CREATE POLICY "comments_select_all" ON public.comments FOR SELECT USING (true);
 CREATE POLICY "comments_insert_own" ON public.comments FOR INSERT WITH CHECK (author_id = auth.uid());
 CREATE POLICY "comments_update_own" ON public.comments FOR UPDATE USING (author_id = auth.uid());
 CREATE POLICY "comments_delete_own" ON public.comments FOR DELETE USING (author_id = auth.uid());
+
+-- 22. BOOKMARKS policies
+CREATE POLICY "bookmarks_select_own" ON public.bookmarks FOR SELECT USING (student_id = auth.uid());
+CREATE POLICY "bookmarks_insert_own" ON public.bookmarks FOR INSERT WITH CHECK (student_id = auth.uid());
+CREATE POLICY "bookmarks_delete_own" ON public.bookmarks FOR DELETE USING (student_id = auth.uid());
+
+-- 23. COURSE REVIEWS policies
+CREATE POLICY "course_reviews_select_all" ON public.course_reviews FOR SELECT USING (true);
+CREATE POLICY "course_reviews_insert_own" ON public.course_reviews FOR INSERT WITH CHECK (student_id = auth.uid());
+CREATE POLICY "course_reviews_update_own" ON public.course_reviews FOR UPDATE USING (student_id = auth.uid());
+CREATE POLICY "course_reviews_delete_own" ON public.course_reviews FOR DELETE USING (student_id = auth.uid());
+
+-- 24. PAYMENT METHODS policies
+CREATE POLICY "payment_methods_select_own" ON public.payment_methods FOR SELECT USING (student_id = auth.uid());
+CREATE POLICY "payment_methods_insert_own" ON public.payment_methods FOR INSERT WITH CHECK (student_id = auth.uid());
+CREATE POLICY "payment_methods_update_own" ON public.payment_methods FOR UPDATE USING (student_id = auth.uid());
+CREATE POLICY "payment_methods_delete_own" ON public.payment_methods FOR DELETE USING (student_id = auth.uid());
 
 -- DONE. Verify:
 SELECT tablename, policyname, cmd FROM pg_policies WHERE schemaname = 'public' ORDER BY tablename, cmd;

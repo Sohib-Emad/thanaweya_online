@@ -22,12 +22,18 @@ SubscriptionModel _$SubscriptionModelFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$SubscriptionModel {
   String get id => throw _privateConstructorUsedError;
+  @JsonKey(name: 'student_id')
   String get studentId => throw _privateConstructorUsedError;
+  @JsonKey(name: 'teacher_id')
   String get teacherId => throw _privateConstructorUsedError;
+  @JsonKey(name: 'activation_code_id')
   String? get activationCodeId => throw _privateConstructorUsedError;
   SubscriptionStatus get status => throw _privateConstructorUsedError;
+  @JsonKey(name: 'starts_at')
   DateTime get startsAt => throw _privateConstructorUsedError;
+  @JsonKey(name: 'expires_at')
   DateTime? get expiresAt => throw _privateConstructorUsedError;
+  @JsonKey(name: 'created_at')
   DateTime get createdAt => throw _privateConstructorUsedError;
 
   /// Serializes this SubscriptionModel to a JSON map.
@@ -49,13 +55,13 @@ abstract class $SubscriptionModelCopyWith<$Res> {
   @useResult
   $Res call({
     String id,
-    String studentId,
-    String teacherId,
-    String? activationCodeId,
+    @JsonKey(name: 'student_id') String studentId,
+    @JsonKey(name: 'teacher_id') String teacherId,
+    @JsonKey(name: 'activation_code_id') String? activationCodeId,
     SubscriptionStatus status,
-    DateTime startsAt,
-    DateTime? expiresAt,
-    DateTime createdAt,
+    @JsonKey(name: 'starts_at') DateTime startsAt,
+    @JsonKey(name: 'expires_at') DateTime? expiresAt,
+    @JsonKey(name: 'created_at') DateTime createdAt,
   });
 }
 
@@ -134,13 +140,13 @@ abstract class _$$SubscriptionModelImplCopyWith<$Res>
   @useResult
   $Res call({
     String id,
-    String studentId,
-    String teacherId,
-    String? activationCodeId,
+    @JsonKey(name: 'student_id') String studentId,
+    @JsonKey(name: 'teacher_id') String teacherId,
+    @JsonKey(name: 'activation_code_id') String? activationCodeId,
     SubscriptionStatus status,
-    DateTime startsAt,
-    DateTime? expiresAt,
-    DateTime createdAt,
+    @JsonKey(name: 'starts_at') DateTime startsAt,
+    @JsonKey(name: 'expires_at') DateTime? expiresAt,
+    @JsonKey(name: 'created_at') DateTime createdAt,
   });
 }
 
@@ -211,13 +217,13 @@ class __$$SubscriptionModelImplCopyWithImpl<$Res>
 class _$SubscriptionModelImpl implements _SubscriptionModel {
   const _$SubscriptionModelImpl({
     required this.id,
-    required this.studentId,
-    required this.teacherId,
-    this.activationCodeId,
+    @JsonKey(name: 'student_id') required this.studentId,
+    @JsonKey(name: 'teacher_id') required this.teacherId,
+    @JsonKey(name: 'activation_code_id') this.activationCodeId,
     required this.status,
-    required this.startsAt,
-    this.expiresAt,
-    required this.createdAt,
+    @JsonKey(name: 'starts_at') required this.startsAt,
+    @JsonKey(name: 'expires_at') this.expiresAt,
+    @JsonKey(name: 'created_at') required this.createdAt,
   });
 
   factory _$SubscriptionModelImpl.fromJson(Map<String, dynamic> json) =>
@@ -226,18 +232,24 @@ class _$SubscriptionModelImpl implements _SubscriptionModel {
   @override
   final String id;
   @override
+  @JsonKey(name: 'student_id')
   final String studentId;
   @override
+  @JsonKey(name: 'teacher_id')
   final String teacherId;
   @override
+  @JsonKey(name: 'activation_code_id')
   final String? activationCodeId;
   @override
   final SubscriptionStatus status;
   @override
+  @JsonKey(name: 'starts_at')
   final DateTime startsAt;
   @override
+  @JsonKey(name: 'expires_at')
   final DateTime? expiresAt;
   @override
+  @JsonKey(name: 'created_at')
   final DateTime createdAt;
 
   @override
@@ -300,13 +312,13 @@ class _$SubscriptionModelImpl implements _SubscriptionModel {
 abstract class _SubscriptionModel implements SubscriptionModel {
   const factory _SubscriptionModel({
     required final String id,
-    required final String studentId,
-    required final String teacherId,
-    final String? activationCodeId,
+    @JsonKey(name: 'student_id') required final String studentId,
+    @JsonKey(name: 'teacher_id') required final String teacherId,
+    @JsonKey(name: 'activation_code_id') final String? activationCodeId,
     required final SubscriptionStatus status,
-    required final DateTime startsAt,
-    final DateTime? expiresAt,
-    required final DateTime createdAt,
+    @JsonKey(name: 'starts_at') required final DateTime startsAt,
+    @JsonKey(name: 'expires_at') final DateTime? expiresAt,
+    @JsonKey(name: 'created_at') required final DateTime createdAt,
   }) = _$SubscriptionModelImpl;
 
   factory _SubscriptionModel.fromJson(Map<String, dynamic> json) =
@@ -315,18 +327,24 @@ abstract class _SubscriptionModel implements SubscriptionModel {
   @override
   String get id;
   @override
+  @JsonKey(name: 'student_id')
   String get studentId;
   @override
+  @JsonKey(name: 'teacher_id')
   String get teacherId;
   @override
+  @JsonKey(name: 'activation_code_id')
   String? get activationCodeId;
   @override
   SubscriptionStatus get status;
   @override
+  @JsonKey(name: 'starts_at')
   DateTime get startsAt;
   @override
+  @JsonKey(name: 'expires_at')
   DateTime? get expiresAt;
   @override
+  @JsonKey(name: 'created_at')
   DateTime get createdAt;
 
   /// Create a copy of SubscriptionModel

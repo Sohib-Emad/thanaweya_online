@@ -1,20 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:thanaweya_online/core/router/app_router.dart';
+import 'package:thanaweya_online/core/utils/formatters.dart';
+import 'package:thanaweya_online/features/student/data/repos/student_courses_repo.dart';
+import 'package:thanaweya_online/features/student/logic/student_courses_cubit.dart';
 
 class VideoPlayerScreen extends StatefulWidget {
   final String lessonId;
   final String videoUrl;
   final String title;
+  final String courseId;
 
   const VideoPlayerScreen({
     super.key,
     required this.lessonId,
     required this.videoUrl,
     required this.title,
+    required this.courseId,
   });
 
   @override
@@ -24,97 +31,11 @@ class VideoPlayerScreen extends StatefulWidget {
 class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   int _selectedTab = 0; // 0 = Lessons, 1 = Assignments & PDFs, 2 = Achievements
   bool _isPlaying = false;
-  String _activeLessonTitle = 'Scalping strategy - FnO (الشرح الأساسي)';
+  late String _activeLessonTitle;
 
-  final Map<String, bool> _expandedSections = {
-    'Derivatives (المشتقات والأساسيات)': true,
-    'Futures (تطبيقات وقوانين المستقبل)': true,
-    'Options (الخيارات والمسائل المتقدمة)': true,
-  };
+  late final StudentCoursesCubit _coursesCubit;
 
-  final List<Map<String, dynamic>> _sectionsData = const [
-    {
-      'title': 'Derivatives (المشتقات والأساسيات)',
-      'lessons': [
-        {
-          'id': 'l1',
-          'title': 'What are Derivatives ? (ماهية المشتقات)',
-          'duration': '10 Min',
-          'status': 'completed', // completed, active, locked
-        },
-      ],
-    },
-    {
-      'title': 'Futures (تطبيقات وقوانين المستقبل)',
-      'lessons': [
-        {
-          'id': 'l2',
-          'title': 'Futures explained (شرح وتطبيقات القوانين)',
-          'duration': '20 Min',
-          'status': 'completed',
-        },
-        {
-          'id': 'l3',
-          'title': 'Benefits of Future trading (فوائد الحسابات)',
-          'duration': '25 Min',
-          'status': 'completed',
-        },
-        {
-          'id': 'l4',
-          'title': 'Scalping strategy - FnO (الشرح الأساسي)',
-          'duration': '34 Min',
-          'status': 'active',
-        },
-      ],
-    },
-    {
-      'title': 'Options (الخيارات والمسائل المتقدمة)',
-      'lessons': [
-        {
-          'id': 'l5',
-          'title': 'Option Basics (أساسيات المسائل)',
-          'duration': '20 Min',
-          'status': 'locked',
-        },
-        {
-          'id': 'l6',
-          'title': 'Options in a practical way - Basics',
-          'duration': '20 Min',
-          'status': 'locked',
-        },
-        {
-          'id': 'l7',
-          'title': 'OI - Understanding OI and OI analysis',
-          'duration': '25 Min',
-          'status': 'locked',
-        },
-        {
-          'id': 'l8',
-          'title': 'Option greeks explained (الشرح اليوناني)',
-          'duration': '34 Min',
-          'status': 'locked',
-        },
-        {
-          'id': 'l9',
-          'title': 'Option data analysis - PCR & Max pain',
-          'duration': '34 Min',
-          'status': 'locked',
-        },
-        {
-          'id': 'l10',
-          'title': 'Futures/Option Str strategy (استراتيجيات)',
-          'duration': '34 Min',
-          'status': 'locked',
-        },
-        {
-          'id': 'l11',
-          'title': 'Price action trading with naked options',
-          'duration': '34 Min',
-          'status': 'locked',
-        },
-      ],
-    },
-  ];
+  final Map<String, bool> _expandedSections = {};
 
   final List<Map<String, String>> _pdfAttachments = const [
     {
@@ -133,6 +54,26 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       'fileName': 'Mindmaps_Cheatsheet.pdf',
     },
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _activeLessonTitle = widget.title;
+    _coursesCubit = StudentCoursesCubit(repo: StudentCoursesRepo());
+    if (widget.courseId.isNotEmpty) {
+      _coursesCubit.loadCourseLessons(widget.courseId);
+    }
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId != null) {
+      _coursesCubit.loadProgress(userId);
+    }
+  }
+
+  @override
+  void dispose() {
+    _coursesCubit.close();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -429,25 +370,60 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
 
   // TAB 1: Lessons Accordion View (Matching Screenshot 100%)
   Widget _buildLessonsTab() {
-    return ListView(
-      padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 85.h),
-      physics: const BouncingScrollPhysics(),
-      children: [
-        // Subtitle Total Count
-        Text(
-          '11 Lessons (11 درساً كلياً)',
-          style: GoogleFonts.cairo(
-            fontSize: 12.sp,
-            fontWeight: FontWeight.w700,
-            color: const Color(0xFF64748B),
-          ),
-        ),
-        SizedBox(height: 12.h),
+    return BlocBuilder<StudentCoursesCubit, StudentCoursesState>(
+      bloc: _coursesCubit,
+      builder: (context, state) {
+        final lessons = state.lessons;
+        if (state.lessonsStatus == StudentCoursesStatus.loading &&
+            lessons.isEmpty) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final completedIds = {
+          for (final p in state.progress)
+            if (p.isCompleted) p.lessonId,
+        };
+        final sectionTitle = 'دروس الكورس';
+        final sectionsData = [
+          {
+            'title': sectionTitle,
+            'lessons': [
+              for (var i = 0; i < lessons.length; i++)
+                {
+                  'id': lessons[i].id,
+                  'title': lessons[i].title,
+                  'duration': lessons[i].durationSeconds != null
+                      ? Formatters.formatDurationMinutes(
+                          (lessons[i].durationSeconds! / 60).ceil())
+                      : '',
+                  'status': lessons[i].id == widget.lessonId
+                      ? 'active'
+                      : completedIds.contains(lessons[i].id)
+                          ? 'completed'
+                          : 'locked',
+                },
+            ],
+          },
+        ];
 
-        ..._sectionsData.map((sec) {
-          final title = sec['title'] as String;
-          final lessons = sec['lessons'] as List<Map<String, dynamic>>;
-          final isExpanded = _expandedSections[title] ?? true;
+        return ListView(
+          padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 85.h),
+          physics: const BouncingScrollPhysics(),
+          children: [
+            // Subtitle Total Count
+            Text(
+              '${lessons.length} دروس',
+              style: GoogleFonts.cairo(
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF64748B),
+              ),
+            ),
+            SizedBox(height: 12.h),
+
+            ...sectionsData.map((sec) {
+              final title = sec['title'] as String;
+              final lessons = sec['lessons'] as List<Map<String, dynamic>>;
+              final isExpanded = _expandedSections[title] ?? true;
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -596,7 +572,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
             ],
           );
         }),
-      ],
+        ],
+      );
+      },
     );
   }
 

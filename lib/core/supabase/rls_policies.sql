@@ -1,10 +1,20 @@
 -- ============================================================
--- Thanaweya Online - Row Level Security Policies
+-- Thanaweya Online - Database Setup Reference
 -- ============================================================
--- This file is superseded by schema.sql which contains the
--- complete database schema including tables, indexes,
--- triggers, RLS policies, and seed data.
+-- Run fix_complete.sql in the Supabase SQL Editor for initial setup:
+--   lib/core/supabase/fix_complete.sql
 --
--- Run schema.sql in the Supabase SQL Editor instead:
---   lib/core/supabase/schema.sql
+-- fix_complete.sql contains the complete database schema including:
+--   - All tables with CREATE IF NOT EXISTS
+--   - Row Level Security (RLS) policies
+--   - Indexes for performance
+--   - Triggers for auto-creation of user profiles and updated_at
+--   - Seed data (subjects and subscription plans)
 -- ============================================================
+
+-- Quick start:
+-- 1. Go to your Supabase project dashboard
+-- 2. Open SQL Editor
+-- 3. Copy and paste the contents of lib/core/supabase/fix_complete.sql
+-- 4. Run the query
+-- 5. Verify with: SELECT tablename, policyname FROM pg_policies WHERE schemaname = 'public' ORDER BY tablename;
