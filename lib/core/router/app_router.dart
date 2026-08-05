@@ -15,12 +15,12 @@ import '../../features/teacher/ui/courses/lessons_list_screen.dart';
 import '../../features/teacher/ui/courses/add_lesson_screen.dart';
 import '../../features/teacher/ui/exams/exams_list_screen.dart';
 import '../../features/teacher/ui/exams/add_questions_screen.dart';
+import '../../features/teacher/ui/exams/exam_results_screen.dart';
 import '../../features/teacher/ui/students/students_list_screen.dart';
-import '../../features/teacher/ui/students/activation_codes_screen.dart';
+import '../../features/teacher/ui/students/student_detail_screen.dart';
 import '../../features/student/ui/onboarding/subject_selection_screen.dart';
 import '../../features/student/ui/onboarding/teacher_selection_screen.dart';
 import '../../features/student/ui/onboarding/student_form_screen.dart';
-import '../../features/student/ui/onboarding/activation_screen.dart';
 import '../../features/student/ui/dashboard/student_home_screen.dart';
 import '../../features/student/ui/courses/teacher_page_screen.dart';
 import '../../features/student/ui/courses/course_filter_screen.dart';
@@ -36,7 +36,7 @@ import '../../features/student/ui/profile/student_edit_profile_screen.dart';
 import '../../features/student/ui/profile/student_notification_settings_screen.dart';
 import '../../features/student/ui/profile/student_payment_options_screen.dart';
 import '../../features/student/ui/profile/student_add_card_screen.dart';
-import '../../features/student/ui/profile/student_security_screen.dart';
+import '../../features/student/ui/profile/student_change_password_screen.dart';
 import '../../features/student/ui/profile/student_language_screen.dart';
 import '../../features/student/ui/profile/student_terms_screen.dart';
 import '../../features/student/ui/courses/course_reviews_screen.dart';
@@ -91,14 +91,14 @@ class AppRouter {
   static const String teacherAddLesson = '/teacher/courses/lessons/add';
   static const String teacherExams = '/teacher/exams';
   static const String teacherAddQuestion = '/teacher/exams/add-question';
+  static const String teacherExamResults = '/teacher/exams/results';
   static const String teacherStudents = '/teacher/students';
-  static const String teacherActivationCodes = '/teacher/activation-codes';
+  static const String teacherStudentDetail = '/teacher/student-detail';
 
   // Student
   static const String studentSubjects = '/student/subjects';
   static const String studentTeachers = '/student/teachers';
   static const String studentForm = '/student/form';
-  static const String studentActivation = '/student/activation';
   static const String studentHome = '/student/home';
   static const String studentTeacherPage = '/student/teacher-page';
   static const String studentCourseLessons = '/student/course-lessons';
@@ -126,7 +126,7 @@ class AppRouter {
       '/student/notification-settings';
   static const String studentPaymentOptions = '/student/payment-options';
   static const String studentAddCard = '/student/add-card';
-  static const String studentSecurity = '/student/security';
+  static const String studentChangePassword = '/student/change-password';
   static const String studentLanguage = '/student/language';
   static const String studentTerms = '/student/terms';
 
@@ -203,10 +203,23 @@ class AppRouter {
       case teacherAddQuestion:
         final examId = settings.arguments as String? ?? '';
         return AddQuestionsScreen(examId: examId);
+      case teacherExamResults:
+        final resultsArgs =
+            settings.arguments as Map<String, dynamic>? ?? {};
+        return ExamResultsScreen(
+          examId: resultsArgs['examId'] ?? '',
+          examTitle: resultsArgs['examTitle'] ?? '',
+        );
       case teacherStudents:
         return const StudentsListScreen();
-      case teacherActivationCodes:
-        return const ActivationCodesScreen();
+      case teacherStudentDetail:
+        final studentArgs = settings.arguments as Map<String, dynamic>? ?? {};
+        return StudentDetailScreen(
+          studentId: studentArgs['studentId'] ?? '',
+          name: studentArgs['name'] ?? '',
+          grade: studentArgs['grade'] ?? '',
+          email: studentArgs['email'] ?? '',
+        );
 
       // Student
       case studentSubjects:
@@ -215,8 +228,6 @@ class AppRouter {
         return const TeacherSelectionScreen();
       case studentForm:
         return const StudentFormScreen();
-      case studentActivation:
-        return const ActivationScreen();
       case studentHome:
         return const StudentHomeScreen();
       case studentTeacherPage:
@@ -224,6 +235,7 @@ class AppRouter {
         return TeacherPageScreen(
           teacherId: teacherArgs['teacherId'] ?? '',
           title: teacherArgs['title'] ?? '',
+          avatarUrl: teacherArgs['avatarUrl'] as String?,
         );
       case studentCourseLessons:
         final courseId = settings.arguments as String? ?? '';
@@ -235,6 +247,8 @@ class AppRouter {
           videoUrl: args['videoUrl'] ?? '',
           title: args['title'] ?? '',
           courseId: args['courseId'] ?? '',
+          description: args['description'] ?? '',
+          videoSourceType: args['videoSourceType'] ?? 'youtube',
         );
       case studentExams:
         return const StudentExamsListScreen();
@@ -288,8 +302,8 @@ class AppRouter {
         return const StudentPaymentOptionsScreen();
       case studentAddCard:
         return const StudentAddCardScreen();
-      case studentSecurity:
-        return const StudentSecurityScreen();
+      case studentChangePassword:
+        return const StudentChangePasswordScreen();
       case studentLanguage:
         return const StudentLanguageScreen();
       case studentTerms:

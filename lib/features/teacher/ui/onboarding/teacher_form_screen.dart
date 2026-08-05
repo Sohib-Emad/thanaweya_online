@@ -1,17 +1,35 @@
+// ────────────────────────────────────────────────────────────
+// THESIS — طلب الالتحاق بالمدرس
+//   The teacher's chalkboard enrollment form: personal data +
+//   identity/teaching proof uploads (step 0), specialty/subjects/
+//   tracks/stages (step 1), location + teaching mode + final
+//   confirmation (step 2). Saves every collected field.
+// OWN-WORLD — Chalkboard (سبورة): green board ground, chalk-white
+//   ink, mint/red/yellow/blue chalk accents, rubber stamps.
+// STORY — A teacher walks to the classroom board and writes their
+//   application in chalk: identity first, then what they teach,
+//   then where and how they teach, then submit for review.
+// FIRST VIEWPORT — Chalkboard ground + 3-chalk-dot stepper + the
+//   first step form (avatar, name, phone, email, password, cards).
+// FORM — 3 steps; every field is validated and persisted through
+//   AuthCubit.signUp + _upsertTeacherData (incl. the previously
+//   unsaved system/governorate/mode/stages/tracks).
+// FINISH — Submits signup, uploads documents, upserts the teacher
+//   row, then routes to the pending-review chalkboard.
+// ────────────────────────────────────────────────────────────
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'package:thanaweya_online/core/constants/app_colors.dart';
 import 'package:thanaweya_online/core/constants/app_strings.dart';
 import 'package:thanaweya_online/core/router/app_router.dart';
 import 'package:thanaweya_online/core/supabase/storage_helper.dart';
+import 'package:thanaweya_online/core/theme/chalkboard_theme.dart';
 import 'package:thanaweya_online/core/utils/validators.dart';
 import 'package:thanaweya_online/features/auth/data/repos/auth_repo.dart';
 import 'package:thanaweya_online/features/auth/logic/auth_cubit.dart';
@@ -41,33 +59,35 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
   final Set<String> _selectedTrackIds = {};
   List<Map<String, dynamic>> _teacherSubjectsList = [];
 
+  static const _systemKeys = ['general', 'baccalaureate', 'both'];
+
   final List<Map<String, dynamic>> _baccalaureateTracks = [
     {
       'id': 'track_med',
       'name_ar': 'مسار الطب وعلوم الحياة',
       'qualifying':
           'يؤهل لكليات: الطب البشري، الصيدلة، الأسنان، العلاج الطبيعي، والتمريض.',
-      'color': const Color(0xFF10B981),
+      'color': ChalkboardColors.accent,
     },
     {
       'id': 'track_eng',
       'name_ar': 'مسار الهندسة وعلوم الحاسب',
       'qualifying':
           'يؤهل لكليات: الهندسة، الحاسبات والمعلومات، والتكنولوجيا الحيوية.',
-      'color': const Color(0xFF2563EB),
+      'color': ChalkboardColors.chalkBlue,
     },
     {
       'id': 'track_biz',
       'name_ar': 'مسار الأعمال والاقتصاد',
       'qualifying':
           'يؤهل لكليات: التجارة، الاقتصاد والعلوم السياسية، الإعلام، والحقوق.',
-      'color': const Color(0xFFD97706),
+      'color': ChalkboardColors.chalkYellow,
     },
     {
       'id': 'track_arts',
       'name_ar': 'مسار الآداب والفنون',
       'qualifying': 'يؤهل لكليات: الآداب، الألسن، الفنون الجميلة، ودار العلوم.',
-      'color': const Color(0xFF9333EA),
+      'color': ChalkboardColors.chalkRed,
     },
   ];
 
@@ -151,6 +171,20 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
     super.dispose();
   }
 
+  void _showChalkSnack(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: ChalkboardText.body(13.sp, color: ChalkboardColors.ink),
+        ),
+        backgroundColor: ChalkboardColors.surfaceBright,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+      ),
+    );
+  }
+
   // Show Bottom Sheet Modal for Gallery / Camera choice
   Future<void> _showImageSourcePicker({
     required String title,
@@ -159,70 +193,52 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
     HapticFeedback.lightImpact();
     await showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
-      ),
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       builder: (context) {
         return Directionality(
           textDirection: TextDirection.rtl,
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
+          child: Container(
+            decoration: const BoxDecoration(
+              color: ChalkboardColors.ground,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 28.h),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Center(
+                  child: Container(
+                    width: 44.w,
+                    height: 4.h,
+                    margin: EdgeInsets.only(top: 10.h, bottom: 12.h),
+                    decoration: BoxDecoration(
+                      color: ChalkboardColors.chalkFaint,
+                      borderRadius: BorderRadius.circular(2.r),
+                    ),
+                  ),
+                ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      title,
-                      style: GoogleFonts.cairo(
-                        fontSize: 17.sp,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF0F172A),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: Icon(
+                    Text(title, style: ChalkboardText.heading(16.sp)),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Icon(
                         Icons.close_rounded,
-                        color: const Color(0xFF94A3B8),
-                        size: 22.r,
+                        color: ChalkboardColors.chalkSoft,
+                        size: 24.r,
                       ),
                     ),
                   ],
                 ),
-                SizedBox(height: 16.h),
-                // Option 1: Gallery
-                ListTile(
-                  leading: Container(
-                    padding: EdgeInsets.all(10.r),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEFF6FF),
-                      borderRadius: BorderRadius.circular(12.r),
-                    ),
-                    child: Icon(
-                      Icons.photo_library_rounded,
-                      color: AppColors.teacherPrimary,
-                      size: 24.r,
-                    ),
-                  ),
-                  title: Text(
-                    'اختيار من معرض الصور (Gallery)',
-                    style: GoogleFonts.cairo(
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF0F172A),
-                    ),
-                  ),
-                  subtitle: Text(
-                    'اختر صورة واضحة محفوظة على جهازك',
-                    style: GoogleFonts.cairo(
-                      fontSize: 11.sp,
-                      color: const Color(0xFF64748B),
-                    ),
-                  ),
+                SizedBox(height: 18.h),
+                _ChalkSourceTile(
+                  icon: Icons.photo_library_rounded,
+                  color: ChalkboardColors.accent,
+                  title: 'اختيار من معرض الصور (Gallery)',
+                  subtitle: 'اختر صورة واضحة محفوظة على جهازك',
                   onTap: () async {
                     Navigator.pop(context);
                     try {
@@ -230,53 +246,18 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
                         source: ImageSource.gallery,
                         imageQuality: 85,
                       );
-                      if (file != null) {
-                        onImageSelected(file);
-                      }
+                      if (file != null) onImageSelected(file);
                     } catch (_) {
-                      onImageSelected(XFile('gallery_image.jpg'));
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('تم اختيار الصورة من المعرف بنجاح'),
-                          ),
-                        );
-                      }
+                      _showChalkSnack('تعذر فتح معرض الصور، حاول مرة أخرى');
                     }
                   },
                 ),
-                SizedBox(height: 8.h),
-                const Divider(height: 1, color: Color(0xFFF1F5F9)),
-                SizedBox(height: 8.h),
-                // Option 2: Camera
-                ListTile(
-                  leading: Container(
-                    padding: EdgeInsets.all(10.r),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFECFDF5),
-                      borderRadius: BorderRadius.circular(12.r),
-                    ),
-                    child: Icon(
-                      Icons.camera_alt_rounded,
-                      color: const Color(0xFF0FA37F),
-                      size: 24.r,
-                    ),
-                  ),
-                  title: Text(
-                    'التقاط صورة جديدة بالكاميرا (Camera)',
-                    style: GoogleFonts.cairo(
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF0F172A),
-                    ),
-                  ),
-                  subtitle: Text(
-                    'استخدم كاميرا الهيدر لتصوير المستند فوراً',
-                    style: GoogleFonts.cairo(
-                      fontSize: 11.sp,
-                      color: const Color(0xFF64748B),
-                    ),
-                  ),
+                SizedBox(height: 10.h),
+                _ChalkSourceTile(
+                  icon: Icons.camera_alt_rounded,
+                  color: ChalkboardColors.chalkBlue,
+                  title: 'التقاط صورة جديدة بالكاميرا (Camera)',
+                  subtitle: 'استخدم كاميرا الهيدر لتصوير المستند فوراً',
                   onTap: () async {
                     Navigator.pop(context);
                     try {
@@ -284,22 +265,12 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
                         source: ImageSource.camera,
                         imageQuality: 85,
                       );
-                      if (file != null) {
-                        onImageSelected(file);
-                      }
+                      if (file != null) onImageSelected(file);
                     } catch (_) {
-                      onImageSelected(XFile('camera_image.jpg'));
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('تم التقاط الصورة بالكاميرا بنجاح'),
-                          ),
-                        );
-                      }
+                      _showChalkSnack('تعذر فتح الكاميرا، حاول مرة أخرى');
                     }
                   },
                 ),
-                SizedBox(height: 12.h),
               ],
             ),
           ),
@@ -313,54 +284,32 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
     if (_currentStep == 0) {
       if (_step0Key.currentState!.validate()) {
         if (_idFrontFile == null || _idBackFile == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('برجاء إرفاق صورة وجه وظهر بطاقة الرقم القومي'),
-            ),
-          );
+          _showChalkSnack('برجاء إرفاق صورة وجه وظهر بطاقة الرقم القومي');
           return;
         }
         if (_teacherProofFile == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'برجاء إرفاق مستند إثبات ممارسة التدريس أو الكارنيه',
-              ),
-            ),
-          );
+          _showChalkSnack('برجاء إرفاق مستند إثبات ممارسة التدريس أو الكارنيه');
           return;
         }
         setState(() => _currentStep = 1);
       }
     } else if (_currentStep == 1) {
       if (_teacherSystemIndex == 0 && _selectedSubjectIds.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('برجاء اختيار مادة واحدة على الأقل')),
-        );
+        _showChalkSnack('برجاء اختيار مادة واحدة على الأقل');
         return;
       }
       if (_teacherSystemIndex == 1 && _selectedTrackIds.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('برجاء اختيار مسار أكاديمي واحد على الأقل'),
-          ),
-        );
+        _showChalkSnack('برجاء اختيار مسار أكاديمي واحد على الأقل');
         return;
       }
       if (_teacherSystemIndex == 2 &&
           _selectedSubjectIds.isEmpty &&
           _selectedTrackIds.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('برجاء اختيار مادة أو مسار أكاديمي واحد على الأقل'),
-          ),
-        );
+        _showChalkSnack('برجاء اختيار مادة أو مسار أكاديمي واحد على الأقل');
         return;
       }
       if (_selectedStages.isEmpty && _teacherSystemIndex != 1) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('اختر مرحلة واحدة على الأقل')),
-        );
+        _showChalkSnack('اختر مرحلة واحدة على الأقل');
         return;
       }
       setState(() => _currentStep = 2);
@@ -378,19 +327,17 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
 
   void _onSubmitFinal() {
     if (!_agreedToTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('برجاء الموافقة على الشروط والأحكام')),
-      );
+      _showChalkSnack('برجاء الموافقة على الشروط والأحكام');
       return;
     }
     HapticFeedback.mediumImpact();
     _authCubit.signUp(
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
-          fullName: _nameController.text.trim(),
-          phone: _phoneController.text.trim(),
-          role: 'teacher',
-        );
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+      fullName: _nameController.text.trim(),
+      phone: _phoneController.text.trim(),
+      role: 'teacher',
+    );
   }
 
   Future<void> _upsertTeacherData() async {
@@ -398,13 +345,8 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
       final userId = Supabase.instance.client.auth.currentUser?.id;
       if (userId == null) return;
 
-      final stageMap = {
-        'first': 'first',
-        'second': 'second',
-        'third': 'third',
-      };
       final stage =
-          _selectedStages.isNotEmpty ? stageMap[_selectedStages.first] : null;
+          _selectedStages.isNotEmpty ? _selectedStages.first : null;
 
       final urls = await StorageHelper.uploadTeacherDocuments(
         userId: userId,
@@ -422,6 +364,11 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
             ? _selectedSubjectIds.first
             : null,
         'stage': stage,
+        'teaching_system': _systemKeys[_teacherSystemIndex],
+        'stages': _selectedStages.toList(),
+        'baccalaureate_tracks': _selectedTrackIds.toList(),
+        'governorate': _selectedGovernorate,
+        'teaching_mode': _teachingMode,
         'bio': _bioController.text.trim().isNotEmpty
             ? _bioController.text.trim()
             : null,
@@ -451,93 +398,121 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
       child: Directionality(
         textDirection: TextDirection.rtl,
         child: Scaffold(
-          backgroundColor: Colors.white,
+          backgroundColor: ChalkboardColors.ground,
           body: SafeArea(
-            child: Column(
-              children: [
-                // 1. Top Navigation Bar (Centered Title + Back Arrow)
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Text(
-                        'طلب الالتحاق',
-                        style: GoogleFonts.cairo(
-                          fontSize: 20.sp,
-                          fontWeight: FontWeight.w800,
-                          color: const Color(0xFF0F172A),
-                        ),
-                      ),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: IconButton(
-                          onPressed: () {
-                            if (_currentStep > 0) {
-                              _prevStep();
-                            } else {
-                              Navigator.pop(context);
-                            }
-                          },
-                          icon: Icon(
-                            Icons.chevron_right_rounded,
-                            color: const Color(0xFF0F172A),
-                            size: 30.r,
+            bottom: false,
+            child: ChalkboardSurface(
+              child: Column(
+                children: [
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 0),
+                    child: Row(
+                      children: [
+                        if (_currentStep > 0)
+                          GestureDetector(
+                            onTap: _prevStep,
+                            child: Container(
+                              width: 40.r,
+                              height: 40.r,
+                              decoration: BoxDecoration(
+                                color: ChalkboardColors.surface,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: ChalkboardColors.accent.withAlpha(160),
+                                  width: 1.4,
+                                ),
+                              ),
+                              child: Icon(
+                                Icons.arrow_forward_rounded,
+                                color: ChalkboardColors.accent,
+                                size: 20.r,
+                              ),
+                            ),
+                          )
+                        else
+                          GestureDetector(
+                            onTap: () => Navigator.pop(context),
+                            child: Container(
+                              width: 40.r,
+                              height: 40.r,
+                              decoration: BoxDecoration(
+                                color: ChalkboardColors.surface,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: ChalkboardColors.ink.withAlpha(90),
+                                  width: 1.2,
+                                ),
+                              ),
+                              child: Icon(
+                                Icons.arrow_forward_rounded,
+                                color: ChalkboardColors.chalkSoft,
+                                size: 20.r,
+                              ),
+                            ),
+                          ),
+                        SizedBox(width: 14.w),
+                        Expanded(
+                          child: Text(
+                            'طلب الالتحاق',
+                            style: ChalkboardText.heading(18.sp),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                SizedBox(height: 8.h),
-
-                // 2. Stepper Progress Bar (3 Connected Dots)
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 24.w),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _StepItem(
-                        label: 'بيانات المعلم',
-                        isActive: _currentStep >= 0,
-                        isCompleted: _currentStep > 0,
-                      ),
-                      _StepConnector(isActive: _currentStep >= 1),
-                      _StepItem(
-                        label: 'التخصص والمادة',
-                        isActive: _currentStep >= 1,
-                        isCompleted: _currentStep > 1,
-                      ),
-                      _StepConnector(isActive: _currentStep >= 2),
-                      _StepItem(
-                        label: 'المراحل والتواصل',
-                        isActive: _currentStep >= 2,
-                        isCompleted: _currentStep > 2,
-                      ),
-                    ],
-                  ),
-                ),
-
-                SizedBox(height: 24.h),
-
-                // 3. Scrollable Step Content with Animated Switcher
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.symmetric(horizontal: 24.w),
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 300),
-                      child: _buildCurrentStepView(),
+                        const ChalkStamp(
+                          label: 'جديد',
+                          color: ChalkboardColors.chalkYellow,
+                        ),
+                      ],
                     ),
                   ),
-                ),
 
-                // 4. Bottom Buttons Section
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 16.h),
-                  child: _buildBottomButtons(),
-                ),
-              ],
+                  SizedBox(height: 18.h),
+
+                  // Stepper Progress Bar (3 chalk dots)
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 24.w),
+                    child: Row(
+                      children: [
+                        _StepItem(
+                          label: 'بيانات المعلم',
+                          isActive: _currentStep >= 0,
+                          isCompleted: _currentStep > 0,
+                        ),
+                        _StepConnector(isActive: _currentStep >= 1),
+                        _StepItem(
+                          label: 'التخصص والمادة',
+                          isActive: _currentStep >= 1,
+                          isCompleted: _currentStep > 1,
+                        ),
+                        _StepConnector(isActive: _currentStep >= 2),
+                        _StepItem(
+                          label: 'المراحل والتواصل',
+                          isActive: _currentStep >= 2,
+                          isCompleted: _currentStep > 2,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  SizedBox(height: 20.h),
+
+                  // Scrollable Step Content
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.symmetric(horizontal: 20.w),
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 300),
+                        child: _buildCurrentStepView(),
+                      ),
+                    ),
+                  ),
+
+                  // Bottom Buttons
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 16.h),
+                    child: _buildBottomButtons(),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -566,9 +541,9 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
         key: const ValueKey(0),
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SectionHeader(
+          const ChalkSectionHeader(
             title: 'بيانات المعلم والإثباتات',
-            icon: Icons.sentiment_satisfied_alt_rounded,
+            accent: ChalkboardColors.accent,
           ),
           SizedBox(height: 20.h),
 
@@ -587,14 +562,14 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
                 alignment: Alignment.bottomRight,
                 children: [
                   Container(
-                    width: 84.r,
-                    height: 84.r,
+                    width: 86.r,
+                    height: 86.r,
                     decoration: BoxDecoration(
-                      color: AppColors.studentPrimaryLight,
+                      color: ChalkboardColors.surfaceBright,
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: AppColors.studentPrimary.withAlpha(80),
-                        width: 2,
+                        color: ChalkboardColors.accent.withAlpha(150),
+                        width: 1.8,
                       ),
                       image: _avatarFile != null
                           ? DecorationImage(
@@ -607,77 +582,69 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
                         ? Icon(
                             Icons.person_rounded,
                             size: 44.r,
-                            color: AppColors.studentPrimary,
+                            color: ChalkboardColors.chalkSoft,
                           )
                         : null,
                   ),
                   Container(
                     padding: EdgeInsets.all(6.r),
                     decoration: const BoxDecoration(
-                      color: AppColors.studentPrimary,
+                      color: ChalkboardColors.accent,
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
                       Icons.camera_alt_rounded,
                       size: 14.r,
-                      color: Colors.white,
+                      color: ChalkboardColors.onAccent,
                     ),
                   ),
                 ],
               ),
             ),
           ),
-          SizedBox(height: 20.h),
+          SizedBox(height: 22.h),
 
           // الاسم الكامل*
-          _FieldLabel(label: 'الاسم الكامل*'),
-          SizedBox(height: 6.h),
-          _DesignTextField(
+          ChalkInputField(
+            label: 'الاسم الكامل*',
             controller: _nameController,
-            hintText: 'أدخل الاسم الثلاثي كما في البطاقة...',
+            icon: Icons.person_outline_rounded,
+            hint: 'أدخل الاسم الثلاثي كما في البطاقة...',
             validator: (v) => v!.isEmpty ? AppStrings.fieldRequired : null,
           ),
-
-          SizedBox(height: 18.h),
+          SizedBox(height: 20.h),
 
           // رقم الهاتف*
-          _FieldLabel(label: 'رقم الهاتف*'),
-          SizedBox(height: 6.h),
-          _DesignTextField(
+          ChalkInputField(
+            label: 'رقم الهاتف*',
             controller: _phoneController,
-            hintText: '010XXXXXXXX',
-            prefixIcon: Icons.phone_outlined,
+            icon: Icons.phone_outlined,
+            hint: '010XXXXXXXX',
             keyboardType: TextInputType.phone,
-            textDirection: TextDirection.ltr,
             validator: Validators.phone,
           ),
-
-          SizedBox(height: 18.h),
+          SizedBox(height: 20.h),
 
           // البريد الإلكتروني*
-          _FieldLabel(label: 'البريد الإلكتروني*'),
-          SizedBox(height: 6.h),
-          _DesignTextField(
+          ChalkInputField(
+            label: 'البريد الإلكتروني*',
             controller: _emailController,
-            hintText: 'example@email.com',
+            icon: Icons.mail_outline_rounded,
+            hint: 'example@email.com',
             keyboardType: TextInputType.emailAddress,
-            textDirection: TextDirection.ltr,
             validator: Validators.email,
           ),
-
-          SizedBox(height: 18.h),
+          SizedBox(height: 20.h),
 
           // كلمة السر*
-          _FieldLabel(label: 'كلمة السر*'),
-          SizedBox(height: 6.h),
-          _DesignTextField(
+          ChalkInputField(
+            label: 'كلمة السر*',
             controller: _passwordController,
-            hintText: '••••••••',
+            icon: Icons.lock_outline_rounded,
+            hint: '••••••••',
             obscureText: true,
-            textDirection: TextDirection.ltr,
             validator: (v) => v!.isEmpty ? AppStrings.fieldRequired : null,
           ),
-
           SizedBox(height: 24.h),
 
           // 1. بطاقة الرقم القومي (وش وظهر)
@@ -686,11 +653,12 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
           Row(
             children: [
               Expanded(
-                child: _UploadCard(
+                child: _ChalkUploadCard(
                   title: 'وجه البطاقة',
                   isAttached: _idFrontFile != null,
                   fileName: _idFrontFile?.name,
                   icon: Icons.credit_card_rounded,
+                  accent: ChalkboardColors.accent,
                   onTap: () {
                     _showImageSourcePicker(
                       title: 'إرفاق صورة وجه البطاقة',
@@ -703,11 +671,12 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
               ),
               SizedBox(width: 10.w),
               Expanded(
-                child: _UploadCard(
+                child: _ChalkUploadCard(
                   title: 'ظهر البطاقة',
                   isAttached: _idBackFile != null,
                   fileName: _idBackFile?.name,
                   icon: Icons.credit_card_outlined,
+                  accent: ChalkboardColors.chalkBlue,
                   onTap: () {
                     _showImageSourcePicker(
                       title: 'إرفاق صورة ظهر البطاقة',
@@ -720,7 +689,6 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
               ),
             ],
           ),
-
           SizedBox(height: 18.h),
 
           // 2. إثبات ممارسة التدريس (كارنيه النقابة / إفادة)
@@ -728,7 +696,7 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
             label: 'مستند إثبات ممارسة التدريس (كارنيه المعلم / النقابة)*',
           ),
           SizedBox(height: 8.h),
-          _UploadCard(
+          _ChalkUploadCard(
             title: 'إرفاق كارنيه النقابة أو إفادة التدريس الرسمية',
             subtitle: _teacherProofFile != null
                 ? 'تم إرفاق: ${_teacherProofFile!.name} ✓'
@@ -736,6 +704,7 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
             isAttached: _teacherProofFile != null,
             fileName: _teacherProofFile?.name,
             icon: Icons.verified_user_rounded,
+            accent: ChalkboardColors.chalkYellow,
             onTap: () {
               _showImageSourcePicker(
                 title: 'إرفاق مستند ممارسة التدريس',
@@ -745,7 +714,6 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
               );
             },
           ),
-
           SizedBox(height: 20.h),
         ],
       ),
@@ -760,185 +728,71 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
         key: const ValueKey(1),
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SectionHeader(
+          const ChalkSectionHeader(
             title: 'بيانات التخصص والمادة',
-            icon: Icons.menu_book_rounded,
+            accent: ChalkboardColors.accent,
           ),
-          SizedBox(height: 16.h),
+          SizedBox(height: 18.h),
 
-          // النظام التعليمي للمعلم (عامة قديم vs البكالوريا IB vs كلا النظامين)
+          // النظام التعليمي للمعلم
           _FieldLabel(label: 'النظام التعليمي المتاح لديك للتدريس*'),
           SizedBox(height: 8.h),
-          Container(
-            padding: EdgeInsets.all(4.r),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE2E8F0),
-              borderRadius: BorderRadius.circular(24.r),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      HapticFeedback.selectionClick();
-                      setState(() => _teacherSystemIndex = 0);
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: EdgeInsets.symmetric(vertical: 9.h),
-                      decoration: BoxDecoration(
-                        color: _teacherSystemIndex == 0
-                            ? AppColors.studentPrimary
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(20.r),
-                      ),
-                      child: Center(
-                        child: Text(
-                          'عامة (قديم)',
-                          style: GoogleFonts.cairo(
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w800,
-                            color: _teacherSystemIndex == 0
-                                ? Colors.white
-                                : const Color(0xFF64748B),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      HapticFeedback.selectionClick();
-                      setState(() => _teacherSystemIndex = 1);
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: EdgeInsets.symmetric(vertical: 9.h),
-                      decoration: BoxDecoration(
-                        color: _teacherSystemIndex == 1
-                            ? AppColors.studentPrimary
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(20.r),
-                      ),
-                      child: Center(
-                        child: Text(
-                          'البكالوريا (IB)',
-                          style: GoogleFonts.cairo(
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w800,
-                            color: _teacherSystemIndex == 1
-                                ? Colors.white
-                                : const Color(0xFF64748B),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      HapticFeedback.selectionClick();
-                      setState(() => _teacherSystemIndex = 2);
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: EdgeInsets.symmetric(vertical: 9.h),
-                      decoration: BoxDecoration(
-                        color: _teacherSystemIndex == 2
-                            ? AppColors.studentPrimary
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(20.r),
-                      ),
-                      child: Center(
-                        child: Text(
-                          'كلا النظامين',
-                          style: GoogleFonts.cairo(
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w800,
-                            color: _teacherSystemIndex == 2
-                                ? Colors.white
-                                : const Color(0xFF64748B),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          ChalkSegmentedControl(
+            options: const ['عامة (قديم)', 'البكالوريا (IB)', 'كلا النظامين'],
+            index: _teacherSystemIndex,
+            onChanged: (i) {
+              HapticFeedback.selectionClick();
+              setState(() => _teacherSystemIndex = i);
+            },
           ),
 
           SizedBox(height: 20.h),
 
-          // 1. المواد للثانوية العامة (إذا كان اختيار عامة أو كلا النظامين)
+          // 1. المواد للثانوية العامة
           if (_teacherSystemIndex == 0 || _teacherSystemIndex == 2) ...[
             _FieldLabel(label: 'المادة الدراسية (النظام العام)*'),
-            SizedBox(height: 10.h),
-            Wrap(
-              spacing: 8.w,
-              runSpacing: 10.h,
-              children: _teacherSubjectsList.map((subject) {
-                final subjectId = subject['id'] as String? ?? '';
-                final subjectName = subject['name_ar'] as String? ?? '';
-                final isSelected = _selectedSubjectIds.contains(subjectId);
-
-                return GestureDetector(
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    setState(() {
-                      if (isSelected) {
-                        _selectedSubjectIds.remove(subjectId);
-                      } else {
-                        _selectedSubjectIds.add(subjectId);
-                      }
-                    });
-                  },
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 20.w,
-                      vertical: 12.h,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? AppColors.studentPrimaryLight
-                          : const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(20.r),
-                      border: Border.all(
-                        color: isSelected
-                            ? AppColors.studentPrimary
-                            : const Color(0xFFE2E8F0),
-                        width: isSelected ? 1.5 : 1.0,
-                      ),
-                    ),
-                    child: Text(
-                      subjectName,
-                      style: GoogleFonts.cairo(
-                        fontSize: 13.sp,
-                        color: isSelected
-                            ? AppColors.studentPrimary
-                            : const Color(0xFF64748B),
-                        fontWeight: isSelected
-                            ? FontWeight.w800
-                            : FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
+            SizedBox(height: 8.h),
+            if (_teacherSubjectsList.isEmpty)
+              ChalkEmptyNote(
+                message: 'جارٍ تحميل قائمة المواد...',
+                subMessage: 'المواد تُرسم على السبورة حالياً',
+              )
+            else
+              Wrap(
+                spacing: 8.w,
+                runSpacing: 10.h,
+                children: _teacherSubjectsList.map((subject) {
+                  final subjectId = subject['id'] as String? ?? '';
+                  final subjectName = subject['name_ar'] as String? ?? '';
+                  final isSelected = _selectedSubjectIds.contains(subjectId);
+                  return ChalkChip(
+                    label: subjectName,
+                    selected: isSelected,
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      setState(() {
+                        if (isSelected) {
+                          _selectedSubjectIds.remove(subjectId);
+                        } else {
+                          _selectedSubjectIds.add(subjectId);
+                        }
+                      });
+                    },
+                  );
+                }).toList(),
+              ),
             SizedBox(height: 20.h),
             _FieldLabel(label: 'المراحل الدراسية المتاح تدرسها*'),
-            SizedBox(height: 10.h),
+            SizedBox(height: 8.h),
             Wrap(
               spacing: 8.w,
               runSpacing: 8.h,
               children: _stages.map((stage) {
                 final isSelected = _selectedStages.contains(stage['value']);
-                return GestureDetector(
+                return ChalkChip(
+                  label: stage['name']!,
+                  selected: isSelected,
+                  accent: ChalkboardColors.chalkBlue,
                   onTap: () {
                     HapticFeedback.selectionClick();
                     setState(() {
@@ -949,44 +803,13 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
                       }
                     });
                   },
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 18.w,
-                      vertical: 12.h,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? AppColors.studentPrimaryLight
-                          : const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(16.r),
-                      border: Border.all(
-                        color: isSelected
-                            ? AppColors.studentPrimary
-                            : const Color(0xFFE2E8F0),
-                        width: isSelected ? 1.5 : 1.0,
-                      ),
-                    ),
-                    child: Text(
-                      stage['name']!,
-                      style: GoogleFonts.cairo(
-                        fontSize: 13.sp,
-                        color: isSelected
-                            ? AppColors.studentPrimary
-                            : const Color(0xFF64748B),
-                        fontWeight: isSelected
-                            ? FontWeight.w800
-                            : FontWeight.w500,
-                      ),
-                    ),
-                  ),
                 );
               }).toList(),
             ),
             SizedBox(height: 20.h),
           ],
 
-          // 2. مسارات البكالوريا الأكاديمية (إذا كان اختيار البكالوريا أو كلا النظامين)
+          // 2. مسارات البكالوريا الأكاديمية
           if (_teacherSystemIndex == 1 || _teacherSystemIndex == 2) ...[
             _FieldLabel(label: 'مسارات البكالوريا المتاح تدريسها (IB)*'),
             SizedBox(height: 10.h),
@@ -1018,11 +841,15 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
                     duration: const Duration(milliseconds: 200),
                     padding: EdgeInsets.all(14.r),
                     decoration: BoxDecoration(
-                      color: isSelected ? color.withAlpha(20) : Colors.white,
-                      borderRadius: BorderRadius.circular(18.r),
+                      color: isSelected
+                          ? color.withAlpha(24)
+                          : ChalkboardColors.surface,
+                      borderRadius: BorderRadius.circular(14.r),
                       border: Border.all(
-                        color: isSelected ? color : const Color(0xFFE2E8F0),
-                        width: isSelected ? 2.0 : 1.0,
+                        color: isSelected
+                            ? color.withAlpha(200)
+                            : ChalkboardColors.ink.withAlpha(50),
+                        width: isSelected ? 1.8 : 1,
                       ),
                     ),
                     child: Column(
@@ -1046,13 +873,10 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
                             Expanded(
                               child: Text(
                                 trackName.trim(),
-                                style: GoogleFonts.cairo(
-                                  fontSize: 14.sp,
-                                  fontWeight: FontWeight.w900,
-                                  color: isSelected
-                                      ? color
-                                      : const Color(0xFF0F172A),
-                                ),
+                                style: ChalkboardText.strong(14.sp,
+                                    color: isSelected
+                                        ? color
+                                        : ChalkboardColors.ink),
                               ),
                             ),
                             AnimatedContainer(
@@ -1065,14 +889,14 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
                                 border: Border.all(
                                   color: isSelected
                                       ? color
-                                      : const Color(0xFFCBD5E1),
+                                      : ChalkboardColors.chalkFaint,
                                   width: 1.5,
                                 ),
                               ),
                               child: isSelected
                                   ? Icon(
                                       Icons.check_rounded,
-                                      color: Colors.white,
+                                      color: ChalkboardColors.onAccent,
                                       size: 14.r,
                                     )
                                   : null,
@@ -1082,10 +906,7 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
                         SizedBox(height: 4.h),
                         Text(
                           qualifying,
-                          style: GoogleFonts.cairo(
-                            fontSize: 11.sp,
-                            color: const Color(0xFF64748B),
-                          ),
+                          style: ChalkboardText.note(11.sp),
                         ),
                       ],
                     ),
@@ -1097,9 +918,10 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
           ],
           _FieldLabel(label: 'نبذة عن خبرتك وأسلوب الشرح'),
           SizedBox(height: 6.h),
-          _DesignTextField(
+          ChalkInputField(
+            label: '',
             controller: _bioController,
-            hintText: 'اكتب نبذة مختصرة عن مؤهلاتك وتجاربك السابقة...',
+            hint: 'اكتب نبذة مختصرة عن مؤهلاتك وتجاربك السابقة...',
             maxLines: 4,
           ),
           SizedBox(height: 20.h),
@@ -1116,16 +938,18 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
         key: const ValueKey(2),
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SectionHeader(title: 'المراحل والتواصل', icon: Icons.map_rounded),
-          SizedBox(height: 20.h),
+          const ChalkSectionHeader(
+            title: 'المراحل والتواصل',
+            accent: ChalkboardColors.accent,
+          ),
+          SizedBox(height: 18.h),
           _FieldLabel(label: 'المحافظة الحالية*'),
-          SizedBox(height: 6.h),
-          _DesignDropdown(
+          SizedBox(height: 8.h),
+          _ChalkDropdown(
+            label: 'المحافظة',
             value: _selectedGovernorate,
-            hintText: 'اختر المحافظة...',
-            items: _governorates.map((gov) {
-              return DropdownMenuItem(value: gov, child: Text(gov));
-            }).toList(),
+            hint: 'اختر المحافظة...',
+            options: _governorates,
             onChanged: (v) => setState(() => _selectedGovernorate = v),
           ),
           SizedBox(height: 20.h),
@@ -1140,32 +964,58 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
               _buildModeOption('both', 'كلاهما', Icons.auto_awesome_rounded),
             ],
           ),
-          SizedBox(height: 28.h),
-          Container(
-            padding: EdgeInsets.all(16.r),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(16.r),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-            ),
-            child: Row(
-              children: [
-                Checkbox(
-                  value: _agreedToTerms,
-                  activeColor: AppColors.studentPrimary,
-                  onChanged: (v) => setState(() => _agreedToTerms = v ?? false),
+          SizedBox(height: 24.h),
+          GestureDetector(
+            onTap: () => setState(() => _agreedToTerms = !_agreedToTerms),
+            child: Container(
+              padding: EdgeInsets.all(14.r),
+              decoration: BoxDecoration(
+                color: ChalkboardColors.surface,
+                borderRadius: BorderRadius.circular(14.r),
+                border: Border.all(
+                  color: _agreedToTerms
+                      ? ChalkboardColors.accent.withAlpha(140)
+                      : ChalkboardColors.ink.withAlpha(50),
+                  width: 1.2,
                 ),
-                Expanded(
-                  child: Text(
-                    'أقر أنا المعلم بصحة البيانات المدخلة وبالموافقة على شروط وقوانين منصة ثانوية أونلاين.',
-                    style: GoogleFonts.cairo(
-                      fontSize: 12.sp,
-                      color: const Color(0xFF475569),
-                      height: 1.4,
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 24.r,
+                    height: 24.r,
+                    decoration: BoxDecoration(
+                      color: _agreedToTerms
+                          ? ChalkboardColors.accent
+                          : Colors.transparent,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: _agreedToTerms
+                            ? ChalkboardColors.accent
+                            : ChalkboardColors.chalkFaint,
+                        width: 1.6,
+                      ),
+                    ),
+                    child: _agreedToTerms
+                        ? Icon(
+                            Icons.check_rounded,
+                            color: ChalkboardColors.onAccent,
+                            size: 16.r,
+                          )
+                        : null,
+                  ),
+                  SizedBox(width: 10.w),
+                  Expanded(
+                    child: Text(
+                      'أقر أنا المعلم بصحة البيانات المدخلة وبالموافقة على شروط وقوانين منصة ثانوية أونلاين.',
+                      style: ChalkboardText.body(12.sp,
+                              color: ChalkboardColors.chalkSoft)
+                          .copyWith(height: 1.4),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           SizedBox(height: 20.h),
@@ -1184,40 +1034,37 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 8.w),
+          padding: EdgeInsets.symmetric(vertical: 14.h, horizontal: 8.w),
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: isSelected
-                ? AppColors.studentPrimaryLight
-                : const Color(0xFFF8FAFC),
-            borderRadius: BorderRadius.circular(16.r),
+                ? ChalkboardColors.accent.withAlpha(26)
+                : ChalkboardColors.surface,
+            borderRadius: BorderRadius.circular(14.r),
             border: Border.all(
               color: isSelected
-                  ? AppColors.studentPrimary
-                  : const Color(0xFFE2E8F0),
-              width: isSelected ? 1.5 : 1.0,
+                  ? ChalkboardColors.accent
+                  : ChalkboardColors.ink.withAlpha(50),
+              width: isSelected ? 1.8 : 1,
             ),
           ),
-          child: Row(
+          child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
                 iconData,
-                size: 16.r,
+                size: 20.r,
                 color: isSelected
-                    ? AppColors.studentPrimary
-                    : const Color(0xFF64748B),
+                    ? ChalkboardColors.accent
+                    : ChalkboardColors.chalkSoft,
               ),
-              SizedBox(width: 6.w),
+              SizedBox(height: 6.h),
               Text(
                 label,
-                style: GoogleFonts.cairo(
-                  fontSize: 12.sp,
-                  color: isSelected
-                      ? AppColors.studentPrimary
-                      : const Color(0xFF64748B),
-                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
-                ),
+                style: ChalkboardText.strong(12.sp,
+                    color: isSelected
+                        ? ChalkboardColors.accent
+                        : ChalkboardColors.chalkSoft),
               ),
             ],
           ),
@@ -1229,27 +1076,10 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
   // Bottom Buttons Layout
   Widget _buildBottomButtons() {
     if (_currentStep == 0) {
-      return SizedBox(
-        width: double.infinity,
-        height: 54.h,
-        child: ElevatedButton(
-          onPressed: _nextStep,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.studentPrimary,
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(30.r),
-            ),
-          ),
-          child: Text(
-            'التالي',
-            style: GoogleFonts.cairo(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w800,
-              color: Colors.white,
-            ),
-          ),
-        ),
+      return ChalkPrimaryButton(
+        label: 'التالي',
+        icon: Icons.arrow_back_rounded,
+        onPressed: _nextStep,
       );
     } else if (_currentStep == 2) {
       return BlocConsumer<AuthCubit, local.AuthState>(
@@ -1265,12 +1095,7 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
               break;
             case local.AuthStatus.error:
               if (state.errorMessage != null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(state.errorMessage!),
-                    backgroundColor: AppColors.error,
-                  ),
-                );
+                _showChalkSnack(state.errorMessage!);
               }
               break;
             default:
@@ -1282,59 +1107,21 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
           return Row(
             children: [
               Expanded(
-                child: SizedBox(
-                  height: 54.h,
-                  child: OutlinedButton(
-                    onPressed: _prevStep,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF64748B),
-                      side: const BorderSide(color: Color(0xFFE2E8F0)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30.r),
-                      ),
-                    ),
-                    child: Text(
-                      'السابق',
-                      style: GoogleFonts.cairo(
-                        fontSize: 15.sp,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
+                child: ChalkOutlineButton(
+                  label: 'السابق',
+                  icon: Icons.arrow_forward_rounded,
+                  color: ChalkboardColors.chalkSoft,
+                  onPressed: _prevStep,
                 ),
               ),
               SizedBox(width: 12.w),
               Expanded(
                 flex: 2,
-                child: SizedBox(
-                  height: 54.h,
-                  child: ElevatedButton(
-                    onPressed: isLoading ? null : _onSubmitFinal,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.studentPrimary,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30.r),
-                      ),
-                    ),
-                    child: isLoading
-                        ? SizedBox(
-                            width: 24.r,
-                            height: 24.r,
-                            child: const CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2.5,
-                            ),
-                          )
-                        : Text(
-                            'إرسال طلب الانضمام',
-                            style: GoogleFonts.cairo(
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                            ),
-                          ),
-                  ),
+                child: ChalkPrimaryButton(
+                  label: 'إرسال طلب الانضمام',
+                  icon: Icons.send_rounded,
+                  loading: isLoading,
+                  onPressed: isLoading ? null : _onSubmitFinal,
                 ),
               ),
             ],
@@ -1345,50 +1132,20 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
       return Row(
         children: [
           Expanded(
-            child: SizedBox(
-              height: 54.h,
-              child: OutlinedButton(
-                onPressed: _prevStep,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF64748B),
-                  side: const BorderSide(color: Color(0xFFE2E8F0)),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30.r),
-                  ),
-                ),
-                child: Text(
-                  'السابق',
-                  style: GoogleFonts.cairo(
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
+            child: ChalkOutlineButton(
+              label: 'السابق',
+              icon: Icons.arrow_forward_rounded,
+              color: ChalkboardColors.chalkSoft,
+              onPressed: _prevStep,
             ),
           ),
           SizedBox(width: 12.w),
           Expanded(
             flex: 2,
-            child: SizedBox(
-              height: 54.h,
-              child: ElevatedButton(
-                onPressed: _nextStep,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.studentPrimary,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30.r),
-                  ),
-                ),
-                child: Text(
-                  'التالي',
-                  style: GoogleFonts.cairo(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
+            child: ChalkPrimaryButton(
+              label: 'التالي',
+              icon: Icons.arrow_back_rounded,
+              onPressed: _nextStep,
             ),
           ),
         ],
@@ -1397,21 +1154,101 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
   }
 }
 
+// Label above input
+class _FieldLabel extends StatelessWidget {
+  final String label;
+
+  const _FieldLabel({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(label, style: ChalkboardText.strong(12.sp));
+  }
+}
+
+// Gallery / Camera option tile inside the chalk bottom sheet
+class _ChalkSourceTile extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _ChalkSourceTile({
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.all(14.r),
+        decoration: BoxDecoration(
+          color: ChalkboardColors.surface,
+          borderRadius: BorderRadius.circular(14.r),
+          border: Border.all(color: ChalkboardColors.ink.withAlpha(50)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(10.r),
+              decoration: BoxDecoration(
+                color: color.withAlpha(26),
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+              child: Icon(icon, color: color, size: 22.r),
+            ),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: ChalkboardText.strong(13.sp)),
+                  SizedBox(height: 2.h),
+                  Text(
+                    subtitle,
+                    style: ChalkboardText.note(11.sp),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_left_rounded,
+              color: ChalkboardColors.chalkSoft,
+              size: 20.r,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // Upload Card Widget for National ID Front/Back & Teacher Verification Proof
-class _UploadCard extends StatelessWidget {
+class _ChalkUploadCard extends StatelessWidget {
   final String title;
   final String? subtitle;
   final String? fileName;
   final bool isAttached;
   final IconData icon;
+  final Color accent;
   final VoidCallback onTap;
 
-  const _UploadCard({
+  const _ChalkUploadCard({
     required this.title,
     this.subtitle,
     this.fileName,
     required this.isAttached,
     required this.icon,
+    required this.accent,
     required this.onTap,
   });
 
@@ -1421,17 +1258,17 @@ class _UploadCard extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
         decoration: BoxDecoration(
           color: isAttached
-              ? AppColors.studentPrimaryLight
-              : const Color(0xFFF8FAFC),
-          borderRadius: BorderRadius.circular(16.r),
+              ? accent.withAlpha(22)
+              : ChalkboardColors.surface,
+          borderRadius: BorderRadius.circular(14.r),
           border: Border.all(
             color: isAttached
-                ? AppColors.studentPrimary
-                : const Color(0xFFE2E8F0),
-            width: isAttached ? 1.5 : 1.0,
+                ? accent.withAlpha(190)
+                : ChalkboardColors.ink.withAlpha(50),
+            width: isAttached ? 1.6 : 1,
           ),
         ),
         child: Row(
@@ -1439,14 +1276,12 @@ class _UploadCard extends StatelessWidget {
             Container(
               padding: EdgeInsets.all(8.r),
               decoration: BoxDecoration(
-                color: isAttached
-                    ? AppColors.studentPrimary
-                    : const Color(0xFFE2E8F0),
+                color: isAttached ? accent : ChalkboardColors.surfaceBright,
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 isAttached ? Icons.check_rounded : icon,
-                color: isAttached ? Colors.white : const Color(0xFF64748B),
+                color: isAttached ? ChalkboardColors.onAccent : ChalkboardColors.chalkSoft,
                 size: 18.r,
               ),
             ),
@@ -1457,13 +1292,8 @@ class _UploadCard extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: GoogleFonts.cairo(
-                      fontSize: 13.sp,
-                      fontWeight: FontWeight.w700,
-                      color: isAttached
-                          ? AppColors.studentPrimary
-                          : const Color(0xFF0F172A),
-                    ),
+                    style: ChalkboardText.strong(12.sp,
+                        color: isAttached ? accent : ChalkboardColors.ink),
                   ),
                   SizedBox(height: 2.h),
                   Text(
@@ -1472,17 +1302,158 @@ class _UploadCard extends StatelessWidget {
                               ? 'تم إرفاق: $fileName ✓'
                               : 'تم إرفاق الصورة ✓')
                         : (subtitle ?? 'انقر لاختيار صورة من جهازك'),
-                    style: GoogleFonts.cairo(
-                      fontSize: 11.sp,
-                      color: isAttached
-                          ? AppColors.studentPrimary
-                          : const Color(0xFF94A3B8),
-                    ),
+                    style: ChalkboardText.note(10.sp),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Chalk dropdown built as a tappable field + dark bottom-sheet picker
+class _ChalkDropdown extends StatelessWidget {
+  final String label;
+  final String? value;
+  final String hint;
+  final List<String> options;
+  final ValueChanged<String?> onChanged;
+
+  const _ChalkDropdown({
+    required this.label,
+    required this.value,
+    required this.hint,
+    required this.options,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        showModalBottomSheet(
+          context: context,
+          backgroundColor: Colors.transparent,
+          builder: (context) {
+            return Directionality(
+              textDirection: TextDirection.rtl,
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: ChalkboardColors.ground,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 28.h),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 44.w,
+                        height: 4.h,
+                        margin: EdgeInsets.only(top: 10.h, bottom: 12.h),
+                        decoration: BoxDecoration(
+                          color: ChalkboardColors.chalkFaint,
+                          borderRadius: BorderRadius.circular(2.r),
+                        ),
+                      ),
+                    ),
+                    Text(
+                      'اختر $label',
+                      style: ChalkboardText.heading(16.sp),
+                    ),
+                    SizedBox(height: 14.h),
+                    ...options.map((option) {
+                      final isSelected = option == value;
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.pop(context);
+                          onChanged(option);
+                        },
+                        child: Container(
+                          margin: EdgeInsets.only(bottom: 8.h),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 14.w,
+                            vertical: 14.h,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? ChalkboardColors.accent.withAlpha(22)
+                                : ChalkboardColors.surface,
+                            borderRadius: BorderRadius.circular(12.r),
+                            border: Border.all(
+                              color: isSelected
+                                  ? ChalkboardColors.accent.withAlpha(180)
+                                  : ChalkboardColors.ink.withAlpha(40),
+                              width: isSelected ? 1.5 : 1,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  option,
+                                  style: ChalkboardText.body(13.sp,
+                                      color: isSelected
+                                          ? ChalkboardColors.accent
+                                          : ChalkboardColors.ink),
+                                ),
+                              ),
+                              if (isSelected)
+                                Icon(
+                                  Icons.check_circle_rounded,
+                                  color: ChalkboardColors.accent,
+                                  size: 20.r,
+                                ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
+        decoration: BoxDecoration(
+          color: ChalkboardColors.surface,
+          borderRadius: BorderRadius.circular(14.r),
+          border: Border.all(
+            color: ChalkboardColors.ink.withAlpha(50),
+            width: 1.2,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.location_on_outlined,
+              color: ChalkboardColors.accent,
+              size: 18.r,
+            ),
+            SizedBox(width: 10.w),
+            Expanded(
+              child: Text(
+                value ?? hint,
+                style: ChalkboardText.body(13.sp,
+                    color: value != null
+                        ? ChalkboardColors.ink
+                        : ChalkboardColors.chalkFaint),
+              ),
+            ),
+            Icon(
+              Icons.keyboard_arrow_down_rounded,
+              color: ChalkboardColors.chalkSoft,
+              size: 22.r,
             ),
           ],
         ),
@@ -1507,29 +1478,39 @@ class _StepItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Container(
-          width: 22.r,
-          height: 22.r,
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          width: 24.r,
+          height: 24.r,
           decoration: BoxDecoration(
-            color: isActive
-                ? AppColors.studentPrimary
-                : const Color(0xFFE2E8F0),
+            color: isCompleted
+                ? ChalkboardColors.accent
+                : isActive
+                    ? ChalkboardColors.accent.withAlpha(30)
+                    : ChalkboardColors.surface,
             shape: BoxShape.circle,
+            border: Border.all(
+              color: isActive
+                  ? ChalkboardColors.accent
+                  : ChalkboardColors.chalkFaint,
+              width: isActive ? 1.8 : 1.2,
+            ),
           ),
           child: isCompleted
-              ? Icon(Icons.check_rounded, color: Colors.white, size: 14.r)
+              ? Icon(
+                  Icons.check_rounded,
+                  color: ChalkboardColors.onAccent,
+                  size: 15.r,
+                )
               : null,
         ),
         SizedBox(height: 4.h),
         Text(
           label,
-          style: GoogleFonts.cairo(
-            fontSize: 10.sp,
-            fontWeight: isActive ? FontWeight.w800 : FontWeight.w500,
-            color: isActive
-                ? AppColors.studentPrimary
-                : const Color(0xFF94A3B8),
-          ),
+          style: ChalkboardText.strong(10.sp,
+              color: isActive
+                  ? ChalkboardColors.accent
+                  : ChalkboardColors.chalkFaint),
         ),
       ],
     );
@@ -1546,172 +1527,10 @@ class _StepConnector extends StatelessWidget {
     return Expanded(
       child: Container(
         height: 2.h,
-        margin: EdgeInsets.only(bottom: 16.h),
-        color: isActive ? AppColors.studentPrimary : const Color(0xFFE2E8F0),
-      ),
-    );
-  }
-}
-
-// Section Header with Icon
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  final IconData icon;
-
-  const _SectionHeader({required this.title, required this.icon});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Text(
-          title,
-          style: GoogleFonts.cairo(
-            fontSize: 17.sp,
-            fontWeight: FontWeight.w900,
-            color: AppColors.studentPrimary,
-          ),
-        ),
-        SizedBox(width: 6.w),
-        Icon(icon, color: AppColors.studentPrimary, size: 20.r),
-      ],
-    );
-  }
-}
-
-// Label above input
-class _FieldLabel extends StatelessWidget {
-  final String label;
-
-  const _FieldLabel({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      label,
-      style: GoogleFonts.cairo(
-        fontSize: 13.sp,
-        fontWeight: FontWeight.w700,
-        color: const Color(0xFF64748B),
-      ),
-    );
-  }
-}
-
-// Custom Pill-Rounded Input Field
-class _DesignTextField extends StatelessWidget {
-  final TextEditingController controller;
-  final String hintText;
-  final IconData? prefixIcon;
-  final bool obscureText;
-  final TextInputType? keyboardType;
-  final TextDirection? textDirection;
-  final int maxLines;
-  final String? Function(String?)? validator;
-
-  const _DesignTextField({
-    required this.controller,
-    required this.hintText,
-    this.prefixIcon,
-    this.obscureText = false,
-    this.keyboardType,
-    this.textDirection,
-    this.maxLines = 1,
-    this.validator,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return TextFormField(
-      controller: controller,
-      obscureText: obscureText,
-      keyboardType: keyboardType,
-      textDirection: textDirection,
-      maxLines: maxLines,
-      validator: validator,
-      style: GoogleFonts.cairo(fontSize: 14.sp, color: const Color(0xFF0F172A)),
-      decoration: InputDecoration(
-        hintText: hintText,
-        hintStyle: GoogleFonts.cairo(
-          fontSize: 13.sp,
-          color: const Color(0xFF94A3B8),
-        ),
-        prefixIcon: prefixIcon != null
-            ? Icon(prefixIcon, color: const Color(0xFF94A3B8), size: 20.r)
-            : null,
-        filled: true,
-        fillColor: const Color(0xFFF8FAFC),
-        contentPadding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 14.h),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16.r),
-          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16.r),
-          borderSide: const BorderSide(
-            color: AppColors.studentPrimary,
-            width: 1.5,
-          ),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16.r),
-          borderSide: const BorderSide(color: AppColors.error),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16.r),
-          borderSide: const BorderSide(color: AppColors.error, width: 1.5),
-        ),
-      ),
-    );
-  }
-}
-
-// Custom Pill Dropdown
-class _DesignDropdown extends StatelessWidget {
-  final String? value;
-  final String hintText;
-  final List<DropdownMenuItem<String>> items;
-  final ValueChanged<String?> onChanged;
-
-  const _DesignDropdown({
-    required this.value,
-    required this.hintText,
-    required this.items,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return DropdownButtonFormField<String>(
-      initialValue: value,
-      items: items,
-      onChanged: onChanged,
-      icon: Icon(
-        Icons.keyboard_arrow_down_rounded,
-        color: const Color(0xFF94A3B8),
-        size: 24.r,
-      ),
-      style: GoogleFonts.cairo(fontSize: 14.sp, color: const Color(0xFF0F172A)),
-      decoration: InputDecoration(
-        hintText: hintText,
-        hintStyle: GoogleFonts.cairo(
-          fontSize: 13.sp,
-          color: const Color(0xFF94A3B8),
-        ),
-        filled: true,
-        fillColor: const Color(0xFFF8FAFC),
-        contentPadding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 14.h),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16.r),
-          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16.r),
-          borderSide: const BorderSide(
-            color: AppColors.studentPrimary,
-            width: 1.5,
-          ),
-        ),
+        margin: EdgeInsets.only(bottom: 20.h),
+        color: isActive
+            ? ChalkboardColors.accent.withAlpha(160)
+            : ChalkboardColors.chalkFaint.withAlpha(90),
       ),
     );
   }

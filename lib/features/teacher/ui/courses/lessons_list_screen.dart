@@ -1,13 +1,21 @@
+// ────────────────────────────────────────────────────────────
+// DIRECTION CONTRACT — معلم · السبورة الطباشير (the chalkboard)
+// LESSONS BOARD: the lessons of a course are chalk frames stacked on the
+//   board. Each frame shows the lesson title, its chalk note, a معاينة
+//   (mint) or خاص (dim) stamp, and edit/delete chalk actions. Editing opens
+//   a chalk modal that rewrites the same frame (title, note, video link,
+//   free-preview stamp) through the shared courses cubit.
+// FINISH: unreviewed and undocumented is unfinished; this build ends with the
+//   finish review, the verdict, and DESIGN.md.
+// ────────────────────────────────────────────────────────────
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'package:thanaweya_online/core/constants/app_colors.dart';
-import 'package:thanaweya_online/core/constants/app_strings.dart';
 import 'package:thanaweya_online/core/router/app_router.dart';
+import 'package:thanaweya_online/core/theme/chalkboard_theme.dart';
+import 'package:thanaweya_online/features/shared/models/lesson_model.dart';
 import 'package:thanaweya_online/features/teacher/data/repos/teacher_courses_repo.dart';
 import 'package:thanaweya_online/features/teacher/logic/teacher_courses_cubit.dart';
 
@@ -35,13 +43,192 @@ class _LessonsListScreenState extends State<LessonsListScreen> {
     super.dispose();
   }
 
-  Future<void> _deleteLesson(String lessonId) async {
-    await _cubit.deleteLesson(lessonId);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تم حذف الدرس')),
-      );
+  Future<void> _confirmDeleteLesson(LessonModel lesson) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return Directionality(
+          textDirection: TextDirection.rtl,
+          child: AlertDialog(
+            backgroundColor: ChalkboardColors.surface,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16.r),
+              side: BorderSide(color: ChalkboardColors.ink.withAlpha(60)),
+            ),
+            title: Text('حذف الدرس؟', style: ChalkboardText.heading(16.sp)),
+            content: Text(
+              'سيتم حذف «${lesson.title}» من هذه الدورة.',
+              style: ChalkboardText.body(12.sp),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: Text(
+                  'إلغاء',
+                  style: ChalkboardText.strong(12.sp,
+                      color: ChalkboardColors.chalkSoft),
+                ),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: Text(
+                  'حذف',
+                  style: ChalkboardText.strong(12.sp,
+                      color: ChalkboardColors.chalkRed),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    if (confirmed == true) {
+      await _cubit.deleteLesson(lesson.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: ChalkboardColors.accentDeep,
+            content: Text(
+              'تم حذف الدرس',
+              style: ChalkboardText.strong(12.sp),
+            ),
+          ),
+        );
+      }
     }
+  }
+
+  void _showEditLessonSheet(LessonModel lesson) {
+    final titleController = TextEditingController(text: lesson.title);
+    final descriptionController =
+        TextEditingController(text: lesson.description ?? '');
+    final videoController = TextEditingController(text: lesson.videoUrlOrId);
+    var isFree = lesson.isFreePreview;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: ChalkboardColors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+        side: BorderSide(color: ChalkboardColors.ink.withAlpha(60)),
+      ),
+      builder: (sheetContext) {
+        return Directionality(
+          textDirection: TextDirection.rtl,
+          child: StatefulBuilder(
+            builder: (sheetContext, setSheetState) {
+              return Padding(
+                padding: EdgeInsets.only(
+                  left: 20.w,
+                  right: 20.w,
+                  top: 24.h,
+                  bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 24.h,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('تعديل الدرس', style: ChalkboardText.heading(17.sp)),
+                    SizedBox(height: 20.h),
+                    ChalkInputField(
+                      label: 'عنوان الدرس',
+                      controller: titleController,
+                      icon: Icons.play_circle_outline_rounded,
+                      hint: 'أدخل اسم أو عنوان الدرس',
+                    ),
+                    SizedBox(height: 18.h),
+                    ChalkInputField(
+                      label: 'وصف الدرس والتفاصيل',
+                      controller: descriptionController,
+                      icon: Icons.notes_rounded,
+                      hint: 'اكتب الشرح المباشر والنقاط الهامة بالدرس',
+                      maxLines: 3,
+                    ),
+                    SizedBox(height: 18.h),
+                    ChalkInputField(
+                      label: 'رابط الفيديو أو اليوتيوب',
+                      controller: videoController,
+                      icon: Icons.link_rounded,
+                      hint: 'https://youtube.com/watch?v=...',
+                    ),
+                    SizedBox(height: 14.h),
+                    GestureDetector(
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        setSheetState(() => isFree = !isFree);
+                      },
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 20.r,
+                            height: 20.r,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: isFree
+                                  ? ChalkboardColors.accent
+                                  : Colors.transparent,
+                              border: Border.all(
+                                color: isFree
+                                    ? ChalkboardColors.accent
+                                    : ChalkboardColors.ink.withAlpha(90),
+                                width: 1.4,
+                              ),
+                            ),
+                            child: isFree
+                                ? Icon(
+                                    Icons.check_rounded,
+                                    size: 14.r,
+                                    color: ChalkboardColors.onAccent,
+                                  )
+                                : null,
+                          ),
+                          SizedBox(width: 10.w),
+                          Text(
+                            'معاينة مجانية للطلاب غير المشتركين',
+                            style: ChalkboardText.strong(12.sp),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: 24.h),
+                    ChalkPrimaryButton(
+                      label: 'حفظ التعديلات',
+                      icon: Icons.check_rounded,
+                      onPressed: () {
+                        final title = titleController.text.trim();
+                        if (title.isEmpty) return;
+                        _cubit.updateLesson(
+                          lessonId: lesson.id,
+                          title: title,
+                          description: descriptionController.text
+                                  .trim()
+                                  .isNotEmpty
+                              ? descriptionController.text.trim()
+                              : null,
+                          videoUrlOrId: videoController.text.trim(),
+                          isFreePreview: isFree,
+                        );
+                        Navigator.pop(sheetContext);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            backgroundColor: ChalkboardColors.accentDeep,
+                            content: Text(
+                              'تم حفظ تعديلات الدرس',
+                              style: ChalkboardText.strong(12.sp),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -49,89 +236,76 @@ class _LessonsListScreenState extends State<LessonsListScreen> {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          leading: IconButton(
-            icon: Icon(Icons.chevron_right_rounded,
-                color: const Color(0xFF0F172A), size: 28.r),
-            onPressed: () => Navigator.pop(context),
-          ),
-          centerTitle: true,
-          title: Text(
-            AppStrings.lessonsCount,
-            style: GoogleFonts.cairo(
-              fontSize: 18.sp,
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFF0F172A),
-            ),
-          ),
+        backgroundColor: ChalkboardColors.ground,
+        appBar: ChalkTopBar(
+          title: 'دروس الدورة',
+          subtitle: 'أضف الدروس ورتبها على السبورة',
         ),
-        body: BlocBuilder<TeacherCoursesCubit, TeacherCoursesState>(
-          bloc: _cubit,
-          builder: (context, state) {
-            if (state.lessonsStatus == TeacherCoursesStatus.loading) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (state.lessonsStatus == TeacherCoursesStatus.error) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.error_outline_rounded, size: 48.r, color: AppColors.error),
-                    SizedBox(height: 12.h),
-                    Text(
-                      state.errorMessage ?? 'حدث خطأ أثناء تحميل الدروس',
-                      style: GoogleFonts.cairo(fontSize: 14.sp, color: AppColors.textSecondary),
-                    ),
-                    SizedBox(height: 16.h),
-                    ElevatedButton(
-                      onPressed: () => _cubit.loadLessons(widget.courseId),
-                      child: Text('إعادة المحاولة', style: GoogleFonts.cairo()),
-                    ),
-                  ],
+        body: ChalkboardSurface(
+          child: BlocBuilder<TeacherCoursesCubit, TeacherCoursesState>(
+            bloc: _cubit,
+            builder: (context, state) {
+              if (state.lessonsStatus == TeacherCoursesStatus.loading &&
+                  state.lessons.isEmpty) {
+                return const Center(
+                  child: CircularProgressIndicator(
+                    color: ChalkboardColors.accent,
+                  ),
+                );
+              }
+              if (state.lessonsStatus == TeacherCoursesStatus.error &&
+                  state.lessons.isEmpty) {
+                return Center(
+                  child: ChalkEmptyNote(
+                    message: state.errorMessage ?? 'حدث خطأ أثناء تحميل الدروس',
+                    icon: Icons.error_outline_rounded,
+                    actionLabel: 'إعادة المحاولة',
+                    onAction: () => _cubit.loadLessons(widget.courseId),
+                  ),
+                );
+              }
+              if (state.lessons.isEmpty) {
+                return ChalkEmptyNote(
+                  message: 'لا توجد دروس بعد',
+                  subMessage: 'استخدم زر + لإضافة أول درس',
+                  icon: Icons.video_library_outlined,
+                  actionLabel: 'إضافة درس',
+                  onAction: () {
+                    Navigator.pushNamed(
+                      context,
+                      AppRouter.teacherAddLesson,
+                      arguments: widget.courseId,
+                    );
+                  },
+                );
+              }
+              return RefreshIndicator(
+                onRefresh: () => _cubit.loadLessons(widget.courseId),
+                color: ChalkboardColors.accent,
+                child: ListView.separated(
+                  physics: const BouncingScrollPhysics(),
+                  padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+                  itemCount: state.lessons.length,
+                  separatorBuilder: (_, _) => SizedBox(height: 14.h),
+                  itemBuilder: (context, index) {
+                    final lesson = state.lessons[index];
+                    return _LessonCard(
+                      lesson: lesson,
+                      onEdit: () => _showEditLessonSheet(lesson),
+                      onDelete: () => _confirmDeleteLesson(lesson),
+                      onToggleFree: () => _cubit.updateLesson(
+                        lessonId: lesson.id,
+                        title: lesson.title,
+                        description: lesson.description,
+                        videoUrlOrId: lesson.videoUrlOrId,
+                        isFreePreview: !lesson.isFreePreview,
+                      ),
+                    );
+                  },
                 ),
               );
-            }
-            if (state.lessons.isEmpty) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.video_library_rounded, size: 64.r, color: AppColors.textTertiary),
-                    SizedBox(height: 16.h),
-                    Text(
-                      'لا توجد دروس بعد',
-                      style: GoogleFonts.cairo(fontSize: 16.sp, color: AppColors.textSecondary),
-                    ),
-                    SizedBox(height: 8.h),
-                    Text(
-                      'اضغط على زر + لإضافة أول درس',
-                      style: GoogleFonts.cairo(fontSize: 13.sp, color: AppColors.textTertiary),
-                    ),
-                  ],
-                ),
-              );
-            }
-            return RefreshIndicator(
-              onRefresh: () => _cubit.loadLessons(widget.courseId),
-              child: ListView.separated(
-                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
-                itemCount: state.lessons.length,
-                separatorBuilder: (_, __) => SizedBox(height: 14.h),
-                itemBuilder: (context, index) {
-                  final lesson = state.lessons[index];
-                  return _LessonCard(
-                    title: lesson.title,
-                    description: lesson.description ?? '',
-                    isFree: lesson.isFreePreview,
-                    onDelete: () => _deleteLesson(lesson.id),
-                  );
-                },
-              ),
-            );
-          },
+            },
+          ),
         ),
         floatingActionButton: FloatingActionButton.extended(
           heroTag: null,
@@ -143,16 +317,13 @@ class _LessonsListScreenState extends State<LessonsListScreen> {
               arguments: widget.courseId,
             );
           },
-          backgroundColor: AppColors.teacherPrimary,
+          backgroundColor: ChalkboardColors.accent,
+          foregroundColor: ChalkboardColors.onAccent,
           elevation: 4,
-          icon: Icon(Icons.video_call_rounded, color: Colors.white, size: 22.r),
+          icon: const Icon(Icons.video_call_rounded, size: 22),
           label: Text(
             'إضافة درس جديد',
-            style: GoogleFonts.cairo(
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w800,
-              color: Colors.white,
-            ),
+            style: ChalkboardText.strong(13.sp),
           ),
         ),
       ),
@@ -161,103 +332,154 @@ class _LessonsListScreenState extends State<LessonsListScreen> {
 }
 
 class _LessonCard extends StatelessWidget {
-  final String title;
-  final String description;
-  final bool isFree;
+  final LessonModel lesson;
+  final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback onToggleFree;
 
   const _LessonCard({
-    required this.title,
-    required this.description,
-    required this.isFree,
+    required this.lesson,
+    required this.onEdit,
     required this.onDelete,
+    required this.onToggleFree,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(16.r),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(color: const Color(0xFFF1F5F9)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x050F172A),
-            blurRadius: 10,
-            offset: Offset(0, 4),
+    final isFree = lesson.isFreePreview;
+    final accent =
+        isFree ? ChalkboardColors.accent : ChalkboardColors.chalkYellow;
+    return ChalkCard(
+      accent: accent,
+      accentLabel: isFree ? 'معاينة مجانية' : 'خاص بالمشتركين',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 42.r,
+                height: 42.r,
+                decoration: BoxDecoration(
+                  color: accent.withAlpha(28),
+                  borderRadius: BorderRadius.circular(13.r),
+                  border: Border.all(color: accent.withAlpha(120), width: 1.2),
+                ),
+                child: Icon(
+                  isFree ? Icons.play_circle_fill_rounded : Icons.lock_outline,
+                  color: accent,
+                  size: 22.r,
+                ),
+              ),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      lesson.title,
+                      style: ChalkboardText.strong(15.sp),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    SizedBox(height: 3.h),
+                    Text(
+                      lesson.description?.isNotEmpty == true
+                          ? lesson.description!
+                          : 'درس بدون وصف',
+                      style: ChalkboardText.note(12.sp),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 12.h),
+          Container(height: 1, color: ChalkboardColors.ink.withAlpha(35)),
+          SizedBox(height: 10.h),
+          Row(
+            children: [
+              if (lesson.durationSeconds != null) ...[
+                Icon(
+                  Icons.timer_outlined,
+                  size: 15.r,
+                  color: ChalkboardColors.chalkSoft,
+                ),
+                SizedBox(width: 6.w),
+                Text(
+                  _formatDuration(lesson.durationSeconds!),
+                  style: ChalkboardText.note(11.sp),
+                ),
+              ],
+              const Spacer(),
+              _IconAction(
+                icon: Icons.lock_open_outlined,
+                color: isFree
+                    ? ChalkboardColors.chalkYellow
+                    : ChalkboardColors.accent,
+                tooltip: isFree ? 'إزالة المعاينة المجانية' : 'جعلها معاينة مجانية',
+                onTap: onToggleFree,
+              ),
+              SizedBox(width: 4.w),
+              _IconAction(
+                icon: Icons.edit_outlined,
+                color: ChalkboardColors.chalkBlue,
+                tooltip: 'تعديل',
+                onTap: onEdit,
+              ),
+              SizedBox(width: 4.w),
+              _IconAction(
+                icon: Icons.delete_outline_rounded,
+                color: ChalkboardColors.chalkRed,
+                tooltip: 'حذف',
+                onTap: onDelete,
+              ),
+            ],
           ),
         ],
       ),
-      child: Row(
-        children: [
-          Container(
-            width: 48.r,
-            height: 48.r,
-            decoration: BoxDecoration(
-              color: isFree ? const Color(0xFFECFDF5) : const Color(0xFFEFF6FF),
-              borderRadius: BorderRadius.circular(16.r),
-            ),
-            child: Icon(
-              isFree ? Icons.play_circle_fill_rounded : Icons.play_arrow_rounded,
-              color: isFree ? const Color(0xFF0FA37F) : const Color(0xFF2563EB),
-              size: 24.r,
-            ),
+    );
+  }
+
+  String _formatDuration(int seconds) {
+    final minutes = (seconds / 60).round();
+    if (minutes < 60) return '$minutes دقيقة';
+    final hours = minutes ~/ 60;
+    final rest = minutes % 60;
+    return rest > 0 ? '$hours س و $rest د' : '$hours ساعة';
+  }
+}
+
+class _IconAction extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  const _IconAction({
+    required this.icon,
+    required this.color,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: EdgeInsets.all(7.r),
+          decoration: BoxDecoration(
+            color: color.withAlpha(22),
+            borderRadius: BorderRadius.circular(10.r),
+            border: Border.all(color: color.withAlpha(110), width: 1.1),
           ),
-          SizedBox(width: 14.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: GoogleFonts.cairo(
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.w800,
-                    color: const Color(0xFF0F172A),
-                  ),
-                ),
-                SizedBox(height: 3.h),
-                Text(
-                  description,
-                  style: GoogleFonts.cairo(
-                    fontSize: 12.sp,
-                    color: const Color(0xFF64748B),
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                SizedBox(height: 8.h),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
-                  decoration: BoxDecoration(
-                    color: isFree ? const Color(0xFFECFDF5) : const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(6.r),
-                    border: Border.all(
-                      color: isFree ? const Color(0xFFA7F3D0) : const Color(0xFFE2E8F0),
-                    ),
-                  ),
-                  child: Text(
-                    isFree ? 'معاينة مجانية 🎁' : 'خاص بالمشتركين 🔒',
-                    style: GoogleFonts.cairo(
-                      fontSize: 10.sp,
-                      fontWeight: FontWeight.w800,
-                      color: isFree ? const Color(0xFF0FA37F) : const Color(0xFF64748B),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            onPressed: onDelete,
-            icon: Icon(
-              Icons.delete_outline_rounded,
-              color: const Color(0xFFEF4444),
-              size: 20.r,
-            ),
-          ),
-        ],
+          child: Icon(icon, size: 17.r, color: color),
+        ),
       ),
     );
   }

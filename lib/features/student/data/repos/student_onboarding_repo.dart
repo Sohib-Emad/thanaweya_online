@@ -53,48 +53,6 @@ class StudentOnboardingRepo {
     }
   }
 
-  Future<ApiResult<void>> activateSubscription({
-    required String studentId,
-    String? teacherId,
-    required String activationCode,
-  }) async {
-    try {
-      var query = _client
-          .from('activation_codes')
-          .select()
-          .eq('code', activationCode)
-          .eq('is_used', false);
-      if (teacherId != null) {
-        query = query.eq('teacher_id', teacherId);
-      }
-      final codeData = await query.maybeSingle();
-
-      if (codeData == null) {
-        return const ApiResult.failure('كود التفعيل غير صحيح أو مستخدم بالفعل');
-      }
-
-      await _client
-          .from('activation_codes')
-          .update({
-            'is_used': true,
-            'used_by': studentId,
-            'used_at': DateTime.now().toIso8601String(),
-          })
-          .eq('id', codeData['id']);
-
-      await _client.from('subscriptions').insert({
-        'student_id': studentId,
-        'teacher_id': codeData['teacher_id'],
-        'activation_code_id': codeData['id'],
-        'status': 'active',
-      });
-
-      return const ApiResult.success(null);
-    } catch (e) {
-      return ApiErrorHandler.handleException(e);
-    }
-  }
-
   Future<ApiResult<List<Map<String, dynamic>>>> getSubscriptions(
     String studentId,
   ) async {

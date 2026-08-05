@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:google_fonts/google_fonts.dart';
 
-import '../../../../core/constants/app_colors.dart';
 import '../../../../core/router/app_router.dart';
+import '../../../../core/theme/notebook_theme.dart';
 import '../../../../core/utils/formatters.dart';
 import 'package:thanaweya_online/features/shared/models/lesson_model.dart';
 import 'package:thanaweya_online/features/student/data/repos/student_courses_repo.dart';
@@ -28,6 +27,8 @@ class CourseCurriculumScreen extends StatefulWidget {
 class _CourseCurriculumScreenState extends State<CourseCurriculumScreen> {
   late final StudentCoursesCubit _coursesCubit;
 
+  final TextEditingController _searchController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
@@ -37,6 +38,7 @@ class _CourseCurriculumScreenState extends State<CourseCurriculumScreen> {
 
   @override
   void dispose() {
+    _searchController.dispose();
     _coursesCubit.close();
     super.dispose();
   }
@@ -77,289 +79,229 @@ class _CourseCurriculumScreenState extends State<CourseCurriculumScreen> {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          leading: IconButton(
-            icon: Icon(
-              Icons.arrow_back_ios_new_rounded,
-              color: const Color(0xFF0F172A),
-              size: 20.r,
-            ),
-            onPressed: () => Navigator.pop(context),
-          ),
-          centerTitle: false,
-          title: Text(
-            'منهج الكورس (My Courses)',
-            style: GoogleFonts.cairo(
-              fontSize: 18.sp,
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFF0F172A),
-            ),
-          ),
+        backgroundColor: NotebookColors.ground,
+        appBar: NotebookTopBar(
+          title: 'منهج الكورس',
+          subtitle: 'دروسك على صفحات الدفتر',
         ),
         body: Stack(
           children: [
-            Column(
-              children: [
-                // Top Search Input & Filter Button (Matching Screens 37 & 40)
-                Padding(
-                  padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 12.h),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          height: 48.h,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16.r),
-                            border: Border.all(color: const Color(0xFFE2E8F0)),
-                          ),
-                          child: TextField(
-                            textAlignVertical: TextAlignVertical.center,
-                            decoration: InputDecoration(
-                              hintText: 'البحث عن درس أو محتوى...',
-                              hintStyle: GoogleFonts.cairo(
-                                fontSize: 13.sp,
-                                color: const Color(0xFF94A3B8),
-                              ),
-                              prefixIcon: Icon(
-                                Icons.search_rounded,
-                                color: const Color(0xFF94A3B8),
-                                size: 20.r,
-                              ),
-                              border: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 14.w,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: 12.w),
-                      GestureDetector(
-                        onTap: () {
-                          HapticFeedback.lightImpact();
-                          Navigator.pushNamed(context, AppRouter.studentFilter);
-                        },
-                        child: Container(
-                          width: 48.r,
-                          height: 48.r,
-                          decoration: BoxDecoration(
-                            color: AppColors.studentPrimary,
-                            borderRadius: BorderRadius.circular(16.r),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Color(0x200FA37F),
-                                blurRadius: 8,
-                                offset: Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Icon(
-                            Icons.tune_rounded,
-                            color: Colors.white,
-                            size: 22.r,
-                          ),
-                        ),
-                      ),
-                    ],
+            NotebookPaper(
+              child: Column(
+                children: [
+                  SizedBox(height: 14.h),
+                  NotebookSearchField(
+                    controller: _searchController,
+                    hint: 'ابحث عن درس أو محتوى...',
+                    onFilter: () {
+                      HapticFeedback.lightImpact();
+                      Navigator.pushNamed(context, AppRouter.studentFilter);
+                    },
                   ),
-                ),
+                  SizedBox(height: 8.h),
 
-                // Curriculum Sections List
-                Expanded(
-                  child: BlocBuilder<StudentCoursesCubit, StudentCoursesState>(
-                    bloc: _coursesCubit,
-                    builder: (context, state) {
-                      if (state.lessonsStatus ==
-                              StudentCoursesStatus.loading &&
-                          state.lessons.isEmpty) {
-                        return const Center(
-                          child: CircularProgressIndicator(),
-                        );
-                      }
-                      final sections = _buildSections(state.lessons);
-                      return ListView.builder(
-                        padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 110.h),
-                        physics: const BouncingScrollPhysics(),
-                        itemCount: sections.length,
-                        itemBuilder: (context, sectionIndex) {
-                          final sec = sections[sectionIndex];
-                      final sectionNumber = sec['sectionNumber'] as String;
-                      final title = sec['title'] as String;
-                      final totalDuration = sec['totalDuration'] as String;
-                      final lessons =
-                          sec['lessons'] as List<Map<String, dynamic>>;
+                  // Curriculum Sections List
+                  Expanded(
+                    child:
+                        BlocBuilder<StudentCoursesCubit, StudentCoursesState>(
+                      bloc: _coursesCubit,
+                      builder: (context, state) {
+                        if (state.lessonsStatus ==
+                                StudentCoursesStatus.loading &&
+                            state.lessons.isEmpty) {
+                          return Center(
+                            child: CircularProgressIndicator(
+                              color: NotebookColors.green,
+                            ),
+                          );
+                        }
+                        final sections = _buildSections(state.lessons);
+                        if (sections.isEmpty) {
+                          return Padding(
+                            padding: EdgeInsets.fromLTRB(24.w, 24.h, 24.w, 0),
+                            child: NotebookEmptyNote(
+                              message: 'لا توجد دروس في هذا الكورس بعد',
+                            ),
+                          );
+                        }
+                        return ListView.builder(
+                          padding: EdgeInsets.fromLTRB(24.w, 8.h, 24.w, 110.h),
+                          physics: const BouncingScrollPhysics(),
+                          itemCount: sections.length,
+                          itemBuilder: (context, sectionIndex) {
+                            final sec = sections[sectionIndex];
+                            final sectionNumber =
+                                sec['sectionNumber'] as String;
+                            final title = sec['title'] as String;
+                            final totalDuration =
+                                sec['totalDuration'] as String;
+                            final lessons =
+                                sec['lessons'] as List<Map<String, dynamic>>;
 
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  '$sectionNumber - $title',
-                                  style: GoogleFonts.cairo(
-                                    fontSize: 14.sp,
-                                    fontWeight: FontWeight.w800,
-                                    color: const Color(0xFF2563EB),
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              SizedBox(width: 8.w),
-                              Text(
-                                totalDuration,
-                                style: GoogleFonts.cairo(
-                                  fontSize: 12.sp,
-                                  fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF64748B),
-                                ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 12.h),
-
-                          ...lessons.map((les) {
-                            final num = les['number'] as String;
-                            final lesTitle = les['title'] as String;
-                            final dur = les['duration'] as String;
-                            final unlocked = les['isUnlocked'] as bool;
-
-                            return GestureDetector(
-                              onTap: () {
-                                HapticFeedback.lightImpact();
-                                Navigator.pushNamed(
-                                  context,
-                                  AppRouter.studentVideoPlayer,
-                                  arguments: {
-                                    'lessonId': les['id'],
-                                    'videoUrl': les['videoUrl'],
-                                    'title': lesTitle,
-                                    'courseId': widget.courseId,
-                                  },
-                                );
-                              },
-                              child: Container(
-                                margin: EdgeInsets.only(bottom: 12.h),
-                                padding: EdgeInsets.all(12.r),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(16.r),
-                                  border: Border.all(
-                                    color: const Color(0xFFF1F5F9),
-                                  ),
-                                  boxShadow: const [
-                                    BoxShadow(
-                                      color: Color(0x060F172A),
-                                      blurRadius: 8,
-                                      offset: Offset(0, 2),
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        '$sectionNumber : $title',
+                                        style: NotebookText.heading(14.sp),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
+                                    if (totalDuration.isNotEmpty) ...[
+                                      SizedBox(width: 8.w),
+                                      Text(
+                                        totalDuration,
+                                        style: NotebookText.note(11.sp),
+                                      ),
+                                    ],
                                   ],
                                 ),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      width: 38.r,
-                                      height: 38.r,
-                                      decoration: BoxDecoration(
-                                        color: unlocked
-                                            ? const Color(0xFFECFDF5)
-                                            : const Color(0xFFF1F5F9),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          num,
-                                          style: GoogleFonts.cairo(
-                                            fontSize: 13.sp,
-                                            fontWeight: FontWeight.w800,
-                                            color: unlocked
-                                                ? const Color(0xFF0FA37F)
-                                                : const Color(0xFF94A3B8),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    SizedBox(width: 12.w),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
+                                SizedBox(height: 12.h),
+
+                                ...lessons.map((les) {
+                                  final num = les['number'] as String;
+                                  final lesTitle = les['title'] as String;
+                                  final dur = les['duration'] as String;
+                                  final unlocked = les['isUnlocked'] as bool;
+
+                                  return Padding(
+                                    padding:
+                                        EdgeInsets.only(bottom: 12.h),
+                                    child: NotebookCard(
+                                      ruled: true,
+                                      ruledStartY: 60,
+                                      onTap: () {
+                                        HapticFeedback.lightImpact();
+                                        Navigator.pushNamed(
+                                          context,
+                                          AppRouter.studentVideoPlayer,
+                                          arguments: {
+                                            'lessonId': les['id'],
+                                            'videoUrl': les['videoUrl'],
+                                            'title': lesTitle,
+                                            'courseId': widget.courseId,
+                                          },
+                                        );
+                                      },
+                                      child: Row(
                                         children: [
-                                          Text(
-                                            lesTitle,
-                                            style: GoogleFonts.cairo(
-                                              fontSize: 13.sp,
-                                              fontWeight: FontWeight.w700,
-                                              color: const Color(0xFF0F172A),
+                                          Container(
+                                            width: 36.r,
+                                            height: 36.r,
+                                            decoration: BoxDecoration(
+                                              color:
+                                                  NotebookColors.surfaceBright,
+                                              shape: BoxShape.circle,
+                                              border: Border.all(
+                                                color: unlocked
+                                                    ? NotebookColors.green
+                                                        .withAlpha(90)
+                                                    : NotebookColors.ink
+                                                        .withAlpha(30),
+                                                width: 1.2,
+                                              ),
+                                            ),
+                                            child: Center(
+                                              child: Text(
+                                                num,
+                                                style: NotebookText.strong(
+                                                  12.sp,
+                                                  color: unlocked
+                                                      ? NotebookColors.ink
+                                                      : NotebookColors.pencil,
+                                                ),
+                                              ),
                                             ),
                                           ),
-                                          Text(
-                                            dur,
-                                            style: GoogleFonts.cairo(
-                                              fontSize: 11.sp,
-                                              color: const Color(0xFF64748B),
+                                          SizedBox(width: 12.w),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  lesTitle,
+                                                  style:
+                                                      NotebookText.body(13.sp),
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                                if (dur.isNotEmpty) ...[
+                                                  SizedBox(height: 2.h),
+                                                  Text(
+                                                    dur,
+                                                    style:
+                                                        NotebookText.note(10.sp),
+                                                  ),
+                                                ],
+                                              ],
+                                            ),
+                                          ),
+                                          Container(
+                                            width: 30.r,
+                                            height: 30.r,
+                                            decoration: BoxDecoration(
+                                              color: unlocked
+                                                  ? NotebookColors.green
+                                                  : NotebookColors.ink
+                                                      .withAlpha(40),
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: Icon(
+                                              unlocked
+                                                  ? Icons.play_arrow_rounded
+                                                  : Icons.lock_outline_rounded,
+                                              color: Colors.white,
+                                              size: 16.r,
                                             ),
                                           ),
                                         ],
                                       ),
                                     ),
-                                    Container(
-                                      width: 32.r,
-                                      height: 32.r,
-                                      decoration: BoxDecoration(
-                                        color: unlocked
-                                            ? const Color(0xFF2563EB)
-                                            : const Color(0xFFCBD5E1),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Icon(
-                                        unlocked
-                                            ? Icons.play_arrow_rounded
-                                            : Icons.lock_outline_rounded,
-                                        color: Colors.white,
-                                        size: 18.r,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                                  );
+                                }),
+                                SizedBox(height: 14.h),
+                              ],
                             );
-                          }),
-                          SizedBox(height: 14.h),
-                        ],
-                      );
                           },
                         );
                       },
                     ),
                   ),
-              ],
+                ],
+              ),
             ),
 
-            // Bottom Floating Action Sheet (Matching Screen 37 & Screen 40)
+            // Bottom Action Sheet
             Positioned(
               left: 0,
               right: 0,
               bottom: 0,
               child: Container(
-                padding: EdgeInsets.fromLTRB(20.w, 14.h, 20.w, 24.h),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(24),
-                    topRight: Radius.circular(24),
+                padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 8.h),
+                decoration: BoxDecoration(
+                  color: NotebookColors.surface,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(16),
+                  ),
+                  border: Border(
+                    top: BorderSide(
+                      color: NotebookColors.ink.withAlpha(38),
+                      width: 1,
+                    ),
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Color(0x150F172A),
+                      color: NotebookColors.ink.withAlpha(24),
                       blurRadius: 16,
-                      offset: Offset(0, -4),
+                      offset: const Offset(0, -4),
                     ),
                   ],
                 ),
@@ -380,15 +322,17 @@ class _CourseCurriculumScreenState extends State<CourseCurriculumScreen> {
                             width: 52.r,
                             height: 52.r,
                             decoration: BoxDecoration(
-                              color: const Color(0xFFEFF6FF),
-                              borderRadius: BorderRadius.circular(16.r),
+                              color: NotebookColors.surfaceBright,
+                              borderRadius: BorderRadius.circular(14.r),
                               border: Border.all(
-                                color: const Color(0xFFBFDBFE),
+                                color:
+                                    NotebookColors.marginRed.withAlpha(140),
+                                width: 1.4,
                               ),
                             ),
                             child: Icon(
                               Icons.workspace_premium_rounded,
-                              color: const Color(0xFF2563EB),
+                              color: NotebookColors.marginRed,
                               size: 26.r,
                             ),
                           ),
@@ -396,75 +340,38 @@ class _CourseCurriculumScreenState extends State<CourseCurriculumScreen> {
                         SizedBox(width: 12.w),
                       ],
                       Expanded(
-                        child: SizedBox(
-                          height: 52.h,
-                          child: BlocBuilder<
-                              StudentCoursesCubit, StudentCoursesState>(
-                            bloc: _coursesCubit,
-                            builder: (context, state) {
-                              final firstLesson = state.lessons.isNotEmpty
-                                  ? state.lessons.first
-                                  : null;
-                              return ElevatedButton(
-                                onPressed: () {
-                                  HapticFeedback.mediumImpact();
-                                  Navigator.pushNamed(
-                                    context,
-                                    AppRouter.studentVideoPlayer,
-                                    arguments: {
-                                      'lessonId': firstLesson?.id ?? '',
-                                      'videoUrl':
-                                          firstLesson?.videoUrlOrId ?? '',
-                                      'title': firstLesson?.title ?? 'درس',
-                                      'courseId': widget.courseId,
-                                    },
-                                  );
-                                },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF2563EB),
-                              elevation: 4,
-                              shadowColor: const Color(0x332563EB),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(30.r),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  widget.isCompleted
-                                      ? 'إعادة بدء الكورس (Start Course Again)'
-                                      : 'متابعة التعلم (Continue Course)',
-                                  style: GoogleFonts.cairo(
-                                    fontSize: 14.sp,
-                                    fontWeight: FontWeight.w800,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                SizedBox(width: 10.w),
-                                Container(
-                                  width: 32.r,
-                                  height: 32.r,
-                                  decoration: const BoxDecoration(
-                                    color: Colors.white,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(
-                                    Icons.arrow_forward_rounded,
-                                    color: const Color(0xFF2563EB),
-                                    size: 18.r,
-                                  ),
-                                ),
-                              ],
-                            
-                            
-                        
-                            ),
-                          );
-                        },
+                        child: BlocBuilder<StudentCoursesCubit,
+                            StudentCoursesState>(
+                          bloc: _coursesCubit,
+                          builder: (context, state) {
+                            final firstLesson = state.lessons.isNotEmpty
+                                ? state.lessons.first
+                                : null;
+                            return NotebookPrimaryButton(
+                              label: widget.isCompleted
+                                  ? 'إعادة بدء الكورس'
+                                  : 'متابعة التعلم',
+                              icon: widget.isCompleted
+                                  ? Icons.refresh_rounded
+                                  : Icons.play_arrow_rounded,
+                              onPressed: () {
+                                HapticFeedback.mediumImpact();
+                                Navigator.pushNamed(
+                                  context,
+                                  AppRouter.studentVideoPlayer,
+                                  arguments: {
+                                    'lessonId': firstLesson?.id ?? '',
+                                    'videoUrl':
+                                        firstLesson?.videoUrlOrId ?? '',
+                                    'title': firstLesson?.title ?? 'درس',
+                                    'courseId': widget.courseId,
+                                  },
+                                );
+                              },
+                            );
+                          },
+                        ),
                       ),
-                    ),
-                  ),
                     ],
                   ),
                 ),

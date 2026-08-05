@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:thanaweya_online/core/router/app_router.dart';
+import 'package:thanaweya_online/core/theme/notebook_theme.dart';
 import 'package:thanaweya_online/features/student/data/repos/student_exams_repo.dart';
 import 'package:thanaweya_online/features/student/logic/student_exams_cubit.dart';
 
@@ -43,164 +44,164 @@ class _StudentExamsListScreenState extends State<StudentExamsListScreen> {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          scrolledUnderElevation: 0,
-          automaticallyImplyLeading: false,
-          title: Text(
-            'التقدم والامتحانات 📊',
-            style: GoogleFonts.cairo(
-              fontSize: 19.sp,
-              fontWeight: FontWeight.w900,
-              color: const Color(0xFF0F172A),
-            ),
-          ),
+        backgroundColor: NotebookColors.ground,
+        appBar: NotebookTopBar(
+          title: 'التقدم والامتحانات',
+          subtitle: 'اختبر ما درسته على أوراق دفترك',
         ),
         body: BlocBuilder<StudentExamsCubit, StudentExamsState>(
           bloc: _cubit,
           builder: (context, state) {
             if (state.status == StudentExamsStatus.loading) {
-              return const Center(child: CircularProgressIndicator());
+              return Center(
+                child: CircularProgressIndicator(color: NotebookColors.green),
+              );
             }
             if (state.status == StudentExamsStatus.error) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.error_outline_rounded, size: 48, color: Colors.red),
-                    SizedBox(height: 12.h),
-                    Text(state.errorMessage ?? 'حدث خطأ',
-                        style: GoogleFonts.cairo(fontSize: 14.sp, color: const Color(0xFF64748B))),
-                  ],
+              return Padding(
+                padding: EdgeInsets.all(24.w),
+                child: NotebookEmptyNote(
+                  icon: Icons.error_outline_rounded,
+                  message: state.errorMessage ?? 'حدث خطأ في تحميل الامتحانات',
                 ),
               );
             }
             if (state.availableExams.isEmpty) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.quiz_outlined, size: 64, color: const Color(0xFF94A3B8)),
-                    SizedBox(height: 16.h),
-                    Text('لا توجد امتحانات متاحة حالياً',
-                        style: GoogleFonts.cairo(fontSize: 16.sp, color: const Color(0xFF64748B))),
-                  ],
+              return const Padding(
+                padding: EdgeInsets.all(24),
+                child: NotebookEmptyNote(
+                  icon: Icons.quiz_outlined,
+                  message: 'لا توجد امتحانات متاحة حالياً\nستظهر هنا امتحاناتك عندما يضيفها المدرسون',
                 ),
               );
             }
-            return RefreshIndicator(
-              onRefresh: _loadExams,
-              child: ListView.builder(
-                padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 100.h),
-                itemCount: state.availableExams.length,
-                itemBuilder: (context, index) {
-                  final exam = state.availableExams[index];
-                  final title = exam['title'] as String? ?? '';
-                  final duration = exam['duration_minutes'] as int? ?? 0;
+            return NotebookPaper(
+              child: RefreshIndicator(
+                onRefresh: _loadExams,
+                color: NotebookColors.green,
+                child: ListView.builder(
+                  padding: EdgeInsets.fromLTRB(24.w, 16.h, 24.w, 100.h),
+                  itemCount: state.availableExams.length,
+                  itemBuilder: (context, index) {
+                    final exam = state.availableExams[index];
+                    final title = exam['title'] as String? ?? '';
+                    final duration = exam['duration_minutes'] as int? ?? 0;
+                    final subject = (exam['subject_name'] as String?) ?? '';
 
-                  return GestureDetector(
-                    onTap: () {
-                      HapticFeedback.lightImpact();
-                      Navigator.pushNamed(
-                        context,
-                        AppRouter.studentExamStart,
-                        arguments: exam,
-                      );
-                    },
-                    child: Container(
-                      margin: EdgeInsets.only(bottom: 12.h),
-                      padding: EdgeInsets.all(16.r),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20.r),
-                        border: Border.all(color: const Color(0xFFF1F5F9)),
-                        boxShadow: const [
-                          BoxShadow(color: Color(0x060F172A), blurRadius: 10, offset: Offset(0, 4)),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: EdgeInsets.all(12.r),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFEFF6FF),
-                                  borderRadius: BorderRadius.circular(16.r),
-                                ),
-                                child: Icon(Icons.quiz_rounded,
-                                    color: const Color(0xFF2563EB), size: 22.r),
-                              ),
-                              SizedBox(width: 12.w),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(title,
-                                        style: GoogleFonts.cairo(
-                                            fontSize: 14.sp,
-                                            fontWeight: FontWeight.w800,
-                                            color: const Color(0xFF0F172A)),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis),
-                                    SizedBox(height: 2.h),
-                                    Text(
-                                      'مدة الامتحان: $duration دقيقة',
+                    return Padding(
+                      padding: EdgeInsets.only(bottom: 12.h),
+                      child: NotebookCard(
+                        ruled: true,
+                        ruledStartY: 92,
+                        marginTab: true,
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          Navigator.pushNamed(
+                            context,
+                            AppRouter.studentExamStart,
+                            arguments: exam,
+                          );
+                        },
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                if (subject.isNotEmpty)
+                                  Container(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 8.w,
+                                      vertical: 3.h,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: NotebookColors.green,
+                                      borderRadius: BorderRadius.circular(4.r),
+                                    ),
+                                    child: Text(
+                                      subject,
                                       style: GoogleFonts.cairo(
-                                          fontSize: 11.sp, color: const Color(0xFF64748B)),
+                                        fontSize: 10.sp,
+                                        fontWeight: FontWeight.w800,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                const Spacer(),
+                                Icon(
+                                  Icons.quiz_rounded,
+                                  color: NotebookColors.pencil,
+                                  size: 20.r,
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 8.h),
+                            Text(
+                              title,
+                              style: NotebookText.heading(14.sp),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            SizedBox(height: 4.h),
+                            Text(
+                              'مدة الامتحان: $duration دقيقة',
+                              style: NotebookText.note(11.sp),
+                            ),
+                            SizedBox(height: 14.h),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.timer_outlined,
+                                      size: 14.r,
+                                      color: NotebookColors.pencil,
+                                    ),
+                                    SizedBox(width: 4.w),
+                                    Text(
+                                      '$duration دقيقة',
+                                      style: NotebookText.strong(
+                                        11.sp,
+                                        color: NotebookColors.pencil,
+                                      ),
                                     ),
                                   ],
                                 ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 12.h),
-                          const Divider(height: 1, color: Color(0xFFF1F5F9)),
-                          SizedBox(height: 12.h),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(Icons.timer_outlined, size: 14.r, color: const Color(0xFF64748B)),
-                                  SizedBox(width: 4.w),
-                                  Text('$duration دقيقة',
-                                      style: GoogleFonts.cairo(
-                                          fontSize: 11.sp,
-                                          fontWeight: FontWeight.w700,
-                                          color: const Color(0xFF64748B))),
-                                ],
-                              ),
-                              Container(
-                                padding:
-                                    EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF2563EB),
-                                  borderRadius: BorderRadius.circular(20.r),
+                                Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 14.w,
+                                    vertical: 7.h,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: NotebookColors.green,
+                                    borderRadius: BorderRadius.circular(20.r),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Text(
+                                        'دخول الامتحان',
+                                        style: NotebookText.strong(
+                                          11.sp,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      SizedBox(width: 4.w),
+                                      Icon(
+                                        Icons.arrow_forward_rounded,
+                                        color: Colors.white,
+                                        size: 12.r,
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                                child: Row(
-                                  children: [
-                                    Text('دخول الامتحان',
-                                        style: GoogleFonts.cairo(
-                                            fontSize: 11.sp,
-                                            fontWeight: FontWeight.w800,
-                                            color: Colors.white)),
-                                    SizedBox(width: 4.w),
-                                    Icon(Icons.arrow_forward_rounded,
-                                        color: Colors.white, size: 12.r),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
             );
           },

@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:google_fonts/google_fonts.dart';
 
-import 'package:thanaweya_online/core/constants/app_colors.dart';
 import 'package:thanaweya_online/core/router/app_router.dart';
+import 'package:thanaweya_online/core/theme/notebook_theme.dart';
 import 'package:thanaweya_online/features/shared/models/course_model.dart';
 import 'package:thanaweya_online/features/student/data/repos/student_courses_repo.dart';
 import 'package:thanaweya_online/features/student/logic/student_courses_cubit.dart';
@@ -13,11 +12,13 @@ import 'package:thanaweya_online/features/student/logic/student_courses_cubit.da
 class TeacherPageScreen extends StatefulWidget {
   final String teacherId;
   final String title;
+  final String? avatarUrl;
 
   const TeacherPageScreen({
     super.key,
     this.teacherId = '',
     this.title = '',
+    this.avatarUrl,
   });
 
   @override
@@ -38,30 +39,6 @@ class _TeacherPageScreenState extends State<TeacherPageScreen> {
     Icons.menu_book_rounded,
   ];
 
-  final List<Map<String, dynamic>> _quizzesList = [
-    {
-      'id': 'q1',
-      'part': 'اختبار الجزء 01',
-      'title': 'كويز على البناء الضوئي',
-      'questions': '10 أسئلة • 15 دقيقة',
-      'icon': Icons.quiz_rounded,
-    },
-    {
-      'id': 'q2',
-      'part': 'اختبار الجزء 02',
-      'title': 'كويز على النتح والتنفس الخلوي',
-      'questions': '12 سؤالاً • 20 دقيقة',
-      'icon': Icons.assignment_rounded,
-    },
-    {
-      'id': 'q3',
-      'part': 'اختبار الجزء 03',
-      'title': 'الاختبار الشامل للفصل الثاني',
-      'questions': '25 سؤالاً • 40 دقيقة',
-      'icon': Icons.verified_rounded,
-    },
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -77,231 +54,150 @@ class _TeacherPageScreenState extends State<TeacherPageScreen> {
     super.dispose();
   }
 
+  String get _teacherDisplayName {
+    final raw = widget.title.trim();
+    if (raw.isEmpty) return 'صفحة المدرس';
+    return raw.startsWith('أ.') ? raw : 'أ. $raw';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          scrolledUnderElevation: 0,
-          leading: IconButton(
-            icon: Icon(
-              Icons.chevron_right_rounded,
-              color: const Color(0xFF0F172A),
-              size: 30.r,
-            ),
-            onPressed: () => Navigator.pop(context),
-          ),
-          centerTitle: true,
-          title: Text(
-            widget.title.isNotEmpty
-                ? widget.title
-                : 'الأحياء - فسيولوجيا النبات 🌿',
-            style: GoogleFonts.cairo(
-              fontSize: 17.sp,
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFF0F172A),
-            ),
-          ),
+        backgroundColor: NotebookColors.ground,
+        appBar: NotebookTopBar(
+          title: _teacherDisplayName,
+          subtitle: 'دروس وكورسات المدرس على صفحات الدفتر',
         ),
-        body: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 20.h),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Top Illustration Graphic (Plant Physiology Banner)
-                    Container(
-                      width: double.infinity,
-                      height: 160.h,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE2E8F0),
-                        borderRadius: BorderRadius.circular(24.r),
-                        image: const DecorationImage(
-                          image: NetworkImage(
-                            'https://images.unsplash.com/photo-1530836369250-ef72a3f5cda8?q=80&w=600&auto=format&fit=crop',
-                          ),
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                      child: Container(
+        body: NotebookPaper(
+          child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: EdgeInsets.fromLTRB(24.w, 16.h, 24.w, 20.h),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Signed cover card
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.all(18.r),
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(24.r),
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.black.withAlpha(160),
-                              Colors.transparent,
-                            ],
-                            begin: Alignment.bottomCenter,
-                            end: Alignment.topCenter,
+                          color: NotebookColors.surfaceBright,
+                          borderRadius: BorderRadius.circular(10.r),
+                          border: Border.all(
+                            color: NotebookColors.ink.withAlpha(35),
                           ),
                         ),
-                      ),
-                    ),
-
-                    SizedBox(height: 18.h),
-
-                    // Topic Title & Subtitle
-                    Text(
-                      'فسيولوجيا النبات 🌱',
-                      style: GoogleFonts.cairo(
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.w900,
-                        color: const Color(0xFF0F172A),
-                      ),
-                    ),
-                    SizedBox(height: 3.h),
-                    Text(
-                      'تعلم كيف تنمو النباتات وامتصاص الماء والغذاء وإنتاج الأكسجين.',
-                      style: GoogleFonts.cairo(
-                        fontSize: 12.sp,
-                        color: const Color(0xFF64748B),
-                        height: 1.4,
-                      ),
-                    ),
-
-                    SizedBox(height: 20.h),
-
-                    // Segmented Tab Switcher (Lesson vs Quiz)
-                    Container(
-                      padding: EdgeInsets.all(4.r),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE2E8F0),
-                        borderRadius: BorderRadius.circular(24.r),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () {
-                                HapticFeedback.selectionClick();
-                                setState(() => _activeTab = 0);
-                              },
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 200),
-                                padding: EdgeInsets.symmetric(vertical: 10.h),
-                                decoration: BoxDecoration(
-                                  color: _activeTab == 0
-                                      ? AppColors.studentPrimary
-                                      : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(20.r),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.play_circle_outline_rounded,
-                                      size: 18.r,
-                                      color: _activeTab == 0
-                                          ? Colors.white
-                                          : const Color(0xFF64748B),
-                                    ),
-                                    SizedBox(width: 6.w),
-                                    Text(
-                                      'الدروس (Lesson)',
-                                      style: GoogleFonts.cairo(
-                                        fontSize: 13.sp,
-                                        fontWeight: FontWeight.w800,
-                                        color: _activeTab == 0
-                                            ? Colors.white
-                                            : const Color(0xFF64748B),
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                        child: Row(
+                          children: [
+                            NotebookTeacherAvatar(
+                              avatarUrl: widget.avatarUrl,
+                              name: widget.title
+                                  .trim()
+                                  .replaceFirst('أ. ', ''),
+                              size: 60.r,
+                            ),
+                            SizedBox(width: 14.w),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _teacherDisplayName,
+                                    style: NotebookText.heading(16.sp),
+                                  ),
+                                  SizedBox(height: 3.h),
+                                  Text(
+                                    'مدرس معتمد على ثانوية أونلاين',
+                                    style: NotebookText.note(11.sp),
+                                  ),
+                                  SizedBox(height: 7.h),
+                                  // signature underline
+                                  Container(
+                                    width: 44.w,
+                                    height: 2.h,
+                                    color: NotebookColors.marginRed
+                                        .withAlpha(160),
+                                  ),
+                                ],
                               ),
                             ),
-                          ),
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () {
-                                HapticFeedback.selectionClick();
-                                setState(() => _activeTab = 1);
-                              },
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 200),
-                                padding: EdgeInsets.symmetric(vertical: 10.h),
-                                decoration: BoxDecoration(
-                                  color: _activeTab == 1
-                                      ? AppColors.studentPrimary
-                                      : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(20.r),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.quiz_outlined,
-                                      size: 18.r,
-                                      color: _activeTab == 1
-                                          ? Colors.white
-                                          : const Color(0xFF64748B),
-                                    ),
-                                    SizedBox(width: 6.w),
-                                    Text(
-                                      'الامتحانات (Quiz)',
-                                      style: GoogleFonts.cairo(
-                                        fontSize: 13.sp,
-                                        fontWeight: FontWeight.w800,
-                                        color: _activeTab == 1
-                                            ? Colors.white
-                                            : const Color(0xFF64748B),
+                          ],
+                        ),
+                      ),
+
+                      SizedBox(height: 20.h),
+
+                      // Segmented Tab Switcher (Lessons / Quiz)
+                      NotebookSegmentControl(
+                        options: const ['الدروس', 'الامتحانات'],
+                        index: _activeTab,
+                        onChanged: (i) {
+                          HapticFeedback.selectionClick();
+                          setState(() => _activeTab = i);
+                        },
+                      ),
+
+                      SizedBox(height: 20.h),
+
+                      // Active Tab Content
+                      _activeTab == 0
+                          ? BlocBuilder<StudentCoursesCubit,
+                              StudentCoursesState>(
+                              bloc: _coursesCubit,
+                              builder: (context, state) {
+                                if (state.coursesStatus ==
+                                        StudentCoursesStatus.loading &&
+                                    state.courses.isEmpty) {
+                                  return Padding(
+                                    padding: EdgeInsets.only(top: 40.h),
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        color: NotebookColors.green,
                                       ),
                                     ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    SizedBox(height: 20.h),
-
-                    // Active Tab Content List
-                    _activeTab == 0
-                        ? BlocBuilder<StudentCoursesCubit,
-                            StudentCoursesState>(
-                            bloc: _coursesCubit,
-                            builder: (context, state) =>
-                                _buildLessonsListView(context, state.courses),
-                          )
-                        : _buildQuizzesListView(context),
-                  ],
+                                  );
+                                }
+                                if (state.courses.isEmpty) {
+                                  return const NotebookEmptyNote(
+                                    icon: Icons.menu_book_outlined,
+                                    message: 'لا توجد كورسات منشورة لهذا المدرس بعد',
+                                  );
+                                }
+                                return _buildLessonsListView(
+                                  context,
+                                  state.courses,
+                                );
+                              },
+                            )
+                          : _buildQuizzesListView(context),
+                    ],
+                  ),
                 ),
               ),
-            ),
 
-            // Sticky Bottom Primary Button
-            Container(
-              padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 24.h),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Color(0x0A0F172A),
-                    blurRadius: 10,
-                    offset: Offset(0, -4),
+              // Sticky Bottom Primary Button
+              Container(
+                padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 24.h),
+                decoration: BoxDecoration(
+                  color: NotebookColors.surface,
+                  border: Border(
+                    top: BorderSide(color: NotebookColors.ink.withAlpha(30)),
                   ),
-                ],
-              ),
-              child: SizedBox(
-                width: double.infinity,
-                height: 52.h,
+                ),
                 child: BlocBuilder<StudentCoursesCubit, StudentCoursesState>(
                   bloc: _coursesCubit,
                   builder: (context, state) {
                     final firstCourse = state.courses.isNotEmpty
                         ? state.courses.first
                         : null;
-                    return ElevatedButton(
+                    return NotebookPrimaryButton(
+                      label: _activeTab == 0
+                          ? 'ابدأ الدرس'
+                          : 'ابدأ الاختبار',
                       onPressed: () {
                         HapticFeedback.lightImpact();
                         if (_activeTab == 0) {
@@ -317,37 +213,21 @@ class _TeacherPageScreenState extends State<TeacherPageScreen> {
                           );
                         }
                       },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.studentPrimary,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(26.r),
-                    ),
-                  ),
-                  child: Text(
-                    _activeTab == 0
-                        ? 'ابدأ الدرس (Start Lesson) 🚀'
-                        : 'ابدأ الاختبار (Start Quiz) 📝',
-                    style: GoogleFonts.cairo(
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                    ),
-                  ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
-            ),
+            ],
           ),
-          ],
         ),
       ),
     );
   }
 
-  // 07 Detail Lesson List
   Widget _buildLessonsListView(
-      BuildContext context, List<CourseModel> courses) {
+    BuildContext context,
+    List<CourseModel> courses,
+  ) {
     return ListView.separated(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -355,10 +235,13 @@ class _TeacherPageScreenState extends State<TeacherPageScreen> {
       separatorBuilder: (_, _) => SizedBox(height: 12.h),
       itemBuilder: (context, index) {
         final course = courses[index];
-        final part = 'كورس ${(index + 1).toString().padLeft(2, '0')}';
+        final number = (index + 1).toString().padLeft(2, '0');
         final icon = _lessonIcons[index % _lessonIcons.length];
 
-        return GestureDetector(
+        return NotebookCard(
+          ruled: true,
+          ruledStartY: 76,
+          marginTab: true,
           onTap: () {
             HapticFeedback.lightImpact();
             Navigator.pushNamed(
@@ -367,168 +250,69 @@ class _TeacherPageScreenState extends State<TeacherPageScreen> {
               arguments: course.id,
             );
           },
-          child: Container(
-            padding: EdgeInsets.all(16.r),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20.r),
-              border: Border.all(color: const Color(0xFFF1F5F9)),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x060F172A),
-                  blurRadius: 10,
-                  offset: Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(12.r),
-                  decoration: BoxDecoration(
-                    color: AppColors.studentPrimaryLight,
-                    borderRadius: BorderRadius.circular(16.r),
-                  ),
-                  child: Icon(
-                    icon,
-                    color: AppColors.studentPrimary,
-                    size: 24.r,
+          child: Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(10.r),
+                decoration: BoxDecoration(
+                  color: NotebookColors.surfaceBright,
+                  borderRadius: BorderRadius.circular(10.r),
+                  border: Border.all(
+                    color: NotebookColors.ink.withAlpha(30),
+                    width: 1.2,
                   ),
                 ),
-                SizedBox(width: 14.w),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '$part • ${course.title}',
-                        style: GoogleFonts.cairo(
-                          fontSize: 13.sp,
-                          fontWeight: FontWeight.w800,
-                          color: const Color(0xFF0F172A),
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      SizedBox(height: 3.h),
-                      Text(
-                        course.description ?? '',
-                        style: GoogleFonts.cairo(
-                          fontSize: 11.sp,
-                          color: const Color(0xFF64748B),
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
+                child: Icon(
+                  icon,
+                  color: NotebookColors.ink,
+                  size: 22.r,
                 ),
-                Container(
-                  width: 32.r,
-                  height: 32.r,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFF1F5F9),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.play_arrow_rounded,
-                    color: AppColors.studentPrimary,
-                    size: 20.r,
-                  ),
+              ),
+              SizedBox(width: 14.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'كورس $number • ${course.title}',
+                      style: NotebookText.body(13.sp),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    SizedBox(height: 3.h),
+                    Text(
+                      course.description ?? '',
+                      style: NotebookText.note(10.sp),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              Container(
+                width: 30.r,
+                height: 30.r,
+                decoration: BoxDecoration(
+                  color: NotebookColors.green,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.play_arrow_rounded,
+                  color: Colors.white,
+                  size: 17.r,
+                ),
+              ),
+            ],
           ),
         );
       },
     );
   }
 
-  // 08 Detail Quiz List
   Widget _buildQuizzesListView(BuildContext context) {
-    return ListView.separated(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: _quizzesList.length,
-      separatorBuilder: (_, _) => SizedBox(height: 12.h),
-      itemBuilder: (context, index) {
-        final item = _quizzesList[index];
-
-        return GestureDetector(
-          onTap: () {
-            HapticFeedback.lightImpact();
-            Navigator.pushNamed(context, AppRouter.studentExamStart);
-          },
-          child: Container(
-            padding: EdgeInsets.all(16.r),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20.r),
-              border: Border.all(color: const Color(0xFFF1F5F9)),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x060F172A),
-                  blurRadius: 10,
-                  offset: Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(12.r),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFEF3C7),
-                    borderRadius: BorderRadius.circular(16.r),
-                  ),
-                  child: Icon(
-                    item['icon'] as IconData,
-                    color: const Color(0xFFD97706),
-                    size: 24.r,
-                  ),
-                ),
-                SizedBox(width: 14.w),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${item['part']} • ${item['title']}',
-                        style: GoogleFonts.cairo(
-                          fontSize: 13.sp,
-                          fontWeight: FontWeight.w800,
-                          color: const Color(0xFF0F172A),
-                        ),
-                      ),
-                      SizedBox(height: 3.h),
-                      Text(
-                        item['questions'] as String,
-                        style: GoogleFonts.cairo(
-                          fontSize: 11.sp,
-                          color: const Color(0xFF64748B),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  width: 32.r,
-                  height: 32.r,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFF1F5F9),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.play_arrow_rounded,
-                    color: const Color(0xFFD97706),
-                    size: 20.r,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+    return const NotebookEmptyNote(
+      icon: Icons.quiz_outlined,
+      message: 'لا توجد امتحانات منشورة بعد\nستظهر هنا امتحانات المدرس عندما تكون متاحة',
     );
   }
 }

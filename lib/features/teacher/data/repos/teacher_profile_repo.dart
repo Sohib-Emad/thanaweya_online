@@ -8,6 +8,24 @@ import 'package:thanaweya_online/features/shared/models/user_model.dart';
 class TeacherProfileRepo {
   final SupabaseClient _client = Supabase.instance.client;
 
+  /// Returns the teacher's `approval_status` (pending / approved / rejected).
+  /// Used as a gate before routing a teacher into their dashboard.
+  Future<ApiResult<String>> getApprovalStatus(String userId) async {
+    try {
+      final data = await _client
+          .from('teachers')
+          .select('approval_status')
+          .eq('id', userId)
+          .maybeSingle();
+      if (data == null) {
+        return const ApiResult.failure('لم يتم العثور على طلب المعلم');
+      }
+      return ApiResult.success(data['approval_status'] as String? ?? 'pending');
+    } catch (e) {
+      return ApiErrorHandler.handleException(e);
+    }
+  }
+
   Future<ApiResult<TeacherModel?>> getTeacherProfile(String userId) async {
     try {
       final data = await _client

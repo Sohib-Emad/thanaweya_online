@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:google_fonts/google_fonts.dart';
 
-import '../../../../core/constants/app_colors.dart';
+import 'package:thanaweya_online/core/theme/notebook_theme.dart';
 
 class EReceiptScreen extends StatelessWidget {
   final Map<String, dynamic>? transactionData;
@@ -15,50 +14,37 @@ class EReceiptScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final title = transactionData?['title'] ?? 'كورس 3D Character Illustration';
-    final category = transactionData?['category'] ?? 'تطوير البرمجيات (Web Development)';
-    final price = transactionData?['price'] ?? '799 ج.م';
-    final date = transactionData?['date'] ?? '20 نوفمبر 2023 / 15:45';
-    final studentName = transactionData?['studentName'] ?? 'صهيب عماد (Alex)';
-    final email = transactionData?['email'] ?? 'sohibemad@gmail.com';
-    final transactionId = transactionData?['id'] ?? 'SK345680976';
+    final title = transactionData?['title'] ?? '';
+    final category = transactionData?['category'] ?? '';
+    final price = transactionData?['price'] ?? '';
+    final date = transactionData?['date'] ?? '';
+    final studentName = transactionData?['studentName'] ?? '';
+    final email = transactionData?['email'] ?? '';
+    final transactionId = transactionData?['id'] ?? '';
 
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          leading: IconButton(
-            icon: Icon(
-              Icons.arrow_back_ios_new_rounded,
-              color: const Color(0xFF0F172A),
-              size: 20.r,
-            ),
-            onPressed: () => Navigator.pop(context),
-          ),
-          centerTitle: false,
-          title: Text(
-            'إيصال الدفع الإلكتروني (E-Receipt)',
-            style: GoogleFonts.cairo(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFF0F172A),
-            ),
-          ),
+        backgroundColor: NotebookColors.ground,
+        appBar: NotebookTopBar(
+          title: 'إيصال الدفع الإلكتروني',
+          subtitle: 'نسخة من الإيصال على صفحة دفترك',
           actions: [
             PopupMenuButton<String>(
               icon: Container(
                 width: 36.r,
                 height: 36.r,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
+                  color: NotebookColors.surfaceBright,
                   shape: BoxShape.circle,
+                  border: Border.all(
+                    color: NotebookColors.ink.withAlpha(50),
+                    width: 1.2,
+                  ),
                 ),
                 child: Icon(
                   Icons.more_horiz_rounded,
-                  color: const Color(0xFF0F172A),
+                  color: NotebookColors.ink,
                   size: 20.r,
                 ),
               ),
@@ -71,10 +57,10 @@ class EReceiptScreen extends StatelessWidget {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
-                      'تم تنفيذ الأمر: $value 🧾',
-                      style: GoogleFonts.cairo(fontWeight: FontWeight.w700),
+                      'تم تنفيذ الأمر: $value',
+                      style: NotebookText.strong(13.sp, color: Colors.white),
                     ),
-                    backgroundColor: const Color(0xFF0FA37F),
+                    backgroundColor: NotebookColors.green,
                     behavior: SnackBarBehavior.floating,
                   ),
                 );
@@ -86,13 +72,14 @@ class EReceiptScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'مشاركة (Share)',
-                        style: GoogleFonts.cairo(
-                          fontSize: 13.sp,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        'مشاركة',
+                        style: NotebookText.strong(13.sp),
                       ),
-                      Icon(Icons.send_rounded, size: 18.r, color: const Color(0xFF2563EB)),
+                      Icon(
+                        Icons.send_rounded,
+                        size: 18.r,
+                        color: NotebookColors.green,
+                      ),
                     ],
                   ),
                 ),
@@ -102,13 +89,14 @@ class EReceiptScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'تحميل (Download)',
-                        style: GoogleFonts.cairo(
-                          fontSize: 13.sp,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        'تحميل',
+                        style: NotebookText.strong(13.sp),
                       ),
-                      Icon(Icons.download_rounded, size: 18.r, color: const Color(0xFF0FA37F)),
+                      Icon(
+                        Icons.download_rounded,
+                        size: 18.r,
+                        color: NotebookColors.green,
+                      ),
                     ],
                   ),
                 ),
@@ -118,235 +106,221 @@ class EReceiptScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'طباعة (Print)',
-                        style: GoogleFonts.cairo(
-                          fontSize: 13.sp,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        'طباعة',
+                        style: NotebookText.strong(13.sp),
                       ),
-                      Icon(Icons.print_rounded, size: 18.r, color: const Color(0xFF64748B)),
+                      Icon(
+                        Icons.print_rounded,
+                        size: 18.r,
+                        color: NotebookColors.pencil,
+                      ),
                     ],
                   ),
                 ),
               ],
             ),
-            SizedBox(width: 8.w),
           ],
         ),
-        body: SingleChildScrollView(
-          padding: EdgeInsets.all(20.r),
-          physics: const BouncingScrollPhysics(),
-          child: Column(
-            children: [
-              // Top Receipt Barcode Illustration Box
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.symmetric(vertical: 24.h, horizontal: 20.w),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24.r),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x0A0F172A),
-                      blurRadius: 16,
-                      offset: Offset(0, 6),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    // Verified Check Illustration
-                    Container(
-                      width: 72.r,
-                      height: 72.r,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFECFDF5),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: Icon(
-                          Icons.check_circle_rounded,
-                          color: const Color(0xFF0FA37F),
-                          size: 44.r,
-                        ),
-                      ),
-                    ),
-
-                    SizedBox(height: 20.h),
-
-                    // Barcode graphic
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(
-                        32,
-                        (index) => Container(
-                          margin: EdgeInsets.symmetric(horizontal: (index % 4 == 0) ? 2.w : 1.w),
-                          width: (index % 3 == 0) ? 3.w : (index % 2 == 0) ? 2.w : 1.w,
-                          height: 48.h,
-                          color: const Color(0xFF0F172A),
-                        ),
-                      ),
-                    ),
-
-                    SizedBox(height: 8.h),
-
-                    // Barcode Numbers
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        Text(
-                          '25234567',
-                          style: GoogleFonts.cairo(
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xFF0F172A),
-                            letterSpacing: 2,
+        body: NotebookPaper(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(24.w, 16.h, 24.w, 40.h),
+            physics: const BouncingScrollPhysics(),
+            child: Column(
+              children: [
+                // Ruled Receipt Page Card
+                NotebookCard(
+                  ruled: true,
+                  ruledStartY: 96,
+                  marginTab: true,
+                  padding: EdgeInsets.all(20.r),
+                  child: Column(
+                    children: [
+                      // Verified Check Illustration
+                      Container(
+                        width: 72.r,
+                        height: 72.r,
+                        decoration: BoxDecoration(
+                          color: NotebookColors.green.withAlpha(20),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: NotebookColors.green.withAlpha(80),
+                            width: 1.4,
                           ),
                         ),
-                        Text(
-                          '28646345',
-                          style: GoogleFonts.cairo(
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xFF0F172A),
-                            letterSpacing: 2,
+                        child: Center(
+                          child: Icon(
+                            Icons.check_circle_rounded,
+                            color: NotebookColors.green,
+                            size: 44.r,
                           ),
                         ),
-                      ],
-                    ),
+                      ),
 
-                    SizedBox(height: 24.h),
-                    const Divider(color: Color(0xFFF1F5F9)),
-                    SizedBox(height: 16.h),
+                      SizedBox(height: 20.h),
 
-                    // Receipt Info Table
-                    _buildReceiptRow('اسم الطالب (Name)', studentName),
-                    SizedBox(height: 14.h),
-                    _buildReceiptRow('البريد الإلكتروني (Email ID)', email),
-                    SizedBox(height: 14.h),
-                    _buildReceiptRow('اسم الكورس (Course)', title),
-                    SizedBox(height: 14.h),
-                    _buildReceiptRow('التصنيف (Category)', category),
-                    SizedBox(height: 14.h),
-                    
-                    // Transaction ID with copy button
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'رقم المعاملة (Transaction ID)',
-                          style: GoogleFonts.cairo(
-                            fontSize: 12.sp,
-                            color: const Color(0xFF64748B),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        Row(
-                          children: [
-                            Text(
-                              transactionId,
-                              style: GoogleFonts.cairo(
-                                fontSize: 13.sp,
-                                fontWeight: FontWeight.w800,
-                                color: const Color(0xFF0F172A),
-                              ),
+                      // Barcode graphic
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(
+                          32,
+                          (index) => Container(
+                            margin: EdgeInsets.symmetric(
+                              horizontal: (index % 4 == 0) ? 2.w : 1.w,
                             ),
-                            SizedBox(width: 6.w),
-                            GestureDetector(
-                              onTap: () {
-                                Clipboard.setData(ClipboardData(text: transactionId));
-                                HapticFeedback.lightImpact();
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      'تم نسخ رقم المعاملة 📋',
-                                      style: GoogleFonts.cairo(fontWeight: FontWeight.w700),
+                            width: (index % 3 == 0)
+                                ? 3.w
+                                : (index % 2 == 0)
+                                    ? 2.w
+                                    : 1.w,
+                            height: 48.h,
+                            color: NotebookColors.ink,
+                          ),
+                        ),
+                      ),
+
+                      SizedBox(height: 8.h),
+
+                      // Barcode Numbers (real transaction id)
+                      Text(
+                        transactionId,
+                        style: NotebookText.body(12.sp)
+                            .copyWith(letterSpacing: 2),
+                      ),
+
+                      SizedBox(height: 20.h),
+                      Container(
+                        height: 1,
+                        color: NotebookColors.ink.withAlpha(35),
+                      ),
+                      SizedBox(height: 16.h),
+
+                      // Receipt Info Table
+                      _buildReceiptRow('اسم الطالب', studentName),
+                      SizedBox(height: 14.h),
+                      _buildReceiptRow('البريد الإلكتروني', email),
+                      SizedBox(height: 14.h),
+                      _buildReceiptRow('اسم الكورس', title),
+                      SizedBox(height: 14.h),
+                      _buildReceiptRow('التصنيف', category),
+                      SizedBox(height: 14.h),
+
+                      // Transaction ID with copy button
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'رقم المعاملة',
+                            style: NotebookText.note(12.sp),
+                          ),
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  transactionId,
+                                  style: NotebookText.strong(13.sp),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              SizedBox(width: 6.w),
+                              GestureDetector(
+                                onTap: () {
+                                  Clipboard.setData(
+                                    ClipboardData(text: transactionId),
+                                  );
+                                  HapticFeedback.lightImpact();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'تم نسخ رقم المعاملة',
+                                        style: NotebookText.strong(
+                                          13.sp,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      duration: const Duration(seconds: 1),
+                                      backgroundColor: NotebookColors.green,
+                                      behavior: SnackBarBehavior.floating,
                                     ),
-                                    duration: const Duration(seconds: 1),
-                                  ),
-                                );
-                              },
-                              child: Icon(
-                                Icons.copy_rounded,
-                                color: const Color(0xFF2563EB),
-                                size: 16.r,
+                                  );
+                                },
+                                child: Icon(
+                                  Icons.copy_rounded,
+                                  color: NotebookColors.green,
+                                  size: 16.r,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 14.h),
+                      _buildReceiptRow(
+                        'المبلغ المدفوع',
+                        price,
+                        isBoldPrice: true,
+                      ),
+                      SizedBox(height: 14.h),
+                      _buildReceiptRow('تاريخ المعاملة', date),
+                      SizedBox(height: 14.h),
+
+                      // Status Row
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'حالة الدفع',
+                            style: NotebookText.note(12.sp),
+                          ),
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 12.w,
+                              vertical: 3.h,
+                            ),
+                            decoration: BoxDecoration(
+                              color: NotebookColors.green.withAlpha(24),
+                              borderRadius: BorderRadius.circular(10.r),
+                              border: Border.all(
+                                color: NotebookColors.green.withAlpha(90),
                               ),
                             ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 14.h),
-                    _buildReceiptRow('المبلغ المدفوع (Price)', price, isBoldPrice: true),
-                    SizedBox(height: 14.h),
-                    _buildReceiptRow('تاريخ المعاملة (Date)', date),
-                    SizedBox(height: 14.h),
-
-                    // Status Row
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'حالة الدفع (Status)',
-                          style: GoogleFonts.cairo(
-                            fontSize: 12.sp,
-                            color: const Color(0xFF64748B),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 12.w,
-                            vertical: 3.h,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFECFDF5),
-                            borderRadius: BorderRadius.circular(10.r),
-                            border: Border.all(color: const Color(0xFFA7F3D0)),
-                          ),
-                          child: Text(
-                            'مدفوع • Paid',
-                            style: GoogleFonts.cairo(
-                              fontSize: 11.sp,
-                              fontWeight: FontWeight.w800,
-                              color: const Color(0xFF0FA37F),
+                            child: Text(
+                              'مدفوع',
+                              style: NotebookText.strong(
+                                11.sp,
+                                color: NotebookColors.green,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildReceiptRow(String label, String value, {bool isBoldPrice = false}) {
+  Widget _buildReceiptRow(
+    String label,
+    String value, {
+    bool isBoldPrice = false,
+  }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          label,
-          style: GoogleFonts.cairo(
-            fontSize: 12.sp,
-            color: const Color(0xFF64748B),
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        Text(label, style: NotebookText.note(12.sp)),
         Flexible(
           child: Text(
             value,
             textAlign: TextAlign.left,
-            style: GoogleFonts.cairo(
-              fontSize: isBoldPrice ? 15.sp : 12.sp,
-              fontWeight: isBoldPrice ? FontWeight.w900 : FontWeight.w800,
-              color: isBoldPrice ? AppColors.studentPrimary : const Color(0xFF0F172A),
-            ),
+            style: isBoldPrice
+                ? NotebookText.heading(15.sp, color: NotebookColors.green)
+                : NotebookText.strong(12.sp),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),

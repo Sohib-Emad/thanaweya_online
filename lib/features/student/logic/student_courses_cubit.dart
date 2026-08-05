@@ -42,6 +42,21 @@ class StudentCoursesCubit extends Cubit<StudentCoursesState> {
     );
   }
 
+  Future<void> loadPopularCourses() async {
+    emit(state.copyWith(popularCoursesStatus: StudentCoursesStatus.loading));
+    final result = await _repo.getPopularCourses();
+    result.when(
+      success: (courses) => emit(state.copyWith(
+        popularCoursesStatus: StudentCoursesStatus.loaded,
+        popularCourses: courses,
+      )),
+      failure: (message, _) => emit(state.copyWith(
+        popularCoursesStatus: StudentCoursesStatus.error,
+        errorMessage: message,
+      )),
+    );
+  }
+
   Future<void> loadCourse(String courseId) async {
     emit(state.copyWith(courseStatus: StudentCoursesStatus.loading));
     final result = await _repo.getCourse(courseId);
@@ -163,6 +178,8 @@ class StudentCoursesState {
   final List<Map<String, dynamic>> subscribedTeachers;
   final StudentCoursesStatus myCoursesStatus;
   final List<Map<String, dynamic>> myCourses;
+  final StudentCoursesStatus popularCoursesStatus;
+  final List<Map<String, dynamic>> popularCourses;
   final StudentCoursesStatus courseStatus;
   final Map<String, dynamic>? course;
   final StudentCoursesStatus coursesStatus;
@@ -180,6 +197,8 @@ class StudentCoursesState {
     this.subscribedTeachers = const [],
     this.myCoursesStatus = StudentCoursesStatus.initial,
     this.myCourses = const [],
+    this.popularCoursesStatus = StudentCoursesStatus.initial,
+    this.popularCourses = const [],
     this.courseStatus = StudentCoursesStatus.initial,
     this.course,
     this.coursesStatus = StudentCoursesStatus.initial,
@@ -198,6 +217,8 @@ class StudentCoursesState {
     List<Map<String, dynamic>>? subscribedTeachers,
     StudentCoursesStatus? myCoursesStatus,
     List<Map<String, dynamic>>? myCourses,
+    StudentCoursesStatus? popularCoursesStatus,
+    List<Map<String, dynamic>>? popularCourses,
     StudentCoursesStatus? courseStatus,
     Map<String, dynamic>? course,
     StudentCoursesStatus? coursesStatus,
@@ -215,6 +236,8 @@ class StudentCoursesState {
       subscribedTeachers: subscribedTeachers ?? this.subscribedTeachers,
       myCoursesStatus: myCoursesStatus ?? this.myCoursesStatus,
       myCourses: myCourses ?? this.myCourses,
+      popularCoursesStatus: popularCoursesStatus ?? this.popularCoursesStatus,
+      popularCourses: popularCourses ?? this.popularCourses,
       courseStatus: courseStatus ?? this.courseStatus,
       course: course,
       coursesStatus: coursesStatus ?? this.coursesStatus,

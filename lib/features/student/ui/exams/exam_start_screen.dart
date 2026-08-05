@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:thanaweya_online/core/router/app_router.dart';
+import 'package:thanaweya_online/core/theme/notebook_theme.dart';
 
 class ExamStartScreen extends StatelessWidget {
   final Map<String, dynamic>? examData;
@@ -31,215 +31,143 @@ class ExamStartScreen extends StatelessWidget {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          leading: IconButton(
-            icon: Icon(
-              Icons.arrow_back_ios_new_rounded,
-              color: const Color(0xFF0F172A),
-              size: 20.r,
-            ),
-            onPressed: () => Navigator.pop(context),
-          ),
-          centerTitle: false,
-          title: Text(
-            'تعليمات وضوابط الامتحان',
-            style: GoogleFonts.cairo(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFF0F172A),
-            ),
-          ),
+        backgroundColor: NotebookColors.ground,
+        appBar: NotebookTopBar(
+          title: 'تعليمات وضوابط الامتحان',
+          subtitle: 'اقرأ القواعد قبل بدء التقييم',
         ),
-        body: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 30.h),
-          physics: const BouncingScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Exam Header Card
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.all(20.r),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24.r),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x0A0F172A),
-                      blurRadius: 16,
-                      offset: Offset(0, 6),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Container(
-                      width: 64.r,
-                      height: 64.r,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFEFF6FF),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.quiz_rounded,
-                        color: const Color(0xFF2563EB),
-                        size: 32.r,
-                      ),
-                    ),
-
-                    SizedBox(height: 14.h),
-
-                    Text(
-                      title,
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.cairo(
-                        fontSize: 17.sp,
-                        fontWeight: FontWeight.w900,
-                        color: const Color(0xFF0F172A),
-                      ),
-                    ),
-                    SizedBox(height: 4.h),
-                    Text(
-                      'المدرس المسؤول: ${instructor.isEmpty ? 'المدرس' : instructor}',
-                      style: GoogleFonts.cairo(
-                        fontSize: 12.sp,
-                        color: const Color(0xFF64748B),
-                      ),
-                    ),
-
-                    SizedBox(height: 16.h),
-                    const Divider(color: Color(0xFFF1F5F9)),
-                    SizedBox(height: 12.h),
-
-                    // Quick Stats Row
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _buildStatItem(
-                          'المدة الزمنية',
-                          duration,
-                          Icons.timer_outlined,
-                        ),
-                        _buildStatItem(
-                          'عدد الأسئلة',
-                          questionsCount,
-                          Icons.help_outline_rounded,
-                        ),
-                        _buildStatItem(
-                          'الدرجة الكلية',
-                          totalMarks,
-                          Icons.stars_rounded,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-
-              SizedBox(height: 20.h),
-
-              // Strict Rules & Anti-Cheat Regulations Warning Card (Matching User Request)
-              Container(
-                padding: EdgeInsets.all(18.r),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF1F2),
-                  borderRadius: BorderRadius.circular(20.r),
-                  border: Border.all(color: const Color(0xFFFECDD3)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.gavel_rounded,
-                          color: const Color(0xFFE11D48),
-                          size: 22.r,
-                        ),
-                        SizedBox(width: 8.w),
-                        Text(
-                          'قواعد وضوابط الامتحان الحازمة (مهم جداً):',
-                          style: GoogleFonts.cairo(
-                            fontSize: 13.sp,
-                            fontWeight: FontWeight.w900,
-                            color: const Color(0xFF9F1239),
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 10.h),
-
-                    _buildRuleItem(
-                      '⏱️ توقيت دقيق محدد',
-                      'يبدأ التوقيت فور دخول الامتحان، وسيتم تسليم الإجابات تلقائياً فور انتهاء الوقت.',
-                    ),
-                    SizedBox(height: 8.h),
-                    _buildRuleItem(
-                      '🚨 حظر الخروج من الشاشة (تسليم تلقائي)',
-                      'في حالة الخروج من التطبيق، تصغير الشاشة، أو الانتقال لتطبيق آخر، سيتم تسليم الامتحان فوراً وحساب الدرجة على ما تم حله فقط!',
-                    ),
-                    SizedBox(height: 8.h),
-                    _buildRuleItem(
-                      '📱 الحفاظ على استقرار الاتصال',
-                      'تأكد من شحن الهاتف واستقرار شبكة الإنترنت قبل البدء.',
-                    ),
-                  ],
-                ),
-              ),
-
-              SizedBox(height: 28.h),
-
-              // Start Exam Primary Button
-              SizedBox(
-                width: double.infinity,
-                height: 54.h,
-                child: ElevatedButton(
-                  onPressed: () {
-                    HapticFeedback.heavyImpact();
-                    _showStartConfirmationDialog(context, examId);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE11D48),
-                    elevation: 4,
-                    shadowColor: const Color(0x33E11D48),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30.r),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+        body: NotebookPaper(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(24.w, 16.h, 24.w, 40.h),
+            physics: const BouncingScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Exam Header Card
+                NotebookCard(
+                  ruled: true,
+                  ruledStartY: 104,
+                  padding: EdgeInsets.all(20.r),
+                  child: Column(
                     children: [
-                      Text(
-                        'بدء الامتحان الآن (Start Exam Now)',
-                        style: GoogleFonts.cairo(
-                          fontSize: 15.sp,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                        ),
-                      ),
-                      SizedBox(width: 10.w),
                       Container(
-                        width: 32.r,
-                        height: 32.r,
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
+                        width: 60.r,
+                        height: 60.r,
+                        decoration: BoxDecoration(
+                          color: NotebookColors.green,
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
-                          Icons.play_arrow_rounded,
-                          color: const Color(0xFFE11D48),
-                          size: 20.r,
+                          Icons.quiz_rounded,
+                          color: Colors.white,
+                          size: 28.r,
                         ),
+                      ),
+
+                      SizedBox(height: 12.h),
+
+                      Text(
+                        title,
+                        textAlign: TextAlign.center,
+                        style: NotebookText.heading(17.sp),
+                      ),
+                      SizedBox(height: 4.h),
+                      Text(
+                        'المدرس المسؤول: ${instructor.isEmpty ? 'المدرس' : instructor}',
+                        style: NotebookText.note(11.sp),
+                      ),
+
+                      SizedBox(height: 16.h),
+                      Container(
+                        height: 1,
+                        color: NotebookColors.ink.withAlpha(35),
+                      ),
+                      SizedBox(height: 12.h),
+
+                      // Quick Stats Row
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          _buildStatItem(
+                            'المدة الزمنية',
+                            duration,
+                            Icons.timer_outlined,
+                          ),
+                          _buildStatItem(
+                            'عدد الأسئلة',
+                            questionsCount,
+                            Icons.help_outline_rounded,
+                          ),
+                          _buildStatItem(
+                            'الدرجة الكلية',
+                            totalMarks,
+                            Icons.stars_rounded,
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 ),
-              ),
-            ],
+
+                SizedBox(height: 20.h),
+
+                // Strict Rules & Anti-Cheat Regulations Warning
+                NotebookSectionHeader(title: 'قواعد وضوابط الامتحان'),
+                SizedBox(height: 8.h),
+                NotebookHighlightNote(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.gavel_rounded,
+                            color: NotebookColors.marginRed,
+                            size: 18.r,
+                          ),
+                          SizedBox(width: 8.w),
+                          Text(
+                            'ضوابط حازمة، قراءتها إلزامية قبل البدء',
+                            style: NotebookText.strong(
+                              12.sp,
+                              color: NotebookColors.marginRed,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 10.h),
+
+                      _buildRuleItem(
+                        'توقيت دقيق محدد',
+                        'يبدأ التوقيت فور دخول الامتحان، وسيتم تسليم الإجابات تلقائياً فور انتهاء الوقت.',
+                      ),
+                      SizedBox(height: 8.h),
+                      _buildRuleItem(
+                        'حظر الخروج من الشاشة (تسليم تلقائي)',
+                        'في حالة الخروج من التطبيق، تصغير الشاشة، أو الانتقال لتطبيق آخر، سيتم تسليم الامتحان فوراً وحساب الدرجة على ما تم حله فقط!',
+                      ),
+                      SizedBox(height: 8.h),
+                      _buildRuleItem(
+                        'الحفاظ على استقرار الاتصال',
+                        'تأكد من شحن الهاتف واستقرار شبكة الإنترنت قبل البدء.',
+                      ),
+                    ],
+                  ),
+                ),
+
+                SizedBox(height: 28.h),
+
+                // Start Exam Primary Button
+                NotebookPrimaryButton(
+                  label: 'بدء الامتحان الآن',
+                  icon: Icons.play_arrow_rounded,
+                  onPressed: () {
+                    HapticFeedback.heavyImpact();
+                    _showStartConfirmationDialog(context, examId);
+                  },
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -249,23 +177,11 @@ class ExamStartScreen extends StatelessWidget {
   Widget _buildStatItem(String label, String value, IconData icon) {
     return Column(
       children: [
-        Icon(icon, color: const Color(0xFF2563EB), size: 20.r),
-        SizedBox(height: 4.h),
-        Text(
-          value,
-          style: GoogleFonts.cairo(
-            fontSize: 13.sp,
-            fontWeight: FontWeight.w800,
-            color: const Color(0xFF0F172A),
-          ),
-        ),
-        Text(
-          label,
-          style: GoogleFonts.cairo(
-            fontSize: 10.sp,
-            color: const Color(0xFF64748B),
-          ),
-        ),
+        Icon(icon, color: NotebookColors.green, size: 20.r),
+        SizedBox(height: 6.h),
+        Text(value, style: NotebookText.strong(13.sp)),
+        SizedBox(height: 2.h),
+        Text(label, style: NotebookText.note(10.sp)),
       ],
     );
   }
@@ -276,20 +192,12 @@ class ExamStartScreen extends StatelessWidget {
       children: [
         Text(
           title,
-          style: GoogleFonts.cairo(
-            fontSize: 12.sp,
-            fontWeight: FontWeight.w800,
-            color: const Color(0xFF881337),
-          ),
+          style: NotebookText.strong(12.sp, color: NotebookColors.marginRed),
         ),
         SizedBox(height: 2.h),
         Text(
           desc,
-          style: GoogleFonts.cairo(
-            fontSize: 11.sp,
-            color: const Color(0xFF9F1239),
-            height: 1.4,
-          ),
+          style: NotebookText.body(11.sp).copyWith(height: 1.4),
         ),
       ],
     );
@@ -301,6 +209,7 @@ class ExamStartScreen extends StatelessWidget {
       builder: (context) => Directionality(
         textDirection: TextDirection.rtl,
         child: AlertDialog(
+          backgroundColor: NotebookColors.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20.r),
           ),
@@ -308,36 +217,32 @@ class ExamStartScreen extends StatelessWidget {
             children: [
               Icon(
                 Icons.warning_amber_rounded,
-                color: const Color(0xFFE11D48),
+                color: NotebookColors.marginRed,
                 size: 26.r,
               ),
               SizedBox(width: 8.w),
-              Text(
-                'تأكيد بدء الامتحان',
-                style: GoogleFonts.cairo(
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.w800,
-                  color: const Color(0xFF0F172A),
+              Expanded(
+                child: Text(
+                  'تأكيد بدء الامتحان',
+                  style: NotebookText.heading(16.sp),
                 ),
               ),
             ],
           ),
           content: Text(
             'بمجرد الضغط على "بدء"، سيبدأ التوقيت ولا يمكن إيقافه، وسيتم حظر مغادرة الشاشة وإلا سيتم تسليم إجاباتك فوراً. هل أنت جاهز؟',
-            style: GoogleFonts.cairo(
-              fontSize: 12.sp,
-              color: const Color(0xFF475569),
-              height: 1.5,
-            ),
+            style: NotebookText.body(13.sp,
+                    color: NotebookColors.pencil)
+                .copyWith(height: 1.5),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: Text(
                 'إلغاء',
-                style: GoogleFonts.cairo(
-                  color: const Color(0xFF64748B),
-                  fontWeight: FontWeight.w700,
+                style: NotebookText.strong(
+                  13.sp,
+                  color: NotebookColors.pencil,
                 ),
               ),
             ),
@@ -351,17 +256,14 @@ class ExamStartScreen extends StatelessWidget {
                 );
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFE11D48),
+                backgroundColor: NotebookColors.marginRed,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12.r),
                 ),
               ),
               child: Text(
-                'بدء الامتحان الآن 🚀',
-                style: GoogleFonts.cairo(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                ),
+                'بدء الامتحان الآن',
+                style: NotebookText.strong(13.sp, color: Colors.white),
               ),
             ),
           ],

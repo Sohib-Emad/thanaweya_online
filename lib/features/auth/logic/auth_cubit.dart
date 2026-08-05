@@ -77,6 +77,30 @@ class AuthCubit extends Cubit<AuthState> {
     emit(state.copyWith(status: AuthStatus.unauthenticated));
   }
 
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    emit(state.copyWith(status: AuthStatus.loading));
+
+    final result = await authRepo.changePassword(
+      currentPassword: currentPassword,
+      newPassword: newPassword,
+    );
+
+    result.when(
+      success: (_) {
+        emit(state.copyWith(status: AuthStatus.authenticated));
+      },
+      failure: (message, _) {
+        emit(state.copyWith(
+          status: AuthStatus.error,
+          errorMessage: message,
+        ));
+      },
+    );
+  }
+
   Future<void> resetPassword(String email) async {
     emit(state.copyWith(status: AuthStatus.loading));
 

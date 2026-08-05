@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'package:thanaweya_online/core/theme/notebook_theme.dart';
 import 'package:thanaweya_online/features/student/data/repos/student_courses_repo.dart';
 
 /// Selections returned to the caller when the user taps "تطبيق الفلترة".
@@ -67,7 +68,7 @@ class _CourseFilterScreenState extends State<CourseFilterScreen> {
         _subjects = subjects;
         _subjectsLoading = false;
       }),
-      failure: (_, __) => setState(() => _subjectsLoading = false),
+      failure: (_, _) => setState(() => _subjectsLoading = false),
     );
   }
 
@@ -92,116 +93,100 @@ class _CourseFilterScreenState extends State<CourseFilterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final count = _selectedSubjectIds.length + _selectedStages.length;
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          leading: IconButton(
-            icon: Icon(
-              Icons.arrow_back_ios_new_rounded,
-              color: const Color(0xFF0F172A),
-              size: 20.r,
-            ),
-            onPressed: () => Navigator.pop(context),
-          ),
-          centerTitle: false,
-          title: Text(
-            'تصفية النتائج',
-            style: GoogleFonts.cairo(
-              fontSize: 18.sp,
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFF0F172A),
-            ),
-          ),
+        backgroundColor: NotebookColors.ground,
+        appBar: NotebookTopBar(
+          title: 'تصفية النتائج',
+          subtitle: 'حدد مادة أو مرحلة من صفحات الدفتر',
           actions: [
             TextButton(
               onPressed: _clearAll,
               child: Text(
                 'إعادة ضبط',
-                style: GoogleFonts.cairo(
-                  fontSize: 13.sp,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF64748B),
-                ),
+                style: NotebookText.strong(13.sp, color: NotebookColors.marginRed),
               ),
             ),
-            SizedBox(width: 8.w),
+            SizedBox(width: 12.w),
           ],
         ),
         body: Stack(
           children: [
-            SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 100.h),
-              physics: const BouncingScrollPhysics(),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionTitle('المواد الدراسية:'),
-                  SizedBox(height: 10.h),
-                  if (_subjectsLoading)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 16),
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          color: Color(0xFF0FA37F),
-                        ),
-                      ),
-                    )
-                  else if (_subjects.isEmpty)
+            NotebookPaper(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(0, 16.h, 0, 110.h),
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const NotebookSectionHeader(title: 'المواد الدراسية'),
+                    SizedBox(height: 8.h),
                     Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8.h),
-                      child: Text(
-                        'لا توجد مواد متاحة حالياً',
-                        style: GoogleFonts.cairo(
-                          fontSize: 13.sp,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF94A3B8),
-                        ),
-                      ),
-                    )
-                  else
-                    ..._subjects.map(
-                      (subject) => _buildCustomCheckboxTile(
-                        label: subject['name_ar'] as String? ?? '',
-                        isSelected: _selectedSubjectIds
-                            .contains(subject['id'] as String),
-                        onChanged: (val) {
-                          setState(() {
-                            final id = subject['id'] as String;
-                            if (val) {
-                              _selectedSubjectIds.add(id);
-                            } else {
-                              _selectedSubjectIds.remove(id);
-                            }
-                          });
-                        },
-                      ),
+                      padding: EdgeInsets.symmetric(horizontal: 24.w),
+                      child: _subjectsLoading
+                          ? Padding(
+                              padding: EdgeInsets.symmetric(vertical: 16.h),
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  color: NotebookColors.green,
+                                ),
+                              ),
+                            )
+                          : _subjects.isEmpty
+                          ? Text(
+                              'لا توجد مواد متاحة حالياً',
+                              style: NotebookText.note(13.sp),
+                            )
+                          : Column(
+                              children: _subjects.map(
+                                (subject) => _buildCustomCheckboxTile(
+                                  label: subject['name_ar'] as String? ?? '',
+                                  isSelected: _selectedSubjectIds
+                                      .contains(subject['id'] as String),
+                                  onChanged: (val) {
+                                    setState(() {
+                                      final id = subject['id'] as String;
+                                      if (val) {
+                                        _selectedSubjectIds.add(id);
+                                      } else {
+                                        _selectedSubjectIds.remove(id);
+                                      }
+                                    });
+                                  },
+                                ),
+                              ).toList(),
+                            ),
                     ),
 
-                  SizedBox(height: 24.h),
+                    SizedBox(height: 22.h),
 
-                  _buildSectionTitle('المرحلة الدراسية:'),
-                  SizedBox(height: 10.h),
-                  ..._stageLabels.entries.map(
-                    (entry) => _buildCustomCheckboxTile(
-                      label: entry.value,
-                      isSelected: _selectedStages.contains(entry.key),
-                      onChanged: (val) {
-                        setState(() {
-                          if (val) {
-                            _selectedStages.add(entry.key);
-                          } else {
-                            _selectedStages.remove(entry.key);
-                          }
-                        });
-                      },
+                    const NotebookSectionHeader(title: 'المرحلة الدراسية'),
+                    SizedBox(height: 8.h),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 24.w),
+                      child: Column(
+                        children: _stageLabels.entries.map(
+                          (entry) => _buildCustomCheckboxTile(
+                            label: entry.value,
+                            isSelected: _selectedStages.contains(entry.key),
+                            onChanged: (val) {
+                              setState(() {
+                                if (val) {
+                                  _selectedStages.add(entry.key);
+                                } else {
+                                  _selectedStages.remove(entry.key);
+                                }
+                              });
+                            },
+                          ),
+                        ).toList(),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
 
@@ -211,67 +196,16 @@ class _CourseFilterScreenState extends State<CourseFilterScreen> {
               right: 20.w,
               bottom: 20.h,
               child: SafeArea(
-                child: SizedBox(
-                  height: 54.h,
-                  child: ElevatedButton(
-                    onPressed: _apply,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0FA37F),
-                      elevation: 4,
-                      shadowColor: const Color(0x330FA37F),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30.r),
-                      ),
-                      padding: EdgeInsets.symmetric(horizontal: 16.w),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const SizedBox(width: 32),
-                        Text(
-                          _selectedSubjectIds.isEmpty &&
-                                  _selectedStages.isEmpty
-                              ? 'عرض كل الدورات'
-                              : 'تطبيق الفلترة'
-                                  ' (${_selectedSubjectIds.length + _selectedStages.length})',
-                          style: GoogleFonts.cairo(
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                          ),
-                        ),
-                        Container(
-                          width: 38.r,
-                          height: 38.r,
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            Icons.arrow_back_rounded,
-                            color: const Color(0xFF0FA37F),
-                            size: 20.r,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                child: NotebookPrimaryButton(
+                  label: count == 0
+                      ? 'عرض كل الدورات'
+                      : 'تطبيق الفلترة ($count)',
+                  onPressed: _apply,
                 ),
               ),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: GoogleFonts.cairo(
-        fontSize: 15.sp,
-        fontWeight: FontWeight.w900,
-        color: const Color(0xFF0F172A),
       ),
     );
   }
@@ -288,7 +222,7 @@ class _CourseFilterScreenState extends State<CourseFilterScreen> {
       },
       behavior: HitTestBehavior.opaque,
       child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 8.h),
+        padding: EdgeInsets.symmetric(vertical: 9.h),
         child: Row(
           children: [
             AnimatedContainer(
@@ -296,12 +230,14 @@ class _CourseFilterScreenState extends State<CourseFilterScreen> {
               width: 24.r,
               height: 24.r,
               decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFF0FA37F) : Colors.white,
-                borderRadius: BorderRadius.circular(8.r),
+                color: isSelected
+                    ? NotebookColors.green
+                    : NotebookColors.surfaceBright,
+                borderRadius: BorderRadius.circular(6.r),
                 border: Border.all(
                   color: isSelected
-                      ? const Color(0xFF0FA37F)
-                      : const Color(0xFFCBD5E1),
+                      ? NotebookColors.green
+                      : NotebookColors.ink.withAlpha(50),
                   width: 1.5,
                 ),
               ),
@@ -315,13 +251,19 @@ class _CourseFilterScreenState extends State<CourseFilterScreen> {
                 label,
                 style: GoogleFonts.cairo(
                   fontSize: 13.5.sp,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
                   color: isSelected
-                      ? const Color(0xFF0F172A)
-                      : const Color(0xFF475569),
+                      ? NotebookColors.ink
+                      : NotebookColors.pencil,
                 ),
               ),
             ),
+            if (isSelected)
+              Icon(
+                Icons.push_pin_rounded,
+                color: NotebookColors.marginRed.withAlpha(160),
+                size: 15.r,
+              ),
           ],
         ),
       ),

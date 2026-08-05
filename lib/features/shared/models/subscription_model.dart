@@ -11,7 +11,6 @@ class SubscriptionModel with _$SubscriptionModel {
     required String id,
     @JsonKey(name: 'student_id') required String studentId,
     @JsonKey(name: 'teacher_id') required String teacherId,
-    @JsonKey(name: 'activation_code_id') String? activationCodeId,
     required SubscriptionStatus status,
     @JsonKey(name: 'starts_at') required DateTime startsAt,
     @JsonKey(name: 'expires_at') DateTime? expiresAt,

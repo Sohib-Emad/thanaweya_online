@@ -81,28 +81,6 @@ class StudentOnboardingCubit extends Cubit<StudentOnboardingState> {
     );
   }
 
-  Future<void> activateSubscription({
-    required String studentId,
-    String? teacherId,
-    required String activationCode,
-  }) async {
-    emit(state.copyWith(activationStatus: StudentOnboardingStatus.loading));
-    final result = await _repo.activateSubscription(
-      studentId: studentId,
-      teacherId: teacherId,
-      activationCode: activationCode,
-    );
-    result.when(
-      success: (_) => emit(state.copyWith(
-        activationStatus: StudentOnboardingStatus.loaded,
-      )),
-      failure: (message, _) => emit(state.copyWith(
-        activationStatus: StudentOnboardingStatus.error,
-        activationError: message,
-      )),
-    );
-  }
-
   Future<void> loadSubscriptions(String studentId) async {
     emit(state.copyWith(subscriptionsStatus: StudentOnboardingStatus.loading));
     final result = await _repo.getSubscriptions(studentId);

@@ -241,6 +241,82 @@ class StudentCoursesRepo {
     }
   }
 
+  /// All published courses of approved teachers, enriched with teacher name,
+  /// subject name and lesson counts. Not restricted to the student's
+  /// subscriptions.
+  Future<ApiResult<List<Map<String, dynamic>>>> getPopularCourses() async {
+    try {
+      final teacherRows = await _client
+          .from('teachers')
+          .select('id, subject_id, stage')
+          .eq('approval_status', 'approved');
+
+      if (teacherRows.isEmpty) return const ApiResult.success([]);
+
+      final teacherIds = teacherRows.map((t) => t['id'] as String).toList();
+
+      final coursesData = await _client
+          .from('courses')
+          .select('''
+            id, teacher_id, title, description, cover_image_url, is_published, "order", created_at, updated_at,
+            lessons(count)
+          ''')
+          .inFilter('teacher_id', teacherIds)
+          .eq('is_published', true)
+          .order('order');
+
+      if (coursesData.isEmpty) return const ApiResult.success([]);
+
+      final userRows = await _client
+          .from('users')
+          .select('id, full_name, avatar_url')
+          .inFilter('id', teacherIds);
+
+      final subjectIds = teacherRows
+          .map((t) => t['subject_id'] as String)
+          .toSet()
+          .toList();
+
+      var subjectRows = <Map<String, dynamic>>[];
+      if (subjectIds.isNotEmpty) {
+        subjectRows = await _client
+            .from('subjects')
+            .select('id, name_ar')
+            .inFilter('id', subjectIds);
+      }
+
+      final usersMap = {
+        for (final u in userRows) u['id'] as String: u,
+      };
+      final teachersMap = {
+        for (final t in teacherRows) t['id'] as String: t,
+      };
+      final subjectsMap = {
+        for (final s in subjectRows) s['id'] as String: s,
+      };
+
+      final result = <Map<String, dynamic>>[];
+      for (final course in coursesData) {
+        final teacherId = course['teacher_id'] as String;
+        final teacher = teachersMap[teacherId] ?? {};
+        final subjectId = teacher['subject_id'];
+        result.add({
+          ...course,
+          'teacher_name':
+              (usersMap[teacherId]?['full_name'] as String?) ?? 'مدرس',
+          'subject_name':
+              subjectId != null ? (subjectsMap[subjectId]?['name_ar'] as String?) ?? '' : '',
+          'subject_id': subjectId,
+          'stage': teacher['stage'],
+        });
+      }
+
+      return ApiResult.success(result);
+    } catch (e) {
+      return ApiErrorHandler.handleException(e);
+    }
+  }
+
   /// Single published course with its teacher + subject info.
   Future<ApiResult<Map<String, dynamic>?>> getCourse(String courseId) async {
     try {

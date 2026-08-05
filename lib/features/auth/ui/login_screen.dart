@@ -8,6 +8,8 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/constants/app_text_styles.dart';
 import '../../../core/router/app_router.dart';
+import '../../shared/models/user_model.dart';
+import '../../teacher/data/repos/teacher_profile_repo.dart';
 import '../data/repos/auth_repo.dart';
 import '../logic/auth_cubit.dart';
 import '../logic/auth_state.dart' as local;
@@ -145,16 +147,32 @@ class _LoginScreenState extends State<LoginScreen> {
                     SizedBox(height: 20.h),
 
                     BlocConsumer<AuthCubit, local.AuthState>(
-                      listener: (context, state) {
+                      listener: (context, state) async {
                         switch (state.status) {
                           case local.AuthStatus.authenticated:
                             final user = _authCubit.authRepo
                                 .getCurrentUserModel();
                             if (user != null) {
-                              Navigator.pushReplacementNamed(
-                                context,
-                                AppRouter.homeForRole(user.role),
-                              );
+                              if (user.role == UserRole.teacher) {
+                                final result = await TeacherProfileRepo()
+                                    .getApprovalStatus(user.id);
+                                final approved = result.when(
+                                  success: (status) => status == 'approved',
+                                  failure: (_, _) => false,
+                                );
+                                if (!context.mounted) return;
+                                Navigator.pushReplacementNamed(
+                                  context,
+                                  approved
+                                      ? AppRouter.teacherHome
+                                      : AppRouter.teacherPending,
+                                );
+                              } else {
+                                Navigator.pushReplacementNamed(
+                                  context,
+                                  AppRouter.homeForRole(user.role),
+                                );
+                              }
                             }
                             break;
                           case local.AuthStatus.error:

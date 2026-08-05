@@ -1,3 +1,24 @@
+// ────────────────────────────────────────────────────────────
+// DIRECTION CONTRACT — طالب · الدفتر (ruled school notebook)
+// THESIS: The home tab is the student's own ruled exercise book — cream
+//   ruled-paper ground, a red margin down the page, headings written like
+//   notebook titles. It refuses the marketplace-hero rut: no gradient promo
+//   slabs or stock course grid.
+// OWN-WORLD: cream paper + faint blue ruling + classic red margin; deep pen
+//   ink text, pencil-gray secondary, mint green as highlighter ink, yellow
+//   for important notes; a red خصم stamp for offers; margin tabs carry
+//   subjects.
+// STORY: A student opens their دفتر, reads the greeting line, taps a subject
+//   margin tab, and sees only their courses; each course is a ruled summary
+//   page with the teacher's signature and a marker underline.
+// FIRST VIEWPORT: masthead (ثانوية أونلاين · دفتر الطالب) over the greeting,
+//   a ruled-line search, the yellow "عرض اليوم" note with its red stamp,
+//   subject margin tabs, then the courses page and teacher signatures.
+// FORM: Grounded direction #6 (الدفتر), dealt by concept-seed key a98532b3.
+// FINISH: unreviewed and undocumented is unfinished; this build ends with the
+//   finish review, the verdict, and DESIGN.md.
+// ────────────────────────────────────────────────────────────
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -5,8 +26,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'package:thanaweya_online/core/constants/app_colors.dart';
 import 'package:thanaweya_online/core/router/app_router.dart';
+import 'package:thanaweya_online/core/theme/notebook_theme.dart';
 import 'package:thanaweya_online/features/student/data/repos/student_courses_repo.dart';
 import 'package:thanaweya_online/features/student/logic/student_courses_cubit.dart';
 import 'package:thanaweya_online/features/student/ui/courses/course_filter_screen.dart';
@@ -24,8 +45,6 @@ class StudentHomeScreen extends StatefulWidget {
 
 class _StudentHomeScreenState extends State<StudentHomeScreen> {
   int _currentIndex = 0;
-  late final PageController _adPageController;
-  int _activeAdIndex = 0;
   final TextEditingController _searchController = TextEditingController();
   late final StudentCoursesCubit _coursesCubit;
   String _firstName = 'طالب';
@@ -44,13 +63,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
   Color _colorFor(String key) =>
       _palette[key.hashCode.abs() % _palette.length];
 
-  List<Map<String, dynamic>> get _subjectCategories =>
-      _coursesCubit.state.subjects
-          .map((s) => {'title': s['name_ar']})
-          .toList();
-
   List<Map<String, dynamic>> get _studentEnrolledCourses =>
-      _coursesCubit.state.myCourses
+      _coursesCubit.state.popularCourses
           .where((c) {
             if (_homeSubjectFilter != 'الكل' &&
                 c['subject_name'] != _homeSubjectFilter) {
@@ -67,6 +81,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
               'title': c['title'],
               'teacher': c['teacher_name'],
               'subject': c['subject_name'],
+              'cover': c['cover_image_url'],
+              'stage': c['stage'],
               'color': _colorFor(c['id'] as String),
             };
           })
@@ -74,9 +90,9 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
 
   List<Map<String, dynamic>> get _popularTeachersList =>
       _coursesCubit.state.approvedTeachers.map((t) {
-        final name = (t['users'] as Map<String, dynamic>?)?['full_name']
-                as String? ??
-            '';
+        final users = t['users'] as Map<String, dynamic>?;
+        final name =
+            users?['full_name'] as String? ?? '';
         final subject =
             (t['subjects'] as Map<String, dynamic>?)?['name_ar'] as String? ??
                 '';
@@ -84,16 +100,16 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           'id': t['id'],
           'name': 'أ. $name',
           'subject': subject,
+          'avatarUrl': users?['avatar_url'] as String?,
           'bgColor': _colorFor(t['id'] as String).withAlpha(40),
           'initials': name.isNotEmpty ? name[0] : 'م',
-          'textColor': const Color(0xFF0F172A),
+          'textColor': const Color(0xFF1B2530),
         };
       }).toList();
 
   @override
   void initState() {
     super.initState();
-    _adPageController = PageController(viewportFraction: 0.94);
     _coursesCubit = StudentCoursesCubit(repo: StudentCoursesRepo());
     final user = Supabase.instance.client.auth.currentUser;
     _firstName =
@@ -102,6 +118,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     if (userId != null) {
       _coursesCubit.loadSubscribedTeachers(userId);
       _coursesCubit.loadMyCourses(userId);
+      _coursesCubit.loadPopularCourses();
       _coursesCubit.loadApprovedTeachers();
       _coursesCubit.loadSubjects();
     }
@@ -109,7 +126,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
 
   @override
   void dispose() {
-    _adPageController.dispose();
     _searchController.dispose();
     _coursesCubit.close();
     super.dispose();
@@ -120,7 +136,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
+        backgroundColor: NotebookColors.ground,
         body: SafeArea(
           bottom: false,
           child: IndexedStack(
@@ -142,94 +158,112 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     );
   }
 
-  // ─── TAB 0: HOME DASHBOARD ───
+  // ─── TAB 0: HOME DASHBOARD — دفتر الطالب ───
   Widget _buildHomeDashboardTab(BuildContext context) {
-    return Container(
-      color: Colors.white,
-      child: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.only(bottom: 20),
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      child: NotebookPaper(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── 1. Header ──
+            // ── 1. Masthead + Greeting ──
             Padding(
-              padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              padding: EdgeInsets.fromLTRB(24.w, 18.h, 24.w, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  Row(
                     children: [
                       Text(
-                        'مرحباً بك، $_firstName 👋',
-                        style: GoogleFonts.cairo(
-                          fontSize: 20.sp,
-                          fontWeight: FontWeight.w900,
-                          color: const Color(0xFF0F172A),
-                        ),
-                      ),
-                      Text(
-                        'ما الذي تريد تعلمه اليوم؟',
+                        'ثانوية أونلاين',
                         style: GoogleFonts.cairo(
                           fontSize: 12.sp,
-                          color: const Color(0xFF64748B),
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w900,
+                          color: NotebookColors.green,
                         ),
+                      ),
+                      SizedBox(width: 10.w),
+                      Container(
+                        width: 1,
+                        height: 12.h,
+                        color: NotebookColors.ink.withAlpha(45),
+                      ),
+                      SizedBox(width: 10.w),
+                      Text(
+                        'دفتر الطالب',
+                        style: NotebookText.note(12.sp),
                       ),
                     ],
                   ),
-                  GestureDetector(
-                    onTap: () =>
-                        Navigator.pushNamed(context, AppRouter.notifications),
-                    child: Container(
-                      width: 40.r,
-                      height: 40.r,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFECFDF5),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: const Color(0xFF0FA37F).withAlpha(60),
+                  SizedBox(height: 14.h),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'مرحباً بك، $_firstName 👋',
+                              style: NotebookText.heading(21.sp),
+                            ),
+                            SizedBox(height: 3.h),
+                            Text(
+                              'ما الذي تريد تعلمه اليوم؟',
+                              style: NotebookText.note(12.sp),
+                            ),
+                          ],
                         ),
                       ),
-                      child: Icon(
-                        Icons.notifications_none_rounded,
-                        color: const Color(0xFF0FA37F),
-                        size: 20.r,
+                      // Notifications — a red margin-note bell
+                      GestureDetector(
+                        onTap: () =>
+                            Navigator.pushNamed(context, AppRouter.notifications),
+                        child: Container(
+                          width: 40.r,
+                          height: 40.r,
+                          decoration: BoxDecoration(
+                            color: NotebookColors.surfaceBright,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: NotebookColors.marginRed.withAlpha(120),
+                              width: 1.4,
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.notifications_none_rounded,
+                            color: NotebookColors.marginRed,
+                            size: 20.r,
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ],
               ),
             ),
 
-            SizedBox(height: 18.h),
+            SizedBox(height: 20.h),
 
-            // ── 2. Search Bar (Unified Container) ──
+            // ── 2. Search — a ruled line to write on ──
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.w),
+              padding: EdgeInsets.symmetric(horizontal: 24.w),
               child: Row(
                 children: [
-                  SizedBox(width: 14.w),
                   Icon(
                     Icons.search_rounded,
-                    color: const Color(0xFF94A3B8),
-                    size: 22.r,
+                    color: NotebookColors.pencil,
+                    size: 20.r,
                   ),
                   SizedBox(width: 10.w),
                   Expanded(
                     child: TextField(
                       controller: _searchController,
-                      style: GoogleFonts.cairo(
-                        fontSize: 13.sp,
-                        color: const Color(0xFF0F172A),
-                      ),
+                      style: NotebookText.body(13.sp),
                       decoration: InputDecoration(
                         hintText: 'ابحث عن مادة أو دورة أو مدرس...',
-                        hintStyle: GoogleFonts.cairo(
-                          fontSize: 12.sp,
-                          color: const Color(0xFF94A3B8),
-                        ),
+                        hintStyle: NotebookText.note(12.sp)
+                            .copyWith(color: NotebookColors.pencil.withAlpha(180)),
                         border: InputBorder.none,
                         isDense: true,
                       ),
@@ -246,1601 +280,314 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                       setState(() => _homeFilters = result);
                     },
                     child: Container(
-                      margin: EdgeInsets.all(4.r),
                       width: 40.r,
                       height: 40.r,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF0FA37F),
-                        borderRadius: BorderRadius.circular(12.r),
+                        color: NotebookColors.surfaceBright,
+                        borderRadius: BorderRadius.circular(8.r),
+                        border: Border.all(
+                          color: NotebookColors.marginRed.withAlpha(140),
+                          width: 1.4,
+                        ),
                       ),
                       child: Icon(
                         Icons.tune_rounded,
-                        color: Colors.white,
-                        size: 20.r,
+                        color: NotebookColors.marginRed,
+                        size: 18.r,
                       ),
                     ),
                   ),
                 ],
               ),
             ),
-
-            SizedBox(height: 20.h),
-
-            // ── 3. Promo Banner ──
+            // the ruled underline beneath the search line
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.w),
-              child: GestureDetector(
-                onTap: () {},
-                child: Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF0FA37F), Color(0xFF047857)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+              padding: EdgeInsets.fromLTRB(24.w, 0, 24.w, 0),
+              child: Container(
+                height: 1.4,
+                color: NotebookColors.ink.withAlpha(70),
+              ),
+            ),
+
+            SizedBox(height: 22.h),
+
+            // ── 3. Promo — a highlighted study note with a خصم stamp ──
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24.w),
+              child: Container(
+                width: double.infinity,
+                padding: EdgeInsets.all(16.r),
+                decoration: BoxDecoration(
+                  color: NotebookColors.surfaceBright,
+                  borderRadius: BorderRadius.circular(10.r),
+                  border: Border.all(color: NotebookColors.ink.withAlpha(35)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: NotebookColors.ink.withAlpha(14),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
                     ),
-                    borderRadius: BorderRadius.circular(18.r),
-                  ),
-                  child: Stack(
-                    children: [
-                      // decorative circles
-                      Positioned(
-                        right: -20,
-                        top: -20,
-                        child: Container(
-                          width: 110,
-                          height: 110,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white.withAlpha(20),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const NotebookStamp(label: 'خصم 25%'),
+                        SizedBox(width: 12.w),
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 8.w,
+                            vertical: 4.h,
+                          ),
+                          color: NotebookColors.highlighter,
+                          child: Text(
+                            'عرض اليوم الخاص!',
+                            style: NotebookText.heading(15.sp),
                           ),
                         ),
-                      ),
-                      Positioned(
-                        right: 30,
-                        bottom: -30,
-                        child: Container(
-                          width: 80,
-                          height: 80,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white.withAlpha(15),
-                          ),
-                        ),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.all(16.r),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 10.w,
-                                vertical: 3.h,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withAlpha(40),
-                                borderRadius: BorderRadius.circular(20.r),
-                              ),
-                              child: Text(
-                                'خصم 25% على جميع الكورسات',
-                                style: GoogleFonts.cairo(
-                                  fontSize: 10.sp,
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                            SizedBox(height: 8.h),
-                            Text(
-                              'عرض اليوم الخاص!',
-                              style: GoogleFonts.cairo(
-                                fontSize: 18.sp,
-                                fontWeight: FontWeight.w900,
-                                color: Colors.white,
-                                height: 1.2,
-                              ),
-                            ),
-                            SizedBox(height: 4.h),
-                            Text(
-                              'اشترك الآن واحصل على خصم على\nأي كورس لمدة محدودة',
-                              style: GoogleFonts.cairo(
-                                fontSize: 11.sp,
-                                color: Colors.white.withAlpha(210),
-                                fontWeight: FontWeight.w500,
-                                height: 1.4,
-                              ),
-                            ),
-                            SizedBox(height: 10.h),
-                            Container(
-                              width: 6.r,
-                              height: 6.r,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFFFBBF24),
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
+                    SizedBox(height: 10.h),
+                    Text(
+                      'اشترك الآن واحصل على خصم على أي كورس لمدة محدودة',
+                      style: NotebookText.note(11.sp),
+                    ),
+                  ],
                 ),
               ),
             ),
 
-            SizedBox(height: 24.h),
+            SizedBox(height: 26.h),
 
-            // ── 4. Categories ──
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.w),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'المواد الدراسية',
-                    style: GoogleFonts.cairo(
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF0F172A),
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () {},
-                    style: TextButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    child: Row(
-                      children: [
-                        Text(
-                          'الكل',
-                          style: GoogleFonts.cairo(
-                            fontSize: 12.sp,
-                            color: const Color(0xFF0FA37F),
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        Icon(
-                          Icons.chevron_left_rounded,
-                          color: const Color(0xFF0FA37F),
-                          size: 16.r,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            // ── 4. Popular Courses — ruled summary pages ──
+            NotebookSectionHeader(title: 'الكورسات الشائعة', onAction: () {
+              setState(() => _homeSubjectFilter = 'الكل');
+            }),
             SizedBox(height: 12.h),
-            SizedBox(
-              height: 36.h,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                padding: EdgeInsets.symmetric(horizontal: 20.w),
-                itemCount: _subjectCategories.length,
-                separatorBuilder: (_, __) => SizedBox(width: 10.w),
-                itemBuilder: (context, index) {
-                  final cat = _subjectCategories[index];
-                  final isFirst = index == 0;
-                  return GestureDetector(
-                    onTap: () {},
-                    child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 16.w),
-                      decoration: BoxDecoration(
-                        color: isFirst
-                            ? const Color(0xFF0FA37F)
-                            : const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(20.r),
-                        border: Border.all(
-                          color: isFirst
-                              ? const Color(0xFF0FA37F)
-                              : const Color(0xFFE2E8F0),
-                        ),
-                      ),
-                      child: Center(
-                        child: Text(
-                          cat['title'] as String,
-                          style: GoogleFonts.cairo(
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w700,
-                            color: isFirst
-                                ? Colors.white
-                                : const Color(0xFF475569),
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
 
-            SizedBox(height: 24.h),
-
-            // ── 5. Popular Courses ──
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.w),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'الكورسات الشائعة',
-                    style: GoogleFonts.cairo(
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF0F172A),
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () {},
-                    style: TextButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    child: Row(
-                      children: [
-                        Text(
-                          'الكل',
-                          style: GoogleFonts.cairo(
-                            fontSize: 12.sp,
-                            color: const Color(0xFF0FA37F),
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        Icon(
-                          Icons.chevron_left_rounded,
-                          color: const Color(0xFF0FA37F),
-                          size: 16.r,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(height: 12.h),
-            // Filter chips
+            // Filter chips (highlighter chips)
             SizedBox(
               height: 34.h,
               child: ListView(
                 scrollDirection: Axis.horizontal,
-                padding: EdgeInsets.symmetric(horizontal: 20.w),
+                padding: EdgeInsets.symmetric(horizontal: 24.w),
                 children: [
                   'الكل',
                   ..._coursesCubit.state.subjects
                       .map((s) => s['name_ar'] as String),
                 ].map((label) {
-                  final selected = _homeSubjectFilter == label;
-                  return GestureDetector(
+                  return NotebookChip(
+                    label: label,
+                    selected: _homeSubjectFilter == label,
                     onTap: () =>
                         setState(() => _homeSubjectFilter = label),
-                    child: Container(
-                      margin: EdgeInsets.only(left: 8.w),
-                      padding: EdgeInsets.symmetric(horizontal: 16.w),
-                      decoration: BoxDecoration(
-                        color: selected
-                            ? const Color(0xFF0FA37F)
-                            : const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(20.r),
-                        border: Border.all(
-                          color: selected
-                              ? const Color(0xFF0FA37F)
-                              : const Color(0xFFE2E8F0),
-                        ),
-                      ),
-                      child: Center(
-                        child: Text(
-                          label,
-                          style: GoogleFonts.cairo(
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w700,
-                            color: selected
-                                ? Colors.white
-                                : const Color(0xFF475569),
-                          ),
-                        ),
-                      ),
-                    ),
                   );
                 }).toList(),
               ),
             ),
             if (_homeFilters != null && _homeFilters!.isActive)
-              Padding(
-                padding: EdgeInsets.fromLTRB(20.w, 6.h, 20.w, 0),
-                child: Container(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE6F7F2),
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.filter_alt_rounded,
-                        color: const Color(0xFF0FA37F),
-                        size: 16.r,
-                      ),
-                      SizedBox(width: 8.w),
-                      Expanded(
-                        child: Text(
-                          'تم التصفية: ${_studentEnrolledCourses.length} دورة',
-                          style: GoogleFonts.cairo(
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w700,
-                            color: const Color(0xFF0F766E),
-                          ),
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: () => setState(() => _homeFilters = null),
-                        child: Text(
-                          'مسح',
-                          style: GoogleFonts.cairo(
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xFF0FA37F),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            SizedBox(height: 14.h),
-            // Course cards (horizontal scroll)
-            SizedBox(
-              height: 210.h,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                padding: EdgeInsets.symmetric(horizontal: 20.w),
-                itemCount: _studentEnrolledCourses.length,
-                separatorBuilder: (_, __) => SizedBox(width: 14.w),
-                itemBuilder: (context, index) {
-                  final course = _studentEnrolledCourses[index];
-                  final title = course['title'] as String;
-                  final teacher = course['teacher'] as String;
-                  final subject = (course['subject'] as String)
-                      .replaceAll(RegExp(r'[^\w\s\u0600-\u06FF]'), '')
-                      .trim();
-                  final color = course['color'] as Color;
-                  return GestureDetector(
-                    onTap: () => Navigator.pushNamed(
-                      context,
-                      AppRouter.studentCourseDetails,
-                      arguments: course['id'],
-                    ),
-                    child: Container(
-                      width: 170.w,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16.r),
-                        border: Border.all(color: const Color(0xFFF1F5F9)),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x08000000),
-                            blurRadius: 12,
-                            offset: Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Thumbnail
-                          Container(
-                            height: 100.h,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.vertical(
-                                top: Radius.circular(16.r),
-                              ),
-                              color: color.withAlpha(30),
-                            ),
-                            child: Center(
-                              child: Icon(
-                                Icons.play_circle_outline_rounded,
-                                color: color,
-                                size: 40.r,
-                              ),
-                            ),
-                          ),
-                          Padding(
-                            padding: EdgeInsets.all(10.r),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      subject,
-                                      style: GoogleFonts.cairo(
-                                        fontSize: 10.sp,
-                                        fontWeight: FontWeight.w700,
-                                        color: color,
-                                      ),
-                                    ),
-                                    GestureDetector(
-                                      onTap: () => Navigator.pushNamed(
-                                        context,
-                                        AppRouter.studentBookmarks,
-                                      ),
-                                      child: Icon(
-                                        Icons.bookmark_border_rounded,
-                                        size: 16.r,
-                                        color: const Color(0xFF94A3B8),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                SizedBox(height: 4.h),
-                                Text(
-                                  title,
-                                  style: GoogleFonts.cairo(
-                                    fontSize: 12.sp,
-                                    fontWeight: FontWeight.w800,
-                                    color: const Color(0xFF0F172A),
-                                  ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                SizedBox(height: 6.h),
-                                Row(
-                                  children: [
-                                    Text(
-                                      '150 جنيه',
-                                      style: GoogleFonts.cairo(
-                                        fontSize: 11.sp,
-                                        fontWeight: FontWeight.w900,
-                                        color: const Color(0xFF0F172A),
-                                      ),
-                                    ),
-                                    SizedBox(width: 6.w),
-                                    Icon(
-                                      Icons.star_rounded,
-                                      color: const Color(0xFFFBBF24),
-                                      size: 13.r,
-                                    ),
-                                    Text(
-                                      ' 4.8',
-                                      style: GoogleFonts.cairo(
-                                        fontSize: 10.sp,
-                                        color: const Color(0xFF64748B),
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                    SizedBox(width: 4.w),
-                                    Text(
-                                      '| ${teacher.split('.').last.trim()}',
-                                      style: GoogleFonts.cairo(
-                                        fontSize: 10.sp,
-                                        color: const Color(0xFF94A3B8),
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-
-            SizedBox(height: 24.h),
-
-            // ── 6. Top Mentors ──
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.w),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'أفضل المدرسين',
-                    style: GoogleFonts.cairo(
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF0F172A),
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () {},
-                    style: TextButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    child: Row(
-                      children: [
-                        Text(
-                          'الكل',
-                          style: GoogleFonts.cairo(
-                            fontSize: 12.sp,
-                            color: const Color(0xFF0FA37F),
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        Icon(
-                          Icons.chevron_left_rounded,
-                          color: const Color(0xFF0FA37F),
-                          size: 16.r,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(height: 12.h),
-            SizedBox(
-              height: 110.h,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                padding: EdgeInsets.symmetric(horizontal: 20.w),
-                itemCount: _popularTeachersList.length,
-                separatorBuilder: (_, __) => SizedBox(width: 16.w),
-                itemBuilder: (context, index) {
-                  final teacher = _popularTeachersList[index];
-                  final name = teacher['name'] as String;
-                  final initials = teacher['initials'] as String;
-                  final bgColor = teacher['bgColor'] as Color;
-                  final textColor =
-                      teacher['textColor'] as Color? ?? const Color(0xFF0F172A);
-                  final firstName = name.replaceAll('أ. ', '').split(' ').first;
-                  return GestureDetector(
-                    onTap: () => Navigator.pushNamed(
-                      context,
-                      AppRouter.studentTeacherPage,
-                      arguments: {
-                        'teacherId': teacher['id'],
-                        'title': teacher['name'],
-                      },
-                    ),
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 62.r,
-                          height: 62.r,
-                          decoration: BoxDecoration(
-                            color: bgColor,
-                            borderRadius: BorderRadius.circular(16.r),
-                          ),
-                          child: Center(
-                            child: Text(
-                              initials,
-                              style: GoogleFonts.cairo(
-                                fontSize: 22.sp,
-                                fontWeight: FontWeight.w900,
-                                color: textColor,
-                              ),
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 8.h),
-                        Text(
-                          firstName,
-                          style: GoogleFonts.cairo(
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w700,
-                            color: const Color(0xFF0F172A),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
-
-            SizedBox(height: 16.h),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEnrolledCoursesProgressSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Text(
-                'الكورسات الحالية',
-                style: GoogleFonts.cairo(
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.w800,
-                  color: const Color(0xFF0F172A),
-                ),
-              ),
-            ),
-            Text(
-              '${_studentEnrolledCourses.length} دورات نشطة',
-              style: GoogleFonts.cairo(
-                fontSize: 12.sp,
-                fontWeight: FontWeight.w700,
-                color: const Color(0xFF0FA37F),
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 12.h),
-
-        ListView.separated(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: _studentEnrolledCourses.length,
-          separatorBuilder: (_, __) => SizedBox(height: 12.h),
-          itemBuilder: (context, index) {
-            final course = _studentEnrolledCourses[index];
-            final title = course['title'] as String;
-            final teacher = course['teacher'] as String;
-            final subject = (course['subject'] as String)
-                .replaceAll(RegExp(r'[^\w\s\u0600-\u06FF]'), '')
-                .trim();
-            final progress = course['progress'] as double;
-            final progressPercent = course['progressPercent'] as String;
-            final completedLessons = course['completedLessons'] as String;
-            final color = course['color'] as Color;
-
-            return Container(
-              padding: EdgeInsets.all(16.r),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(18.r),
-                border: Border.all(color: const Color(0xFFF1F5F9)),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x040F172A),
-                    blurRadius: 10,
-                    offset: Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 8.w,
-                          vertical: 3.h,
-                        ),
-                        decoration: BoxDecoration(
-                          color: color.withAlpha(20),
-                          borderRadius: BorderRadius.circular(8.r),
-                        ),
-                        child: Text(
-                          subject,
-                          style: GoogleFonts.cairo(
-                            fontSize: 11.sp,
-                            fontWeight: FontWeight.w800,
-                            color: color,
-                          ),
-                        ),
-                      ),
-                      Text(
-                        teacher,
-                        style: GoogleFonts.cairo(
-                          fontSize: 12.sp,
-                          color: const Color(0xFF64748B),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 8.h),
-
-                  Text(
-                    title,
-                    style: GoogleFonts.cairo(
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF0F172A),
-                    ),
-                  ),
-                  SizedBox(height: 12.h),
-
-                  // Progress Bar & Percentage
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'تم إنهاء $completedLessons',
-                        style: GoogleFonts.cairo(
-                          fontSize: 11.sp,
-                          color: const Color(0xFF64748B),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      Text(
-                        progressPercent,
-                        style: GoogleFonts.cairo(
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.w800,
-                          color: color,
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 6.h),
-
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8.r),
-                    child: LinearProgressIndicator(
-                      value: progress,
-                      minHeight: 6.h,
-                      backgroundColor: const Color(0xFFF1F5F9),
-                      valueColor: AlwaysStoppedAnimation<Color>(color),
-                    ),
-                  ),
-                  SizedBox(height: 12.h),
-
-                  // Continue Learning Button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 40.h,
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        HapticFeedback.lightImpact();
-                        Navigator.pushNamed(
-                          context,
-                          AppRouter.studentVideoPlayer,
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: color,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12.r),
-                        ),
-                      ),
-                      icon: Icon(
-                        Icons.play_arrow_rounded,
-                        color: Colors.white,
-                        size: 20.r,
-                      ),
-                      label: Text(
-                        'متابعة الدراسة',
-                        style: GoogleFonts.cairo(
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
-      ],
-    );
-  }
-
-  // ─── LINKEDIN LEARNING STYLE HELPER WIDGETS ───
-
-  // Featured Hero Card (Like LinkedIn Featured Card in screenshot)
-  Widget _buildLinkedInFeaturedCard() {
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        Navigator.pushNamed(context, AppRouter.studentVideoPlayer);
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x040F172A),
-              blurRadius: 8,
-              offset: Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Thumbnail graphic box with Featured pill badge
-            Container(
-              height: 120.h,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: const Color(0xFF0F172A),
-                borderRadius: BorderRadius.vertical(top: Radius.circular(12.r)),
-              ),
-              child: Stack(
-                children: [
-                  Positioned(
-                    top: 12.h,
-                    right: 12.w,
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 8.w,
-                        vertical: 3.h,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(4.r),
-                      ),
-                      child: Text(
-                        'دورة مميزة • FEATURED',
-                        style: GoogleFonts.cairo(
-                          fontSize: 10.sp,
-                          fontWeight: FontWeight.w800,
-                          color: const Color(0xFF0FA37F),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Center(
-                    child: Icon(
-                      Icons.play_circle_outline_rounded,
-                      color: Colors.white.withAlpha(200),
-                      size: 48.r,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.all(14.r),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'الفيزياء الكهربية وتطبيقات كيرشوف في الثانوية العامة',
-                    style: GoogleFonts.cairo(
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF0F172A),
-                    ),
-                  ),
-                  SizedBox(height: 4.h),
-                  Text(
-                    'أستاذ محمد علي • مجهّزة وفق نظام البوكليت الحديث',
-                    style: GoogleFonts.cairo(
-                      fontSize: 11.sp,
-                      color: const Color(0xFF64748B),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Recommended Courses Section (Trending for your grade)
-  Widget _buildLinkedInRecommendedSection() {
-    final List<Map<String, dynamic>> recommended = [
-      {
-        'title': 'التفاضل والتكامل والشحنات التفاضلية',
-        'teacher': 'أستاذة سارة أحمد',
-        'badge': 'شائع • POPULAR',
-        'duration': '14 درس • 4.5 ساعة',
-        'color': const Color(0xFF2563EB),
-      },
-      {
-        'title': 'الكيمياء العضوية ومجموعات الألكان',
-        'teacher': 'أستاذ بول سايمونز',
-        'badge': 'جديد • NEW',
-        'duration': '10 دروس • 3 ساعات',
-        'color': const Color(0xFF7C3AED),
-      },
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'موصى به لصفك الدراسي (Recommended)',
-              style: GoogleFonts.cairo(
-                fontSize: 15.sp,
-                fontWeight: FontWeight.w800,
-                color: const Color(0xFF0F172A),
-              ),
-            ),
-            GestureDetector(
-              onTap: () {
-                HapticFeedback.lightImpact();
-                setState(() => _currentIndex = 1);
-              },
-              child: Text(
-                'عرض الكل',
-                style: GoogleFonts.cairo(
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF0FA37F),
-                ),
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 12.h),
-        SizedBox(
-          height: 175.h,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            itemCount: recommended.length,
-            separatorBuilder: (_, __) => SizedBox(width: 12.w),
-            itemBuilder: (context, index) {
-              final item = recommended[index];
-              return GestureDetector(
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  Navigator.pushNamed(context, AppRouter.studentVideoPlayer);
-                },
-                child: Container(
-                  width: 200.w,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10.r),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        height: 80.h,
-                        decoration: BoxDecoration(
-                          color: (item['color'] as Color).withAlpha(30),
-                          borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(10.r),
-                          ),
-                        ),
-                        child: Center(
-                          child: Icon(
-                            Icons.movie_creation_outlined,
-                            color: item['color'] as Color,
-                            size: 32.r,
-                          ),
-                        ),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.all(10.r),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              item['badge'] as String,
-                              style: GoogleFonts.cairo(
-                                fontSize: 9.sp,
-                                fontWeight: FontWeight.w800,
-                                color: item['color'] as Color,
-                              ),
-                            ),
-                            SizedBox(height: 2.h),
-                            Text(
-                              item['title'] as String,
-                              style: GoogleFonts.cairo(
-                                fontSize: 11.sp,
-                                fontWeight: FontWeight.w800,
-                                color: const Color(0xFF0F172A),
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            SizedBox(height: 4.h),
-                            Text(
-                              item['duration'] as String,
-                              style: GoogleFonts.cairo(
-                                fontSize: 10.sp,
-                                color: const Color(0xFF64748B),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  // Experts / Popular Teachers Section (Content by Experts)
-  Widget _buildLinkedInExpertsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'خبراء ومدرسو المادة (Content by Experts)',
-          style: GoogleFonts.cairo(
-            fontSize: 15.sp,
-            fontWeight: FontWeight.w800,
-            color: const Color(0xFF0F172A),
-          ),
-        ),
-        SizedBox(height: 12.h),
-        SizedBox(
-          height: 110.h,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            itemCount: _popularTeachersList.length,
-            separatorBuilder: (_, __) => SizedBox(width: 12.w),
-            itemBuilder: (context, index) {
-              final t = _popularTeachersList[index];
-              return GestureDetector(
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  Navigator.pushNamed(context, AppRouter.studentTeacherPage);
-                },
-                child: Container(
-                  width: 100.w,
-                  padding: EdgeInsets.all(10.r),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10.r),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircleAvatar(
-                        radius: 20.r,
-                        backgroundColor: t['bgColor'] as Color,
-                        child: Text(
-                          t['initials'] as String,
-                          style: GoogleFonts.cairo(
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w800,
-                            color:
-                                (t['textColor'] as Color?) ??
-                                const Color(0xFF0F172A),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 6.h),
-                      Text(
-                        t['name'] as String,
-                        style: GoogleFonts.cairo(
-                          fontSize: 10.sp,
-                          fontWeight: FontWeight.w800,
-                          color: const Color(0xFF0F172A),
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Text(
-                        t['subject'] as String,
-                        style: GoogleFonts.cairo(
-                          fontSize: 9.sp,
-                          color: const Color(0xFF64748B),
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ─── TAB 1: EXPLORE LESSONS & CATEGORIES (03 Lesson Design) ───
-  Widget _buildExploreLessonsTab(BuildContext context) {
-    return Column(
-      children: [
-        // Colored Top Header with Search Bar
-        Padding(
-          padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 20.h),
-          child: Row(
-            children: [
-              Expanded(
-                child: Container(
-                  height: 48.h,
-                  padding: EdgeInsets.symmetric(horizontal: 16.w),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(24.r),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x10000000),
-                        blurRadius: 10,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.search_rounded,
-                        color: AppColors.studentPrimary,
-                        size: 22.r,
-                      ),
-                      SizedBox(width: 10.w),
-                      Expanded(
-                        child: TextField(
-                          controller: _searchController,
-                          style: GoogleFonts.cairo(
-                            fontSize: 13.sp,
-                            color: const Color(0xFF0F172A),
-                          ),
-                          decoration: InputDecoration(
-                            hintText: 'ابحث عن درس أو مادة أو معلم...',
-                            hintStyle: GoogleFonts.cairo(
-                              fontSize: 12.sp,
-                              color: const Color(0xFF94A3B8),
-                            ),
-                            border: InputBorder.none,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              SizedBox(width: 10.w),
-              Container(
-                width: 48.r,
-                height: 48.r,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.tune_rounded,
-                  color: AppColors.studentPrimary,
-                  size: 22.r,
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        // White Curved Sheet Container
-        Expanded(
-          child: Container(
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(32.r)),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(32.r)),
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 100.h),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              NotebookHighlightNote(
+                child: Row(
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            'المواد الدراسية 📖',
-                            style: GoogleFonts.cairo(
-                              fontSize: 18.sp,
-                              fontWeight: FontWeight.w900,
-                              color: const Color(0xFF0F172A),
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        SizedBox(width: 8.w),
-                        TextButton(
-                          onPressed: () {},
-                          child: Text(
-                            'عرض الكل',
-                            style: GoogleFonts.cairo(
-                              fontSize: 12.sp,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.studentPrimary,
-                            ),
-                          ),
-                        ),
-                      ],
+                    Icon(
+                      Icons.filter_alt_rounded,
+                      color: NotebookColors.ink,
+                      size: 16.r,
                     ),
-                    SizedBox(height: 14.h),
-
-                    // Grid 2x3 Categories
-                    GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 14.w,
-                        mainAxisSpacing: 14.h,
-                        childAspectRatio: 1.1,
+                    SizedBox(width: 8.w),
+                    Expanded(
+                      child: Text(
+                        'تم التصفية: ${_studentEnrolledCourses.length} دورة',
+                        style: NotebookText.strong(12.sp),
                       ),
-                      itemCount: _subjectCategories.length,
-                      itemBuilder: (context, index) {
-                        final cat = _subjectCategories[index];
-                        return GestureDetector(
-                          onTap: () {
-                            HapticFeedback.lightImpact();
-                            Navigator.pushNamed(
-                              context,
-                              AppRouter.studentCourseLessons,
-                              arguments: 'c1',
-                            );
-                          },
-                          child: Container(
-                            padding: EdgeInsets.all(16.r),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(22.r),
-                              border: Border.all(
-                                color: const Color(0xFFF1F5F9),
-                              ),
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Color(0x060F172A),
-                                  blurRadius: 10,
-                                  offset: Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Container(
-                                  width: 48.r,
-                                  height: 48.r,
-                                  decoration: BoxDecoration(
-                                    color: cat['color'] as Color,
-                                    borderRadius: BorderRadius.circular(16.r),
-                                  ),
-                                  child: Icon(
-                                    cat['icon'] as IconData,
-                                    color: cat['iconColor'] as Color,
-                                    size: 26.r,
-                                  ),
-                                ),
-                                SizedBox(height: 10.h),
-                                Text(
-                                  cat['title'] as String,
-                                  style: GoogleFonts.cairo(
-                                    fontSize: 14.sp,
-                                    fontWeight: FontWeight.w800,
-                                    color: const Color(0xFF0F172A),
-                                  ),
-                                ),
-                                SizedBox(height: 2.h),
-                                Text(
-                                  cat['coursesCount'] as String,
-                                  style: GoogleFonts.cairo(
-                                    fontSize: 11.sp,
-                                    color: const Color(0xFF94A3B8),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
+                    ),
+                    GestureDetector(
+                      onTap: () => setState(() => _homeFilters = null),
+                      child: Text(
+                        'مسح',
+                        style: NotebookText.strong(12.sp,
+                            color: NotebookColors.marginRed),
+                      ),
                     ),
                   ],
                 ),
               ),
+            SizedBox(height: 14.h),
+
+            // Course cards (ruled summary pages)
+            if (_studentEnrolledCourses.isEmpty)
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24.w),
+                child: const NotebookEmptyNote(
+                  message: 'لا توجد كورسات مطابقة للتصفية — جرّب مادة أخرى',
+                ),
+              )
+            else
+              SizedBox(
+                height: 250.h,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: EdgeInsets.symmetric(horizontal: 24.w),
+                  itemCount: _studentEnrolledCourses.length,
+                  separatorBuilder: (_, _) => SizedBox(width: 14.w),
+                  itemBuilder: (context, index) =>
+                      _buildCourseCard(_studentEnrolledCourses[index]),
+                ),
+              ),
+
+            SizedBox(height: 26.h),
+
+            // ── 6. Top Mentors — teacher signatures ──
+            const NotebookSectionHeader(title: 'أفضل المدرسين'),
+            SizedBox(height: 12.h),
+            SizedBox(
+              height: 112.h,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: EdgeInsets.symmetric(horizontal: 24.w),
+                itemCount: _popularTeachersList.length,
+                separatorBuilder: (_, _) => SizedBox(width: 18.w),
+                itemBuilder: (context, index) =>
+                    _buildTeacherSignature(_popularTeachersList[index]),
+              ),
             ),
-          ),
+
+            SizedBox(height: 24.h),
+          ],
         ),
-      ],
+      ),
     );
   }
 
-  // ─── TAB 3: PROFILE & SETTINGS (05 Profile Design) ───
-  Widget _buildProfileTab(BuildContext context) {
-    return Container(
-      color: const Color(0xFFF8FAFC),
-      child: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 100.h),
+  // A course as a ruled summary page in the دفتر.
+  Widget _buildCourseCard(Map<String, dynamic> course) {
+    final title = course['title'] as String;
+    final teacher = course['teacher'] as String;
+    final subject = (course['subject'] as String)
+        .replaceAll(RegExp(r'[^\w\s\u0600-\u06FF]'), '')
+        .trim();
+    final teacherLine = teacher.startsWith('أ.') ? teacher : 'أ. $teacher';
+    final color = course['color'] as Color;
+    final coverUrl = course['cover'] as String? ?? '';
+
+    return NotebookCard(
+      ruled: true,
+      ruledStartY: 96,
+      marginTab: true,
+      onTap: () {
+        HapticFeedback.lightImpact();
+        Navigator.pushNamed(
+          context,
+          AppRouter.studentCourseDetails,
+          arguments: course['id'],
+        );
+      },
+      child: SizedBox(
+        width: 180.w,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top Bar
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'الملف الشخصي 👤',
-                  style: GoogleFonts.cairo(
-                    fontSize: 20.sp,
-                    fontWeight: FontWeight.w900,
-                    color: const Color(0xFF0F172A),
-                  ),
-                ),
-                Container(
-                  width: 40.r,
-                  height: 40.r,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.search_rounded,
-                    color: const Color(0xFF0F172A),
-                    size: 20.r,
-                  ),
-                ),
-              ],
-            ),
-
-            SizedBox(height: 20.h),
-
-            // User Info Header Card with Edit Button
+            // Course cover photo
             Container(
-              padding: EdgeInsets.all(18.r),
+              width: double.infinity,
+              height: 92.h,
+              clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(24.r),
-                border: Border.all(color: const Color(0xFFF1F5F9)),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x060F172A),
-                    blurRadius: 10,
-                    offset: Offset(0, 4),
-                  ),
-                ],
+                color: NotebookColors.ink,
+                borderRadius: BorderRadius.circular(8.r),
               ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 28.r,
-                    backgroundColor: AppColors.studentPrimaryLight,
-                    child: Icon(
-                      Icons.person_rounded,
-                      size: 32.r,
-                      color: AppColors.studentPrimary,
-                    ),
-                  ),
-                  SizedBox(width: 14.w),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'سارة أحمد',
-                          style: GoogleFonts.cairo(
-                            fontSize: 17.sp,
-                            fontWeight: FontWeight.w900,
-                            color: const Color(0xFF0F172A),
-                          ),
-                        ),
-                        SizedBox(height: 2.h),
-                        Text(
-                          'طالبة • الصف الثالث الثانوي',
-                          style: GoogleFonts.cairo(
-                            fontSize: 12.sp,
-                            color: const Color(0xFF64748B),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+              child: coverUrl.isNotEmpty
+                  ? CachedNetworkImage(
+                      imageUrl: coverUrl,
+                      fit: BoxFit.cover,
+                      placeholder: (_, _) => _coverPlaceholder(color),
+                      errorWidget: (_, _, _) => _coverPlaceholder(color),
+                    )
+                  : _coverPlaceholder(color),
+            ),
+            SizedBox(height: 10.h),
+            Row(
+              children: [
+                if (subject.isNotEmpty)
                   Container(
                     padding: EdgeInsets.symmetric(
-                      horizontal: 14.w,
-                      vertical: 6.h,
+                      horizontal: 8.w,
+                      vertical: 3.h,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.studentPrimary,
-                      borderRadius: BorderRadius.circular(16.r),
+                      color: NotebookColors.green,
+                      borderRadius: BorderRadius.circular(4.r),
                     ),
                     child: Text(
-                      'تعديل',
+                      subject,
                       style: GoogleFonts.cairo(
-                        fontSize: 11.sp,
+                        fontSize: 10.sp,
                         fontWeight: FontWeight.w800,
                         color: Colors.white,
                       ),
                     ),
+                  )
+                else
+                  const SizedBox.shrink(),
+                const Spacer(),
+                GestureDetector(
+                  onTap: () => Navigator.pushNamed(
+                    context,
+                    AppRouter.studentBookmarks,
                   ),
-                ],
-              ),
-            ),
-
-            SizedBox(height: 18.h),
-
-            // 2 Metric Stat Cards Side-by-Side (80 Lessons / 12 Subjects)
-            Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: EdgeInsets.symmetric(vertical: 18.h),
-                    decoration: BoxDecoration(
-                      color: AppColors.studentPrimary,
-                      borderRadius: BorderRadius.circular(22.r),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x200FA37F),
-                          blurRadius: 10,
-                          offset: Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        Text(
-                          '80',
-                          style: GoogleFonts.cairo(
-                            fontSize: 24.sp,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white,
-                          ),
-                        ),
-                        SizedBox(height: 2.h),
-                        Text(
-                          'درساً مكتمل',
-                          style: GoogleFonts.cairo(
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white.withAlpha(220),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                SizedBox(width: 14.w),
-                Expanded(
-                  child: Container(
-                    padding: EdgeInsets.symmetric(vertical: 18.h),
-                    decoration: BoxDecoration(
-                      color: AppColors.studentPrimary,
-                      borderRadius: BorderRadius.circular(22.r),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x200FA37F),
-                          blurRadius: 10,
-                          offset: Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        Text(
-                          '12',
-                          style: GoogleFonts.cairo(
-                            fontSize: 24.sp,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white,
-                          ),
-                        ),
-                        SizedBox(height: 2.h),
-                        Text(
-                          'مادة دراسية',
-                          style: GoogleFonts.cairo(
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white.withAlpha(220),
-                          ),
-                        ),
-                      ],
-                    ),
+                  child: Icon(
+                    Icons.bookmark_border_rounded,
+                    size: 16.r,
+                    color: NotebookColors.pencil,
                   ),
                 ),
               ],
             ),
-
-            SizedBox(height: 24.h),
-
-            // Account Settings Section (إعدادات الحساب)
+            SizedBox(height: 6.h),
             Text(
-              'إعدادات الحساب (Account Settings)',
-              style: GoogleFonts.cairo(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w800,
-                color: const Color(0xFF64748B),
-              ),
+              teacherLine,
+              style: NotebookText.note(11.sp),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            SizedBox(height: 10.h),
-
-            _SettingsOptionRow(
-              icon: Icons.person_outline_rounded,
-              title: 'تعديل الملف الشخصي',
-              onTap: () {},
-            ),
-            SizedBox(height: 10.h),
-            _SettingsOptionRow(
-              icon: Icons.email_outlined,
-              title: 'تغيير البريد الإلكتروني',
-              onTap: () {},
-            ),
-            SizedBox(height: 10.h),
-            _SettingsOptionRow(
-              icon: Icons.lock_outline_rounded,
-              title: 'تغيير كلمة المرور',
-              onTap: () {},
-            ),
-
-            SizedBox(height: 24.h),
-
-            // Other Section (أخرى)
+            SizedBox(height: 4.h),
             Text(
-              'أخرى (Other)',
-              style: GoogleFonts.cairo(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w800,
-                color: const Color(0xFF64748B),
-              ),
+              title,
+              style: NotebookText.heading(13.sp),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
-            SizedBox(height: 10.h),
-
-            _SettingsOptionRow(
-              icon: Icons.notifications_none_rounded,
-              title: 'الإشعارات والتنبيهات',
-              onTap: () {
-                Navigator.pushNamed(context, AppRouter.notifications);
-              },
+            SizedBox(height: 5.h),
+            // marker underline
+            Container(
+              width: 44.w,
+              height: 3.h,
+              color: color,
             ),
-            SizedBox(height: 10.h),
-            _SettingsOptionRow(
-              icon: Icons.history_edu_rounded,
-              title: 'سجل الدرجات والامتحانات',
-              onTap: () {
-                Navigator.pushNamed(context, AppRouter.studentGradeHistory);
-              },
-            ),
-
-            SizedBox(height: 28.h),
-
-            // Logout Button
-            SizedBox(
-              width: double.infinity,
-              height: 52.h,
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  HapticFeedback.lightImpact();
-                  Navigator.pushNamedAndRemoveUntil(
-                    context,
-                    AppRouter.roleSelection,
-                    (route) => false,
-                  );
-                },
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFFEF4444),
-                  side: const BorderSide(color: Color(0xFFFCA5A5)),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30.r),
+            const Spacer(),
+            Row(
+              children: [
+                Text(
+                  'متابعة الكورس',
+                  style: NotebookText.note(10.sp),
+                ),
+                const Spacer(),
+                Container(
+                  width: 26.r,
+                  height: 26.r,
+                  decoration: BoxDecoration(
+                    color: NotebookColors.green,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.arrow_forward_rounded,
+                    color: Colors.white,
+                    size: 15.r,
                   ),
                 ),
-                icon: Icon(Icons.logout_rounded, size: 20.r),
-                label: Text(
-                  'تسجيل الخروج',
-                  style: GoogleFonts.cairo(
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
+              ],
             ),
           ],
         ),
@@ -1848,304 +595,104 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     );
   }
 
-  // ─── TEACHER AD CAROUSEL WIDGET (Supabase) ───
-  Widget _buildTeacherAdCarousel() {
-    return BlocBuilder<StudentCoursesCubit, StudentCoursesState>(
-      bloc: _coursesCubit,
-      builder: (context, state) {
-        if (state.status == StudentCoursesStatus.loading) {
-          return SizedBox(
-            height: 165.h,
-            child: const Center(child: CircularProgressIndicator()),
-          );
-        }
-
-        final teachers = state.subscribedTeachers;
-
-        if (teachers.isEmpty) {
-          return GestureDetector(
-            onTap: () =>
-                Navigator.pushNamed(context, AppRouter.studentSubjects),
-            child: Container(
-              height: 165.h,
-              margin: EdgeInsets.symmetric(horizontal: 4.w),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [AppColors.studentPrimary, const Color(0xFF047857)],
-                  begin: Alignment.topRight,
-                  end: Alignment.bottomLeft,
-                ),
-                borderRadius: BorderRadius.circular(22.r),
-              ),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.school_rounded, color: Colors.white, size: 40.r),
-                    SizedBox(height: 10.h),
-                    Text(
-                      'اشترك مع معلم الآن!',
-                      style: GoogleFonts.cairo(
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.white,
-                      ),
-                    ),
-                    SizedBox(height: 4.h),
-                    Text(
-                      'اضغط هنا لتصفح المعلمين',
-                      style: GoogleFonts.cairo(
-                        fontSize: 12.sp,
-                        color: Colors.white.withAlpha(210),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+  Widget _coverPlaceholder(Color color) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        const CustomPaint(
+          painter: RuledLinesPainter(
+            lineGap: 22,
+            color: Color(0x33FFFFFF),
+          ),
+        ),
+        Center(
+          child: Container(
+            width: 34.r,
+            height: 34.r,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
             ),
-          );
-        }
-
-        final bgColors = [
-          AppColors.studentPrimary,
-          const Color(0xFF2563EB),
-          const Color(0xFF9333EA),
-          const Color(0xFFD97706),
-        ];
-
-        return Column(
-          children: [
-            SizedBox(
-              height: 165.h,
-              child: PageView.builder(
-                controller: _adPageController,
-                itemCount: teachers.length,
-                onPageChanged: (index) =>
-                    setState(() => _activeAdIndex = index),
-                itemBuilder: (context, index) {
-                  final teacher = teachers[index];
-                  final teacherData =
-                      teacher['teachers'] as Map<String, dynamic>? ?? {};
-                  final users =
-                      teacherData['users'] as Map<String, dynamic>? ?? {};
-                  final name = users['full_name'] as String? ?? 'معلم';
-                  final initials = name.isNotEmpty ? name[0] : 'م';
-                  final bgColor = bgColors[index % bgColors.length];
-
-                  return GestureDetector(
-                    onTap: () {
-                      HapticFeedback.lightImpact();
-                      Navigator.pushNamed(
-                        context,
-                        AppRouter.studentTeacherPage,
-                      );
-                    },
-                    child: Container(
-                      margin: EdgeInsets.symmetric(horizontal: 4.w),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [bgColor, bgColor.withAlpha(200)],
-                          begin: Alignment.topRight,
-                          end: Alignment.bottomLeft,
-                        ),
-                        borderRadius: BorderRadius.circular(22.r),
-                        boxShadow: [
-                          BoxShadow(
-                            color: bgColor.withAlpha(60),
-                            blurRadius: 12,
-                            offset: const Offset(0, 5),
-                          ),
-                        ],
-                      ),
-                      child: Stack(
-                        children: [
-                          Positioned(
-                            left: -20,
-                            top: -20,
-                            child: Container(
-                              width: 120,
-                              height: 120,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.white.withAlpha(15),
-                              ),
-                            ),
-                          ),
-                          Padding(
-                            padding: EdgeInsets.all(16.r),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 10.w,
-                                    vertical: 3.h,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withAlpha(30),
-                                    borderRadius: BorderRadius.circular(10.r),
-                                  ),
-                                  child: Text(
-                                    'معلم مشترك',
-                                    style: GoogleFonts.cairo(
-                                      fontSize: 10.sp,
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ),
-                                SizedBox(height: 6.h),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Text(
-                                      name,
-                                      style: GoogleFonts.cairo(
-                                        fontSize: 17.sp,
-                                        fontWeight: FontWeight.w900,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                    Container(
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: 12.w,
-                                        vertical: 6.h,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(
-                                          20.r,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        'عرض التفاصيل 👈',
-                                        style: GoogleFonts.cairo(
-                                          fontSize: 11.sp,
-                                          fontWeight: FontWeight.w800,
-                                          color: bgColor,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          Positioned(
-                            left: 16.w,
-                            top: 16.h,
-                            child: CircleAvatar(
-                              radius: 22.r,
-                              backgroundColor: Colors.white.withAlpha(30),
-                              child: Text(
-                                initials,
-                                style: GoogleFonts.cairo(
-                                  fontSize: 18.sp,
-                                  fontWeight: FontWeight.w900,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
+            child: Icon(
+              Icons.play_arrow_rounded,
+              color: Colors.white,
+              size: 18.r,
             ),
-            SizedBox(height: 10.h),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(
-                teachers.length,
-                (index) => AnimatedContainer(
-                  duration: const Duration(milliseconds: 250),
-                  margin: EdgeInsets.symmetric(horizontal: 3.w),
-                  width: _activeAdIndex == index ? 20.w : 6.w,
-                  height: 6.h,
-                  decoration: BoxDecoration(
-                    color: _activeAdIndex == index
-                        ? AppColors.studentPrimary
-                        : const Color(0xFFCBD5E1),
-                    borderRadius: BorderRadius.circular(10.r),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        );
-      },
+          ),
+        ),
+      ],
     );
   }
 
-  // ─── INBOX TAB ───
-  Widget _buildInboxTab(BuildContext context) {
-    return Container(
-      color: const Color(0xFFF8FAFC),
+  // A top teacher as a signed name in the دفتر.
+  Widget _buildTeacherSignature(Map<String, dynamic> teacher) {
+    final name = teacher['name'] as String;
+    final subject = teacher['subject'] as String;
+    final firstName = name.replaceAll('أ. ', '').split(' ').first;
+
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        Navigator.pushNamed(
+          context,
+          AppRouter.studentTeacherPage,
+          arguments: {
+            'teacherId': teacher['id'],
+            'title': teacher['name'],
+            'avatarUrl': teacher['avatarUrl'],
+          },
+        );
+      },
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
+          NotebookTeacherAvatar(
+            avatarUrl: teacher['avatarUrl'] as String?,
+            name: (teacher['name'] as String).replaceFirst('أ. ', ''),
+            size: 62.r,
+          ),
+          SizedBox(height: 8.h),
+          Text(
+            firstName,
+            style: NotebookText.strong(12.sp),
+          ),
+          SizedBox(height: 2.h),
+          // signature underline beneath the name
           Container(
-            padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 16.h),
-            color: const Color(0xFF0F172A),
-            child: Row(
-              children: [
-                Text(
-                  'الرسائل',
-                  style: GoogleFonts.cairo(
-                    fontSize: 18.sp,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
+            width: 34.w,
+            height: 2.h,
+            color: NotebookColors.marginRed.withAlpha(160),
           ),
-          Expanded(
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.chat_bubble_outline_rounded,
-                    size: 64.r,
-                    color: const Color(0xFFCBD5E1),
-                  ),
-                  SizedBox(height: 16.h),
-                  Text(
-                    'لا توجد رسائل حتى الآن',
-                    style: GoogleFonts.cairo(
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF94A3B8),
-                    ),
-                  ),
-                ],
-              ),
+          if (subject.isNotEmpty) ...[
+            SizedBox(height: 3.h),
+            Text(
+              subject,
+              style: NotebookText.note(10.sp),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-          ),
+          ],
         ],
       ),
     );
   }
 
-  // ─── BOTTOM NAVIGATION BAR (5 Tabs - Matching User Image) ───
+  // ─── BOTTOM NAVIGATION — 5 tabs, written in the دفتر's language ───
   Widget _buildBottomNavBar(BuildContext context) {
     final bottomPad = MediaQuery.paddingOf(context).bottom;
     return Container(
-      height: 60 + bottomPad,
+      height: 62 + bottomPad,
       padding: EdgeInsets.only(bottom: bottomPad),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Color(0xFFE8EDF2), width: 1)),
+      decoration: BoxDecoration(
+        color: NotebookColors.surface,
+        border: Border(
+          top: BorderSide(color: NotebookColors.ink.withAlpha(30)),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Color(0x0A000000),
+            color: NotebookColors.ink.withAlpha(18),
             blurRadius: 12,
-            offset: Offset(0, -3),
+            offset: const Offset(0, -3),
           ),
         ],
       ),
@@ -2154,7 +701,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           _NavBarItem(
             icon: Icons.home_outlined,
             activeIcon: Icons.home_rounded,
-            label: 'HOME',
+            label: 'الرئيسية',
             isSelected: _currentIndex == 0,
             onTap: () {
               HapticFeedback.selectionClick();
@@ -2164,7 +711,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           _NavBarItem(
             icon: Icons.assignment_outlined,
             activeIcon: Icons.assignment_rounded,
-            label: 'MY COURSES',
+            label: 'كورساتي',
             isSelected: _currentIndex == 1,
             onTap: () {
               HapticFeedback.selectionClick();
@@ -2174,7 +721,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           _NavBarItem(
             icon: Icons.account_balance_wallet_outlined,
             activeIcon: Icons.account_balance_wallet_rounded,
-            label: 'TRANSACTION',
+            label: 'المعاملات',
             isSelected: _currentIndex == 2,
             onTap: () {
               HapticFeedback.selectionClick();
@@ -2184,7 +731,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           _NavBarItem(
             icon: Icons.receipt_long_outlined,
             activeIcon: Icons.receipt_long_rounded,
-            label: 'EXAMS',
+            label: 'الامتحانات',
             isSelected: _currentIndex == 3,
             onTap: () {
               HapticFeedback.selectionClick();
@@ -2194,7 +741,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           _NavBarItem(
             icon: Icons.person_outline_rounded,
             activeIcon: Icons.person_rounded,
-            label: 'PROFILE',
+            label: 'الملف',
             isSelected: _currentIndex == 4,
             onTap: () {
               HapticFeedback.selectionClick();
@@ -2224,9 +771,7 @@ class _NavBarItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const activeColor = Color(0xFF0FA37F);
-    const inactiveColor = Color(0xFF1E2D3D);
-
+    final color = isSelected ? NotebookColors.green : NotebookColors.pencil;
     return Expanded(
       child: InkWell(
         onTap: onTap,
@@ -2239,69 +784,29 @@ class _NavBarItem extends StatelessWidget {
             Icon(
               isSelected ? activeIcon : icon,
               size: 20,
-              color: isSelected ? activeColor : inactiveColor,
+              color: color,
             ),
             const SizedBox(height: 2),
             Text(
               label,
-              style: TextStyle(
-                fontFamily: 'Cairo',
-                fontSize: 8,
+              style: GoogleFonts.cairo(
+                fontSize: 9,
                 fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                color: isSelected ? activeColor : inactiveColor,
+                color: color,
                 height: 1.2,
-                package: 'google_fonts',
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SettingsOptionRow extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final VoidCallback onTap;
-
-  const _SettingsOptionRow({
-    required this.icon,
-    required this.title,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18.r),
-          border: Border.all(color: const Color(0xFFF1F5F9)),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: const Color(0xFF64748B), size: 20.r),
-            SizedBox(width: 12.w),
-            Expanded(
-              child: Text(
-                title,
-                style: GoogleFonts.cairo(
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF0F172A),
-                ),
+            // marker underline on the active tab
+            Container(
+              margin: EdgeInsets.only(top: 3),
+              width: isSelected ? 20 : 0,
+              height: 3,
+              decoration: BoxDecoration(
+                color: NotebookColors.green,
+                borderRadius: BorderRadius.circular(2),
               ),
-            ),
-            Icon(
-              Icons.chevron_left_rounded,
-              color: const Color(0xFF94A3B8),
-              size: 20.r,
             ),
           ],
         ),

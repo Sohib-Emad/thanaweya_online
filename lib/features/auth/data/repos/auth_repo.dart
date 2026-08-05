@@ -113,6 +113,35 @@ class AuthRepo {
     }
   }
 
+  Future<ApiResult<void>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    try {
+      final user = currentUser;
+      if (user == null || user.email == null) {
+        return const ApiResult.failure('لا يوجد مستخدم مسجل حالياً');
+      }
+
+      final verified = await _auth.signInWithPassword(
+        email: user.email!,
+        password: currentPassword,
+      );
+      if (verified.user == null) {
+        return const ApiResult.failure('كلمة المرور الحالية غير صحيحة');
+      }
+
+      await _auth.updateUser(
+        UserAttributes(password: newPassword),
+      );
+      return const ApiResult.success(null);
+    } catch (e, stackTrace) {
+      debugPrint('[AuthRepo] changePassword error: $e');
+      debugPrint('[AuthRepo] stackTrace: $stackTrace');
+      return ApiErrorHandler.handleException(e);
+    }
+  }
+
   Future<ApiResult<void>> resetPassword(String email) async {
     try {
       await _auth.resetPasswordForEmail(email);

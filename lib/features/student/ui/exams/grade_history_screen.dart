@@ -3,10 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'package:thanaweya_online/core/constants/app_colors.dart';
-import 'package:thanaweya_online/core/constants/app_strings.dart';
-import 'package:thanaweya_online/core/constants/app_text_styles.dart';
-import 'package:thanaweya_online/features/shared/widgets/app_card.dart';
+import 'package:thanaweya_online/core/theme/notebook_theme.dart';
 import 'package:thanaweya_online/features/student/data/repos/student_exams_repo.dart';
 import 'package:thanaweya_online/features/student/logic/student_exams_cubit.dart';
 
@@ -44,86 +41,114 @@ class _GradeHistoryScreenState extends State<GradeHistoryScreen> {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        appBar: AppBar(title: const Text(AppStrings.gradesTab)),
-        body: BlocBuilder<StudentExamsCubit, StudentExamsState>(
-          bloc: _cubit,
-          builder: (context, state) {
-            if (state.submissionsStatus == StudentExamsStatus.loading) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (state.submissionsStatus == StudentExamsStatus.error) {
-              return Center(
-                child: Text(state.errorMessage ?? 'حدث خطأ', style: AppTextStyles.body1),
-              );
-            }
-            if (state.submissions.isEmpty) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.score_outlined, size: 64, color: AppColors.textTertiary),
-                    SizedBox(height: 16.h),
-                    Text('لا توجد درجات بعد', style: AppTextStyles.h3),
-                    SizedBox(height: 8.h),
-                    Text('قم بحل امتحان لتظهر نتيجتك هنا', style: AppTextStyles.caption),
-                  ],
-                ),
-              );
-            }
-            return RefreshIndicator(
-              onRefresh: _loadSubmissions,
-              child: ListView.builder(
-                padding: EdgeInsets.symmetric(vertical: 8.h),
-                itemCount: state.submissions.length,
-                itemBuilder: (context, index) {
-                  final sub = state.submissions[index];
-                  final exam = sub['exams'] as Map<String, dynamic>? ?? {};
-                  final score = sub['score'] as int? ?? 0;
-                  final total = sub['total_points'] as int? ?? 0;
-                  final percent = total > 0 ? (score / total * 100).toInt() : 0;
-                  final isPass = percent >= 50;
+        backgroundColor: NotebookColors.ground,
+        appBar: NotebookTopBar(
+          title: 'سجل الدرجات',
+          subtitle: 'نتائج امتحاناتك على صفحات الدفتر',
+        ),
+        body: NotebookPaper(
+          child: BlocBuilder<StudentExamsCubit, StudentExamsState>(
+            bloc: _cubit,
+            builder: (context, state) {
+              if (state.submissionsStatus == StudentExamsStatus.loading) {
+                return Center(
+                  child: CircularProgressIndicator(color: NotebookColors.green),
+                );
+              }
+              if (state.submissionsStatus == StudentExamsStatus.error) {
+                return Padding(
+                  padding: EdgeInsets.all(24.w),
+                  child: NotebookEmptyNote(
+                    icon: Icons.error_outline_rounded,
+                    message:
+                        state.errorMessage ?? 'حدث خطأ في تحميل الدرجات',
+                  ),
+                );
+              }
+              if (state.submissions.isEmpty) {
+                return Padding(
+                  padding: EdgeInsets.all(24.w),
+                  child: NotebookEmptyNote(
+                    icon: Icons.score_outlined,
+                    message: 'لا توجد درجات بعد\nقم بحل امتحان لتظهر نتيجتك هنا',
+                  ),
+                );
+              }
+              return RefreshIndicator(
+                onRefresh: _loadSubmissions,
+                color: NotebookColors.green,
+                child: ListView.builder(
+                  padding: EdgeInsets.fromLTRB(24.w, 16.h, 24.w, 40.h),
+                  itemCount: state.submissions.length,
+                  itemBuilder: (context, index) {
+                    final sub = state.submissions[index];
+                    final exam = sub['exams'] as Map<String, dynamic>? ?? {};
+                    final score = sub['score'] as int? ?? 0;
+                    final total = sub['total_points'] as int? ?? 0;
+                    final percent =
+                        total > 0 ? (score / total * 100).toInt() : 0;
+                    final isPass = percent >= 50;
+                    final accent =
+                        isPass
+                            ? NotebookColors.green
+                            : NotebookColors.marginRed;
 
-                  return AppCard(
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 44.r,
-                          height: 44.r,
-                          decoration: BoxDecoration(
-                            color: isPass
-                                ? AppColors.success.withValues(alpha: 0.1)
-                                : AppColors.error.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12.r),
-                          ),
-                          child: Center(
-                            child: Text(
-                              '$percent%',
-                              style: TextStyle(
-                                color: isPass ? AppColors.success : AppColors.error,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 12.sp,
+                    return Padding(
+                      padding: EdgeInsets.only(bottom: 12.h),
+                      child: NotebookCard(
+                        ruled: true,
+                        ruledStartY: 64,
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 44.r,
+                              height: 44.r,
+                              decoration: BoxDecoration(
+                                color: accent.withAlpha(24),
+                                borderRadius: BorderRadius.circular(10.r),
+                                border: Border.all(
+                                  color: accent.withAlpha(90),
+                                  width: 1.2,
+                                ),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  '$percent%',
+                                  style: NotebookText.strong(
+                                    12.sp,
+                                    color: accent,
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
+                            SizedBox(width: 14.w),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    exam['title'] as String? ?? '',
+                                    style: NotebookText.heading(13.sp),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  SizedBox(height: 2.h),
+                                  Text(
+                                    '$score / $total',
+                                    style: NotebookText.note(11.sp),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                        SizedBox(width: 14.w),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(exam['title'] as String? ?? '', style: AppTextStyles.h3),
-                              SizedBox(height: 2.h),
-                              Text('$score / $total', style: AppTextStyles.caption),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            );
-          },
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
+          ),
         ),
       ),
     );

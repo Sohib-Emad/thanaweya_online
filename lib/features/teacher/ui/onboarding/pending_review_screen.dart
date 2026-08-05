@@ -1,14 +1,29 @@
+// ────────────────────────────────────────────────────────────
+// THESIS — قيد المراجعة بعد تقديم طلب الالتحاق
+//   Polls teachers.approval_status every 5s and swaps between three
+//   chalkboard states: pending (مراجعة), rejected (رفض), approved
+//   (تفعيل → teacher home).
+// OWN-WORLD — Chalkboard (سبورة): green board ground, chalk-white
+//   ink, mint = approved, yellow = pending, red = rejected.
+// STORY — The teacher hands in the chalk application and waits by
+//   the board. The board turns yellow "قيد المراجعة", then either
+//   stamps "تم التفعيل" in mint or marks the request in red chalk.
+// FIRST VIEWPORT — Chalkboard ground, yellow chalk stamp "قيد
+//   المراجعة", the wait lottie, title, description, status steps.
+// FORM — No inputs; only a "الرئيسية" action + a poller.
+// FINISH — approved → 3s → AppRouter.teacherHome; rejected → action
+//   to role selection; pending → keeps polling every 5s.
+// ────────────────────────────────────────────────────────────
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:lottie/lottie.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'package:thanaweya_online/core/constants/app_colors.dart';
 import 'package:thanaweya_online/core/constants/app_strings.dart';
 import 'package:thanaweya_online/core/router/app_router.dart';
+import 'package:thanaweya_online/core/theme/chalkboard_theme.dart';
 
 class PendingReviewScreen extends StatefulWidget {
   const PendingReviewScreen({super.key});
@@ -89,235 +104,193 @@ class _PendingReviewScreenState extends State<PendingReviewScreen> {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: _isApproved ? Colors.white : const Color(0xFFF8FAFC),
+        backgroundColor: ChalkboardColors.ground,
         body: SafeArea(
+          bottom: false,
           child: AnimatedSwitcher(
             duration: const Duration(milliseconds: 500),
             child: _isApproved
-              ? _buildSuccessView()
-              : _isRejected
-                  ? _buildRejectedView()
-                  : _buildPendingView(),
+                ? _buildSuccessView()
+                : _isRejected
+                    ? _buildRejectedView()
+                    : _buildPendingView(),
           ),
         ),
       ),
     );
   }
 
-  // View A: Pending Review View (with wait.json Lottie)
+  // View A: Pending Review View (chalkboard + wait Lottie)
   Widget _buildPendingView() {
-    return SingleChildScrollView(
-      key: const ValueKey('pending_view'),
-      physics: const BouncingScrollPhysics(),
-      padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 16.h),
-      child: Column(
-        children: [
-          SizedBox(height: 12.h),
+    return ChalkboardSurface(
+      child: SingleChildScrollView(
+        key: const ValueKey('pending_view'),
+        physics: const BouncingScrollPhysics(),
+        padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 16.h),
+        child: Column(
+          children: [
+            SizedBox(height: 8.h),
 
-          // Top Badge
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFEF3C7),
-              borderRadius: BorderRadius.circular(20.r),
-              border: Border.all(color: const Color(0xFFFDE68A)),
+            const ChalkStamp(
+              label: 'قيد المراجعة',
+              color: ChalkboardColors.chalkYellow,
+              angle: -0.04,
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.hourglass_top_rounded,
-                  color: const Color(0xFFD97706),
-                  size: 16.r,
-                ),
-                SizedBox(width: 6.w),
-                Text(
-                  'طلبك قيد المراجعة الآن',
-                  style: GoogleFonts.cairo(
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w800,
-                    color: const Color(0xFFD97706),
+
+            SizedBox(height: 12.h),
+
+            // Hero Lottie Animation (wait.json)
+            Center(
+              child: Container(
+                width: 300.r,
+                height: 300.r,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: ChalkboardColors.surface.withAlpha(90),
+                  border: Border.all(
+                    color: ChalkboardColors.chalkYellow.withAlpha(90),
+                    width: 1.4,
                   ),
                 ),
-              ],
-            ),
-          ),
-
-          SizedBox(height: 16.h),
-
-          // Hero Lottie Animation (wait.json)
-          Center(
-            child: Container(
-              width: 320.r,
-              height: 320.r,
-              decoration: const BoxDecoration(shape: BoxShape.circle),
-              child: Lottie.asset(
-                'assets/json/wait.json',
-                fit: BoxFit.contain,
-                repeat: true,
-              ),
-            ),
-          ),
-
-          SizedBox(height: 16.h),
-
-          // Title & Description
-          Text(
-            AppStrings.pendingReview,
-            style: GoogleFonts.cairo(
-              fontSize: 24.sp,
-              fontWeight: FontWeight.w900,
-              color: const Color(0xFF0F172A),
-            ),
-            textAlign: TextAlign.center,
-          ),
-
-          SizedBox(height: 10.h),
-
-          Text(
-            'تم استلام طلبك ومستنداتك بنجاح. يقوم فريق الإدارة بمراجعة البيانات والتأكد منها، وسنرسل لك إشعاراً فور التفعيل.',
-            style: GoogleFonts.cairo(
-              fontSize: 13.sp,
-              fontWeight: FontWeight.w400,
-              color: const Color(0xFF64748B),
-              height: 1.5,
-            ),
-            textAlign: TextAlign.center,
-          ),
-
-          SizedBox(height: 24.h),
-
-          // Status Steps Card
-          Container(
-            padding: EdgeInsets.all(18.r),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20.r),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x080F172A),
-                  blurRadius: 12,
-                  offset: Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                _StatusStepRow(
-                  title: 'تقديم بيانات ومعلومات المعلم',
-                  statusText: 'تم التسجيل',
-                  isDone: true,
-                ),
-                Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8.h),
-                  child: const Divider(height: 1, color: Color(0xFFF1F5F9)),
-                ),
-                _StatusStepRow(
-                  title: 'مراجعة المستندات وإثبات الهوية',
-                  statusText: 'جاري التحقق',
-                  isInProgress: true,
-                ),
-                Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8.h),
-                  child: const Divider(height: 1, color: Color(0xFFF1F5F9)),
-                ),
-                _StatusStepRow(
-                  title: 'تفعيل حساب المعلم ودخول اللوحة',
-                  statusText: 'قريباً',
-                  isPending: true,
-                ),
-              ],
-            ),
-          ),
-
-          SizedBox(height: 28.h),
-
-          // Home Button
-          SizedBox(
-            width: double.infinity,
-            height: 54.h,
-            child: ElevatedButton(
-              onPressed: () {
-                HapticFeedback.lightImpact();
-                Navigator.popUntil(context, (route) => route.isFirst);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.studentPrimary,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30.r),
+                child: Lottie.asset(
+                  'assets/json/wait.json',
+                  fit: BoxFit.contain,
+                  repeat: true,
                 ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+            ),
+
+            SizedBox(height: 20.h),
+
+            // Title & Description
+            Text(
+              AppStrings.pendingReview,
+              style: ChalkboardText.heading(24.sp),
+              textAlign: TextAlign.center,
+            ),
+
+            SizedBox(height: 10.h),
+
+            Text(
+              'تم استلام طلبك ومستنداتك بنجاح. يقوم فريق الإدارة بمراجعة البيانات والتأكد منها، وسنرسل لك إشعاراً فور التفعيل.',
+              style: ChalkboardText.body(13.sp,
+                      color: ChalkboardColors.chalkSoft)
+                  .copyWith(height: 1.6),
+              textAlign: TextAlign.center,
+            ),
+
+            SizedBox(height: 24.h),
+
+            // Status Steps Card
+            ChalkCard(
+              padding: const EdgeInsets.all(16),
+              accent: ChalkboardColors.chalkYellow,
+              child: Column(
                 children: [
-                  Icon(Icons.home_rounded, color: Colors.white, size: 20.r),
-                  SizedBox(width: 8.w),
-                  Text(
-                    AppStrings.home,
-                    style: GoogleFonts.cairo(
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
+                  _StatusStepRow(
+                    title: 'تقديم بيانات ومعلومات المعلم',
+                    statusText: 'تم التسجيل',
+                    isDone: true,
+                  ),
+                  Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8.h),
+                    child: Container(
+                      height: 1,
+                      color: ChalkboardColors.ink.withAlpha(40),
                     ),
+                  ),
+                  _StatusStepRow(
+                    title: 'مراجعة المستندات وإثبات الهوية',
+                    statusText: 'جاري التحقق',
+                    isInProgress: true,
+                  ),
+                  Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8.h),
+                    child: Container(
+                      height: 1,
+                      color: ChalkboardColors.ink.withAlpha(40),
+                    ),
+                  ),
+                  _StatusStepRow(
+                    title: 'تفعيل حساب المعلم ودخول اللوحة',
+                    statusText: 'قريباً',
+                    isPending: true,
                   ),
                 ],
               ),
             ),
-          ),
 
-          SizedBox(height: 16.h),
-        ],
+            SizedBox(height: 28.h),
+
+            // Home Button
+            ChalkPrimaryButton(
+              label: AppStrings.home,
+              icon: Icons.home_rounded,
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                Navigator.popUntil(context, (route) => route.isFirst);
+              },
+            ),
+
+            SizedBox(height: 16.h),
+          ],
+        ),
       ),
     );
   }
 
-  // View B: Rejected View
+  // View B: Rejected View (red chalk)
   Widget _buildRejectedView() {
-    return SingleChildScrollView(
-      key: const ValueKey('rejected_view'),
-      physics: const BouncingScrollPhysics(),
-      padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 40.h),
-      child: Column(
-        children: [
-          Container(
-            padding: EdgeInsets.all(20.r),
-            decoration: const BoxDecoration(
-              color: Color(0xFFFEF2F2),
-              shape: BoxShape.circle,
+    return ChalkboardSurface(
+      child: SingleChildScrollView(
+        key: const ValueKey('rejected_view'),
+        physics: const BouncingScrollPhysics(),
+        padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 40.h),
+        child: Column(
+          children: [
+            Container(
+              padding: EdgeInsets.all(20.r),
+              decoration: BoxDecoration(
+                color: ChalkboardColors.chalkRed.withAlpha(22),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: ChalkboardColors.chalkRed.withAlpha(120),
+                  width: 1.6,
+                ),
+              ),
+              child: Icon(
+                Icons.cancel_rounded,
+                color: ChalkboardColors.chalkRed,
+                size: 64.r,
+              ),
             ),
-            child: Icon(
-              Icons.cancel_rounded,
-              color: const Color(0xFFEF4444),
-              size: 64.r,
+            SizedBox(height: 20.h),
+            const ChalkStamp(
+              label: 'تم الرفض',
+              color: ChalkboardColors.chalkRed,
+              angle: -0.04,
             ),
-          ),
-          SizedBox(height: 24.h),
-          Text(
-            'تم رفض طلبك',
-            style: GoogleFonts.cairo(
-              fontSize: 24.sp,
-              fontWeight: FontWeight.w900,
-              color: const Color(0xFFEF4444),
+            SizedBox(height: 20.h),
+            Text(
+              'تم رفض طلبك',
+              style: ChalkboardText.heading(24.sp,
+                  color: ChalkboardColors.chalkRed),
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: 12.h),
-          Text(
-            _rejectionReason ?? 'لم تتم الموافقة على طلبك. يرجى مراجعة بياناتك والتقديم مرة أخرى.',
-            style: GoogleFonts.cairo(
-              fontSize: 14.sp,
-              color: const Color(0xFF64748B),
-              height: 1.5,
+            SizedBox(height: 12.h),
+            Text(
+              _rejectionReason ??
+                  'لم تتم الموافقة على طلبك. يرجى مراجعة بياناتك والتقديم مرة أخرى.',
+              style: ChalkboardText.body(14.sp,
+                      color: ChalkboardColors.chalkSoft)
+                  .copyWith(height: 1.6),
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: 32.h),
-          SizedBox(
-            width: double.infinity,
-            height: 54.h,
-            child: ElevatedButton(
+            SizedBox(height: 32.h),
+            ChalkPrimaryButton(
+              label: 'العودة للرئيسية',
+              icon: Icons.arrow_back_rounded,
+              color: ChalkboardColors.chalkRed,
               onPressed: () {
                 Navigator.pushNamedAndRemoveUntil(
                   context,
@@ -325,40 +298,51 @@ class _PendingReviewScreenState extends State<PendingReviewScreen> {
                   (route) => false,
                 );
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.studentPrimary,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30.r),
-                ),
-              ),
-              child: Text(
-                'العودة للرئيسية',
-                style: GoogleFonts.cairo(
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                ),
-              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  // View C: Approved Success View (Pure white screen with ONLY success.json Lottie)
+  // View C: Approved Success View (success Lottie on the board)
   Widget _buildSuccessView() {
-    return Center(
-      key: const ValueKey('success_view'),
-      child: Container(
-        width: 320.r,
-        height: 320.r,
-        decoration: const BoxDecoration(shape: BoxShape.circle),
-        child: Lottie.asset(
-          'assets/json/success.json',
-          fit: BoxFit.contain,
-          repeat: false,
+    return ChalkboardSurface(
+      child: Center(
+        key: const ValueKey('success_view'),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 300.r,
+              height: 300.r,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: ChalkboardColors.surface.withAlpha(90),
+                border: Border.all(
+                  color: ChalkboardColors.accent.withAlpha(110),
+                  width: 1.6,
+                ),
+              ),
+              child: Lottie.asset(
+                'assets/json/success.json',
+                fit: BoxFit.contain,
+                repeat: false,
+              ),
+            ),
+            SizedBox(height: 16.h),
+            const ChalkStamp(
+              label: 'تم التفعيل',
+              color: ChalkboardColors.accent,
+              angle: -0.05,
+            ),
+            SizedBox(height: 10.h),
+            Text(
+              'أهلاً بك في السبورة',
+              style: ChalkboardText.heading(22.sp,
+                  color: ChalkboardColors.accent),
+            ),
+          ],
         ),
       ),
     );
@@ -382,17 +366,14 @@ class _StatusStepRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color iconBg = const Color(0xFFF1F5F9);
-    Color iconColor = const Color(0xFF94A3B8);
+    Color iconColor = ChalkboardColors.chalkFaint;
     IconData iconData = Icons.circle_outlined;
 
     if (isDone) {
-      iconBg = const Color(0xFFECFDF5);
-      iconColor = const Color(0xFF0FA37F);
+      iconColor = ChalkboardColors.accent;
       iconData = Icons.check_circle_rounded;
     } else if (isInProgress) {
-      iconBg = const Color(0xFFFEF3C7);
-      iconColor = const Color(0xFFD97706);
+      iconColor = ChalkboardColors.chalkYellow;
       iconData = Icons.hourglass_bottom_rounded;
     }
 
@@ -400,37 +381,32 @@ class _StatusStepRow extends StatelessWidget {
       children: [
         Container(
           padding: EdgeInsets.all(6.r),
-          decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
+          decoration: BoxDecoration(
+            color: iconColor.withAlpha(24),
+            shape: BoxShape.circle,
+          ),
           child: Icon(iconData, color: iconColor, size: 18.r),
         ),
         SizedBox(width: 12.w),
         Expanded(
           child: Text(
             title,
-            style: GoogleFonts.cairo(
-              fontSize: 13.sp,
-              fontWeight: isInProgress || isDone
-                  ? FontWeight.w700
-                  : FontWeight.w500,
-              color: isPending
-                  ? const Color(0xFF94A3B8)
-                  : const Color(0xFF0F172A),
-            ),
+            style: ChalkboardText.body(13.sp,
+                color: isPending
+                    ? ChalkboardColors.chalkFaint
+                    : ChalkboardColors.ink),
           ),
         ),
         Container(
           padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 3.h),
           decoration: BoxDecoration(
-            color: iconBg,
+            color: iconColor.withAlpha(20),
             borderRadius: BorderRadius.circular(8.r),
+            border: Border.all(color: iconColor.withAlpha(90), width: 1),
           ),
           child: Text(
             statusText,
-            style: GoogleFonts.cairo(
-              fontSize: 11.sp,
-              fontWeight: FontWeight.w800,
-              color: iconColor,
-            ),
+            style: ChalkboardText.strong(11.sp, color: iconColor),
           ),
         ),
       ],

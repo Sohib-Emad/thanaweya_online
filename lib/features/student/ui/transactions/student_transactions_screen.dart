@@ -10,6 +10,7 @@ import 'package:thanaweya_online/features/student/logic/student_payments_cubit.d
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/router/app_router.dart';
+import '../../../../core/theme/notebook_theme.dart';
 
 class StudentTransactionsScreen extends StatefulWidget {
   final bool showBackButton;
@@ -72,7 +73,7 @@ class _StudentTransactionsScreenState extends State<StudentTransactionsScreen> {
     final s = (status ?? '').toLowerCase();
     if (s.contains('pending') || s.contains('waiting') || s.contains('قيد')) {
       return (
-        label: 'قيد الانتظار • Pending',
+        label: 'قيد الانتظار',
         bg: const Color(0xFFFEF3C7),
         border: const Color(0xFFFDE68A),
         fg: const Color(0xFFB45309),
@@ -83,15 +84,15 @@ class _StudentTransactionsScreenState extends State<StudentTransactionsScreen> {
         s.contains('فشل') ||
         s.contains('ملغي')) {
       return (
-        label: 'فشل • Failed',
+        label: 'فشل',
         bg: const Color(0xFFFEE2E2),
         border: const Color(0xFFFECACA),
         fg: const Color(0xFFDC2626),
       );
     }
     return (
-      label: 'مدفوع • Paid',
-      bg: const Color(0xFFECFDF5),
+      label: 'مدفوع',
+      bg: const Color(0xFFE6F7F2),
       border: const Color(0xFFA7F3D0),
       fg: const Color(0xFF0FA37F),
     );
@@ -102,39 +103,21 @@ class _StudentTransactionsScreenState extends State<StudentTransactionsScreen> {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          leading: widget.showBackButton
-              ? IconButton(
-                  icon: Icon(
-                    Icons.arrow_back_ios_new_rounded,
-                    color: const Color(0xFF0F172A),
-                    size: 20.r,
-                  ),
-                  onPressed: () => Navigator.pop(context),
-                )
-              : null,
-          centerTitle: false,
-          title: Text(
-            'المعاملات المالية (Transactions)',
-            style: GoogleFonts.cairo(
-              fontSize: 18.sp,
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFF0F172A),
-            ),
-          ),
+        backgroundColor: NotebookColors.ground,
+        appBar: NotebookTopBar(
+          title: 'المعاملات المالية',
+          subtitle: 'سجل المدفوعات والاشتراكات',
+          automaticallyImplyBack: widget.showBackButton,
           actions: [
             IconButton(
               icon: Icon(
                 Icons.search_rounded,
-                color: const Color(0xFF0F172A),
-                size: 22.r,
+                color: NotebookColors.ink,
+                size: 20.r,
               ),
               onPressed: () {},
             ),
-            SizedBox(width: 8.w),
+            SizedBox(width: 12.w),
           ],
         ),
         body: BlocBuilder<StudentPaymentsCubit, StudentPaymentsState>(
@@ -142,214 +125,190 @@ class _StudentTransactionsScreenState extends State<StudentTransactionsScreen> {
           builder: (context, state) {
             if (state.status == StudentPaymentsStatus.loading &&
                 state.payments.isEmpty) {
-              return const Center(child: CircularProgressIndicator());
+              return Center(
+                child: CircularProgressIndicator(color: NotebookColors.green),
+              );
             }
             if (state.status == StudentPaymentsStatus.error &&
                 state.payments.isEmpty) {
-              return Center(
-                child: Padding(
-                  padding: EdgeInsets.all(24.w),
-                  child: Text(
-                    state.errorMessage ?? 'حدث خطأ في تحميل المعاملات',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.cairo(
-                      fontSize: 14.sp,
-                      color: const Color(0xFF64748B),
-                    ),
+              return Padding(
+                padding: EdgeInsets.all(24.w),
+                child: Center(
+                  child: NotebookEmptyNote(
+                    icon: Icons.error_outline_rounded,
+                    message: state.errorMessage ?? 'حدث خطأ في تحميل المعاملات',
                   ),
                 ),
               );
             }
             if (state.payments.isEmpty) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.receipt_long_outlined,
-                      size: 64,
-                      color: const Color(0xFF94A3B8),
-                    ),
-                    SizedBox(height: 16.h),
-                    Text(
-                      'لا توجد معاملات بعد',
-                      style: GoogleFonts.cairo(
-                        fontSize: 16.sp,
-                        color: const Color(0xFF64748B),
-                      ),
-                    ),
-                    SizedBox(height: 6.h),
-                    Text(
-                      'ستظهر هنا مدفوعاتك عند اشتراكك في الكورسات',
-                      style: GoogleFonts.cairo(
-                        fontSize: 12.sp,
-                        color: const Color(0xFF94A3B8),
-                      ),
-                    ),
-                  ],
+              return const Padding(
+                padding: EdgeInsets.all(24),
+                child: NotebookEmptyNote(
+                  icon: Icons.receipt_long_rounded,
+                  message: 'لا توجد معاملات بعد\nستظهر هنا مدفوعاتك عند اشتراكك في الكورسات',
                 ),
               );
             }
-            return RefreshIndicator(
-              onRefresh: _loadPayments,
-              child: ListView.builder(
-                padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 30.h),
-                physics: const BouncingScrollPhysics(),
-                itemCount: state.payments.length,
-                itemBuilder: (context, index) {
-                  final payment = state.payments[index];
-                  final plan =
-                      payment['subscription_plans'] as Map<String, dynamic>? ??
-                      {};
-                  final title =
-                      plan['name'] as String? ?? 'اشتراك (Subscription)';
-                  final gateway =
-                      payment['payment_gateway'] as String? ?? 'دفع إلكتروني';
-                  final amount = _formatAmount(payment['amount']);
-                  final date = _formatDate(payment['created_at'] as String?);
-                  final statusStyle = _statusStyle(
-                    payment['status'] as String?,
-                  );
-                  final color = _palette[index % _palette.length];
-                  final user = Supabase.instance.client.auth.currentUser;
+            return NotebookPaper(
+              child: RefreshIndicator(
+                onRefresh: _loadPayments,
+                color: NotebookColors.green,
+                child: ListView.builder(
+                  padding: EdgeInsets.fromLTRB(24.w, 16.h, 24.w, 30.h),
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: state.payments.length,
+                  itemBuilder: (context, index) {
+                    final payment = state.payments[index];
+                    final plan =
+                        payment['subscription_plans']
+                            as Map<String, dynamic>? ??
+                        {};
+                    final title =
+                        plan['name'] as String? ?? 'اشتراك';
+                    final gateway =
+                        payment['payment_gateway'] as String? ?? 'دفع إلكتروني';
+                    final amount = _formatAmount(payment['amount']);
+                    final date = _formatDate(payment['created_at'] as String?);
+                    final statusStyle = _statusStyle(
+                      payment['status'] as String?,
+                    );
+                    final color = _palette[index % _palette.length];
+                    final user = Supabase.instance.client.auth.currentUser;
 
-                  return GestureDetector(
-                    onTap: () {
-                      HapticFeedback.lightImpact();
-                      final receiptArgs = <String, dynamic>{
-                        'id':
-                            payment['gateway_transaction_id'] ??
-                            payment['id'] ??
-                            '',
-                        'title': title,
-                        'category': gateway,
-                        'price': amount,
-                        'date': date,
-                        'status': statusStyle.label,
-                      };
-                      final email = user?.email;
-                      if (email != null && email.isNotEmpty) {
-                        receiptArgs['email'] = email;
-                      }
-                      Navigator.pushNamed(
-                        context,
-                        AppRouter.studentEReceipt,
-                        arguments: receiptArgs,
-                      );
-                    },
-                    child: Container(
-                      margin: EdgeInsets.only(bottom: 14.h),
-                      padding: EdgeInsets.all(14.r),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20.r),
-                        border: Border.all(color: const Color(0xFFF1F5F9)),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x060F172A),
-                            blurRadius: 10,
-                            offset: Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          // Course Thumbnail
-                          Container(
-                            width: 64.r,
-                            height: 64.r,
-                            decoration: BoxDecoration(
-                              color: color.withAlpha(20),
-                              borderRadius: BorderRadius.circular(16.r),
-                            ),
-                            child: Center(
-                              child: Icon(
-                                Icons.receipt_long_rounded,
-                                color: color,
-                                size: 30.r,
+                    return Padding(
+                      padding: EdgeInsets.only(bottom: 14.h),
+                      child: NotebookCard(
+                        ruled: true,
+                        ruledStartY: 84,
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          final receiptArgs = <String, dynamic>{
+                            'id':
+                                payment['gateway_transaction_id'] ??
+                                payment['id'] ??
+                                '',
+                            'title': title,
+                            'category': gateway,
+                            'price': amount,
+                            'date': date,
+                            'status': statusStyle.label,
+                          };
+                          final email = user?.email;
+                          if (email != null && email.isNotEmpty) {
+                            receiptArgs['email'] = email;
+                          }
+                          Navigator.pushNamed(
+                            context,
+                            AppRouter.studentEReceipt,
+                            arguments: receiptArgs,
+                          );
+                        },
+                        child: Row(
+                          children: [
+                            // Receipt index box
+                            Container(
+                              width: 60.r,
+                              height: 60.r,
+                              decoration: BoxDecoration(
+                                color: color.withAlpha(18),
+                                borderRadius: BorderRadius.circular(10.r),
+                                border: Border.all(
+                                  color: color.withAlpha(90),
+                                  width: 1.2,
+                                ),
+                              ),
+                              child: Center(
+                                child: Icon(
+                                  Icons.receipt_long_rounded,
+                                  color: color,
+                                  size: 28.r,
+                                ),
                               ),
                             ),
-                          ),
 
-                          SizedBox(width: 14.w),
+                            SizedBox(width: 14.w),
 
-                          // Details
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            // Details
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    title,
+                                    style: NotebookText.heading(13.sp),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  SizedBox(height: 2.h),
+                                  Text(
+                                    gateway,
+                                    style: NotebookText.note(10.sp),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  SizedBox(height: 8.h),
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 8.w,
+                                          vertical: 2.h,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: statusStyle.bg,
+                                          borderRadius:
+                                              BorderRadius.circular(5.r),
+                                          border: Border.all(
+                                            color: statusStyle.border,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          statusStyle.label,
+                                          style: NotebookText.strong(
+                                            10.sp,
+                                            color: statusStyle.fg,
+                                          ),
+                                        ),
+                                      ),
+                                      SizedBox(width: 10.w),
+                                      Text(
+                                        date,
+                                        style: NotebookText.note(10.sp),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            SizedBox(width: 8.w),
+
+                            // Price
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 Text(
-                                  title,
+                                  amount,
                                   style: GoogleFonts.cairo(
                                     fontSize: 13.sp,
-                                    fontWeight: FontWeight.w800,
-                                    color: const Color(0xFF0F172A),
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                SizedBox(height: 2.h),
-                                Text(
-                                  gateway,
-                                  style: GoogleFonts.cairo(
-                                    fontSize: 11.sp,
-                                    color: const Color(0xFF64748B),
+                                    fontWeight: FontWeight.w900,
+                                    color: AppColors.studentPrimary,
                                   ),
                                 ),
-                                SizedBox(height: 6.h),
-
-                                // Status Badge
-                                Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 10.w,
-                                    vertical: 2.h,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: statusStyle.bg,
-                                    borderRadius: BorderRadius.circular(8.r),
-                                    border: Border.all(
-                                      color: statusStyle.border,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    statusStyle.label,
-                                    style: GoogleFonts.cairo(
-                                      fontSize: 10.sp,
-                                      fontWeight: FontWeight.w800,
-                                      color: statusStyle.fg,
-                                    ),
-                                  ),
+                                Icon(
+                                  Icons.chevron_left_rounded,
+                                  color: NotebookColors.pencil,
+                                  size: 18.r,
                                 ),
                               ],
                             ),
-                          ),
-
-                          SizedBox(width: 8.w),
-
-                          // Price
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                amount,
-                                style: GoogleFonts.cairo(
-                                  fontSize: 14.sp,
-                                  fontWeight: FontWeight.w900,
-                                  color: AppColors.studentPrimary,
-                                ),
-                              ),
-                              Icon(
-                                Icons.chevron_left_rounded,
-                                color: const Color(0xFF94A3B8),
-                                size: 20.r,
-                              ),
-                            ],
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
             );
           },

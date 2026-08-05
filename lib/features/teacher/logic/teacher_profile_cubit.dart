@@ -10,6 +10,12 @@ class TeacherProfileCubit extends Cubit<TeacherProfileState> {
       : _repo = repo,
         super(const TeacherProfileState());
 
+  @override
+  void emit(TeacherProfileState state) {
+    if (isClosed) return;
+    super.emit(state);
+  }
+
   Future<void> loadProfile(String userId) async {
     emit(state.copyWith(status: TeacherProfileStatus.loading));
 

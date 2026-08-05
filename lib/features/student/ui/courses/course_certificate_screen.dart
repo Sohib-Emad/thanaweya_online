@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/notebook_theme.dart';
 
 class CourseCertificateScreen extends StatelessWidget {
   final String courseTitle;
@@ -13,361 +13,255 @@ class CourseCertificateScreen extends StatelessWidget {
 
   const CourseCertificateScreen({
     super.key,
-    this.courseTitle = 'شرح مبادئ الفيزياء والتطبيق (3D Design)',
-    this.studentName = 'أحمد محمد علي',
-    this.issueDate = '24 نوفمبر 2024',
-    this.certificateId = 'ID: SKH06900R',
+    this.courseTitle = '',
+    this.studentName = '',
+    this.issueDate = '',
+    this.certificateId = '',
   });
+
+  String _resolveStudentName(String name) {
+    if (name.isNotEmpty) return name;
+    final user = Supabase.instance.client.auth.currentUser;
+    final metadataName =
+        user?.userMetadata?['full_name']?.toString().trim() ?? '';
+    if (metadataName.isNotEmpty) return metadataName;
+    return 'طالب';
+  }
+
+  String _resolveIssueDate(String date) {
+    if (date.isNotEmpty) return date;
+    final now = DateTime.now();
+    return '${now.day}/${now.month}/${now.year}';
+  }
+
+  String _resolveCertificateId(String id) {
+    if (id.isNotEmpty) return id;
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user?.id != null && user!.id.length >= 8) {
+      return 'ID: ${user.id.substring(0, 8).toUpperCase()}';
+    }
+    return '';
+  }
 
   @override
   Widget build(BuildContext context) {
+    final name = _resolveStudentName(studentName);
+    final date = _resolveIssueDate(issueDate);
+    final certId = _resolveCertificateId(certificateId);
+
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          leading: IconButton(
-            icon: Icon(
-              Icons.arrow_back_ios_new_rounded,
-              color: const Color(0xFF0F172A),
-              size: 20.r,
-            ),
-            onPressed: () => Navigator.pop(context),
-          ),
-          centerTitle: false,
-          title: Text(
-            courseTitle,
-            style: GoogleFonts.cairo(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFF0F172A),
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          actions: [
-            Container(
-              margin: EdgeInsets.only(left: 16.w),
-              width: 38.r,
-              height: 38.r,
-              decoration: BoxDecoration(
-                color: AppColors.studentPrimary.withAlpha(20),
-                borderRadius: BorderRadius.circular(12.r),
-              ),
-              child: Icon(
-                Icons.tune_rounded,
-                color: AppColors.studentPrimary,
-                size: 18.r,
-              ),
-            ),
-          ],
+        backgroundColor: NotebookColors.ground,
+        appBar: NotebookTopBar(
+          title: 'شهادة إتمام',
+          subtitle: 'صفحة التكريم في دفترك',
         ),
-        body: SafeArea(
-          child: Column(
+        body: NotebookPaper(
+          child: Stack(
             children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.all(20.r),
-                  physics: const BouncingScrollPhysics(),
-                  child: Center(
-                    child: Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(24.r),
-                        border: Border.all(
-                          color: const Color(0xFFE2E8F0),
-                          width: 1.5,
-                        ),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x0F0F172A),
-                            blurRadius: 20,
-                            offset: Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(24.r),
-                        child: Stack(
+              SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(24.w, 24.h, 24.w, 110.h),
+                physics: const BouncingScrollPhysics(),
+                child: Center(
+                  child: NotebookCard(
+                    ruled: true,
+                    ruledStartY: 150,
+                    marginTab: true,
+                    borderRadius: 14,
+                    padding: EdgeInsets.fromLTRB(24.w, 30.h, 24.w, 26.h),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Mint completion stamp
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
                           children: [
-                            // Top Right Organic Decorative Shape
-                            Positioned(
-                              top: -40,
-                              right: -40,
-                              child: Container(
-                                width: 160.r,
-                                height: 160.r,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF1E3A8A).withAlpha(180),
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              top: -20,
-                              right: -10,
-                              child: Container(
-                                width: 120.r,
-                                height: 120.r,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF3B82F6).withAlpha(200),
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            ),
-
-                            // Bottom Left Decorative Shape
-                            Positioned(
-                              bottom: -30,
-                              left: -30,
-                              child: Container(
-                                width: 140.r,
-                                height: 140.r,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF97316).withAlpha(220),
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            ),
-
-                            // Main Certificate Contents
-                            Padding(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 24.w,
-                                vertical: 36.h,
-                              ),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  // Badge Icon
-                                  Container(
-                                    width: 72.r,
-                                    height: 72.r,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFEFF6FF),
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: const Color(0xFF3B82F6),
-                                        width: 2,
-                                      ),
-                                      boxShadow: const [
-                                        BoxShadow(
-                                          color: Color(0x203B82F6),
-                                          blurRadius: 12,
-                                          offset: Offset(0, 4),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Center(
-                                      child: Icon(
-                                        Icons.workspace_premium_rounded,
-                                        color: const Color(0xFF1D4ED8),
-                                        size: 38.r,
-                                      ),
-                                    ),
-                                  ),
-
-                                  SizedBox(height: 20.h),
-
-                                  Text(
-                                    'شهادة إتمام كورس',
-                                    style: GoogleFonts.cairo(
-                                      fontSize: 22.sp,
-                                      fontWeight: FontWeight.w900,
-                                      color: const Color(0xFF0F172A),
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
-
-                                  SizedBox(height: 6.h),
-
-                                  Text(
-                                    'تشهد إدارة منصة الثانوية أونلاين بأن الطالب',
-                                    style: GoogleFonts.cairo(
-                                      fontSize: 12.sp,
-                                      color: const Color(0xFF64748B),
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-
-                                  SizedBox(height: 14.h),
-
-                                  // Student Name
-                                  Text(
-                                    studentName,
-                                    style: GoogleFonts.cairo(
-                                      fontSize: 24.sp,
-                                      fontWeight: FontWeight.w900,
-                                      color: const Color(0xFF1D4ED8),
-                                    ),
-                                  ),
-
-                                  SizedBox(height: 12.h),
-
-                                  Text(
-                                    'قد أتم بنجاح كافة متطلبات وااختبارات الكورس التعليمي:',
-                                    textAlign: TextAlign.center,
-                                    style: GoogleFonts.cairo(
-                                      fontSize: 12.sp,
-                                      color: const Color(0xFF475569),
-                                      height: 1.4,
-                                    ),
-                                  ),
-
-                                  SizedBox(height: 10.h),
-
-                                  // Course Title Box
-                                  Container(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 16.w,
-                                      vertical: 10.h,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFF8FAFC),
-                                      borderRadius: BorderRadius.circular(14.r),
-                                      border: Border.all(
-                                        color: const Color(0xFFE2E8F0),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      courseTitle,
-                                      textAlign: TextAlign.center,
-                                      style: GoogleFonts.cairo(
-                                        fontSize: 15.sp,
-                                        fontWeight: FontWeight.w800,
-                                        color: const Color(0xFF0F172A),
-                                      ),
-                                    ),
-                                  ),
-
-                                  SizedBox(height: 16.h),
-
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        'تاريخ الإصدار: $issueDate',
-                                        style: GoogleFonts.cairo(
-                                          fontSize: 11.sp,
-                                          color: const Color(0xFF64748B),
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                      SizedBox(width: 16.w),
-                                      Container(
-                                        width: 4,
-                                        height: 4,
-                                        decoration: const BoxDecoration(
-                                          color: Color(0xFFCBD5E1),
-                                          shape: BoxShape.circle,
-                                        ),
-                                      ),
-                                      SizedBox(width: 16.w),
-                                      Text(
-                                        certificateId,
-                                        style: GoogleFonts.cairo(
-                                          fontSize: 11.sp,
-                                          color: const Color(0xFF64748B),
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-
-                                  SizedBox(height: 24.h),
-
-                                  const Divider(color: Color(0xFFF1F5F9)),
-
-                                  SizedBox(height: 12.h),
-
-                                  // Signatures Row
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'أ. د. أسامة الإبرشي',
-                                            style: GoogleFonts.cairo(
-                                              fontSize: 13.sp,
-                                              fontWeight: FontWeight.w800,
-                                              color: const Color(0xFF0F172A),
-                                            ),
-                                          ),
-                                          Text(
-                                            'مدرس الكورس المعتمد',
-                                            style: GoogleFonts.cairo(
-                                              fontSize: 10.sp,
-                                              color: const Color(0xFF94A3B8),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.end,
-                                        children: [
-                                          Text(
-                                            'مدير المنصة  ',
-                                            style: GoogleFonts.cairo(
-                                              fontSize: 13.sp,
-                                              fontWeight: FontWeight.w800,
-                                              color: AppColors.studentPrimary,
-                                            ),
-                                          ),
-                                          SizedBox(height: 2.h),
-                                          Text(
-                                            'م. صهيب عماد',
-                                            style: GoogleFonts.cairo(
-                                              fontSize: 14.sp,
-                                              fontWeight: FontWeight.w800,
-                                              color: const Color.fromARGB(
-                                                255,
-                                                0,
-                                                0,
-                                                0,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
+                            NotebookStamp(
+                              label: 'شهادة إتمام',
+                              color: NotebookColors.green,
                             ),
                           ],
                         ),
-                      ),
+                        SizedBox(height: 10.h),
+
+                        // Badge
+                        Container(
+                          width: 64.r,
+                          height: 64.r,
+                          decoration: BoxDecoration(
+                            color: NotebookColors.green.withAlpha(20),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: NotebookColors.green.withAlpha(90),
+                              width: 1.4,
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.workspace_premium_rounded,
+                            color: NotebookColors.green,
+                            size: 32.r,
+                          ),
+                        ),
+                        SizedBox(height: 14.h),
+
+                        Text(
+                          'إتمام الكورس بنجاح',
+                          style: NotebookText.heading(21.sp),
+                        ),
+                        SizedBox(height: 8.h),
+                        Text(
+                          'تشهد منصة الثانوية أونلاين بأن الطالب',
+                          textAlign: TextAlign.center,
+                          style: NotebookText.note(12.sp),
+                        ),
+                        SizedBox(height: 18.h),
+
+                        // Student name signed with a red underline
+                        Text(
+                          name,
+                          textAlign: TextAlign.center,
+                          style: NotebookText.heading(22.sp),
+                        ),
+                        SizedBox(height: 6.h),
+                        Container(
+                          width: 160.w,
+                          height: 2,
+                          color: NotebookColors.marginRed,
+                        ),
+                        SizedBox(height: 18.h),
+
+                        Text(
+                          'قد أتم بنجاح كافة متطلبات واختبارات الكورس التعليمي:',
+                          textAlign: TextAlign.center,
+                          style: NotebookText.note(12.sp),
+                        ),
+                        SizedBox(height: 12.h),
+
+                        if (courseTitle.isNotEmpty) ...[
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 16.w,
+                              vertical: 10.h,
+                            ),
+                            decoration: BoxDecoration(
+                              color: NotebookColors.surfaceBright,
+                              borderRadius: BorderRadius.circular(10.r),
+                              border: Border.all(
+                                color: NotebookColors.ink.withAlpha(40),
+                              ),
+                            ),
+                            child: Text(
+                              courseTitle,
+                              textAlign: TextAlign.center,
+                              style: NotebookText.strong(14.sp),
+                            ),
+                          ),
+                          SizedBox(height: 16.h),
+                        ],
+
+                        // Issue date + certificate id
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'تاريخ الإصدار: $date',
+                              style: NotebookText.note(11.sp),
+                            ),
+                            if (certId.isNotEmpty) ...[
+                              SizedBox(width: 14.w),
+                              Container(
+                                width: 4,
+                                height: 4,
+                                decoration: BoxDecoration(
+                                  color: NotebookColors.pencil,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              SizedBox(width: 14.w),
+                              Text(
+                                certId,
+                                style: NotebookText.note(11.sp),
+                              ),
+                            ],
+                          ],
+                        ),
+
+                        SizedBox(height: 20.h),
+                        Container(
+                          height: 1,
+                          color: NotebookColors.ink.withAlpha(50),
+                        ),
+                        SizedBox(height: 16.h),
+
+                        // Signature row
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'توقيع الطالب',
+                                  style: NotebookText.note(10.sp),
+                                ),
+                                SizedBox(height: 4.h),
+                                Container(
+                                  width: 90.w,
+                                  height: 2,
+                                  color: NotebookColors.marginRed,
+                                ),
+                              ],
+                            ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  'مدير المنصة',
+                                  style: NotebookText.strong(12.sp),
+                                ),
+                                SizedBox(height: 4.h),
+                                Container(
+                                  width: 90.w,
+                                  height: 2,
+                                  color: NotebookColors.marginRed,
+                                ),
+                                SizedBox(height: 4.h),
+                                Text(
+                                  'منصة الثانوية أونلاين',
+                                  style: NotebookText.note(10.sp),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
                 ),
               ),
 
-              // Bottom Sticky Download Button
-              Padding(
-                padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 20.h),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 54.h,
-                  child: ElevatedButton(
+              // Bottom Download Button
+              Positioned(
+                left: 20.w,
+                right: 20.w,
+                bottom: 20.h,
+                child: SafeArea(
+                  child: NotebookPrimaryButton(
+                    label: 'تحميل الشهادة',
+                    icon: Icons.download_rounded,
                     onPressed: () {
                       HapticFeedback.mediumImpact();
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            'تم تحميل الشهادة بنجاح بصيغة PDF 🎓',
-                            style: GoogleFonts.cairo(
-                              fontWeight: FontWeight.w700,
+                            'تم تحميل الشهادة بنجاح بصيغة PDF',
+                            style: NotebookText.strong(
+                              13.sp,
+                              color: Colors.white,
                             ),
                           ),
-                          backgroundColor: const Color(0xFF0FA37F),
+                          backgroundColor: NotebookColors.green,
                           behavior: SnackBarBehavior.floating,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12.r),
@@ -375,46 +269,6 @@ class CourseCertificateScreen extends StatelessWidget {
                         ),
                       );
                     },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2563EB),
-                      elevation: 4,
-                      shadowColor: const Color(0x332563EB),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30.r),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            'تحميل الشهادة (Download Certificate)',
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.cairo(
-                              fontSize: 14.sp,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        SizedBox(width: 8.w),
-                        Container(
-                          width: 34.r,
-                          height: 34.r,
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            Icons.download_rounded,
-                            color: const Color(0xFF2563EB),
-                            size: 18.r,
-                          ),
-                        ),
-                      ],
-                    ),
                   ),
                 ),
               ),

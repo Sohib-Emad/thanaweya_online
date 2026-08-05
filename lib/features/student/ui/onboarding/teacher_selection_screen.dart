@@ -3,11 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import 'package:thanaweya_online/core/constants/app_colors.dart';
 import 'package:thanaweya_online/core/constants/app_strings.dart';
-import 'package:thanaweya_online/core/constants/app_text_styles.dart';
 import 'package:thanaweya_online/core/router/app_router.dart';
-import 'package:thanaweya_online/features/shared/widgets/app_button.dart';
+import 'package:thanaweya_online/core/theme/notebook_theme.dart';
 import 'package:thanaweya_online/features/student/data/repos/student_onboarding_repo.dart';
 import 'package:thanaweya_online/features/student/logic/student_onboarding_cubit.dart';
 
@@ -39,118 +37,151 @@ class _TeacherSelectionScreenState extends State<TeacherSelectionScreen> {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        appBar: AppBar(title: Text(AppStrings.selectTeachers)),
+        backgroundColor: NotebookColors.ground,
+        appBar: NotebookTopBar(
+          title: AppStrings.selectTeachers,
+          subtitle: 'اختر المدرسين الذين تريد متابعتهم',
+        ),
         body: BlocBuilder<StudentOnboardingCubit, StudentOnboardingState>(
           bloc: _cubit,
           builder: (context, state) {
             if (state.teachersStatus == StudentOnboardingStatus.loading) {
-              return const Center(child: CircularProgressIndicator());
+              return Center(
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: NotebookColors.green,
+                ),
+              );
             }
             if (state.teachersStatus == StudentOnboardingStatus.error) {
-              return Center(
-                child: Text(state.errorMessage ?? 'حدث خطأ', style: AppTextStyles.body1),
+              return SafeArea(
+                top: false,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 24.w),
+                  child: Center(
+                    child: NotebookEmptyNote(
+                      message: state.errorMessage ?? 'حدث خطأ',
+                    ),
+                  ),
+                ),
               );
             }
             if (state.teachers.isEmpty) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.person_search_rounded, size: 64, color: AppColors.textTertiary),
-                    SizedBox(height: 16.h),
-                    Text('لا يوجد معلمون متاحون', style: AppTextStyles.h3),
-                  ],
+              return SafeArea(
+                top: false,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 24.w),
+                  child: Center(
+                    child: NotebookEmptyNote(
+                      message: 'لا يوجد معلمون متاحون',
+                    ),
+                  ),
                 ),
               );
             }
             return SafeArea(
-              child: Column(
-                children: [
-                  Expanded(
-                    child: ListView.builder(
-                      padding: EdgeInsets.all(16.w),
-                      itemCount: state.teachers.length,
-                      itemBuilder: (context, index) {
-                        final teacher = state.teachers[index];
-                        final user = teacher['users'] as Map<String, dynamic>? ?? {};
-                        final isSelected = _selectedIds.contains(teacher['id']);
-                        final name = user['full_name'] as String? ?? '';
-                        final initials = name.isNotEmpty ? name[0] : 'م';
+              top: false,
+              child: NotebookPaper(
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: ListView.separated(
+                        padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 8.h),
+                        physics: const BouncingScrollPhysics(),
+                        itemCount: state.teachers.length,
+                        separatorBuilder: (_, _) => SizedBox(height: 12.h),
+                        itemBuilder: (context, index) {
+                          final teacher = state.teachers[index];
+                          final user =
+                              teacher['users'] as Map<String, dynamic>? ?? {};
+                          final isSelected =
+                              _selectedIds.contains(teacher['id']);
+                          final name = user['full_name'] as String? ?? '';
 
-                        return GestureDetector(
-                          onTap: () {
-                            HapticFeedback.selectionClick();
-                            setState(() {
-                              if (isSelected) {
-                                _selectedIds.remove(teacher['id']);
-                              } else {
-                                _selectedIds.add(teacher['id'] as String);
-                              }
-                            });
-                          },
-                          child: Container(
-                            margin: EdgeInsets.only(bottom: 12.h),
-                            padding: EdgeInsets.all(16.r),
-                            decoration: BoxDecoration(
-                              color: isSelected ? AppColors.studentPrimaryLight : AppColors.surface,
-                              borderRadius: BorderRadius.circular(12.r),
-                              border: Border.all(
-                                color: isSelected ? AppColors.studentPrimary : AppColors.borderLight,
-                                width: isSelected ? 1.5 : 1,
-                              ),
-                            ),
+                          return NotebookCard(
+                            ruled: true,
+                            ruledStartY: 32,
+                            onTap: () {
+                              HapticFeedback.selectionClick();
+                              setState(() {
+                                if (isSelected) {
+                                  _selectedIds.remove(teacher['id']);
+                                } else {
+                                  _selectedIds.add(teacher['id'] as String);
+                                }
+                              });
+                            },
                             child: Row(
                               children: [
-                                Container(
-                                  width: 44.r,
-                                  height: 44.r,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.studentPrimaryLight,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Center(
-                                    child: Text(initials,
-                                        style: AppTextStyles.h3.copyWith(color: AppColors.studentPrimary)),
-                                  ),
+                                NotebookTeacherAvatar(
+                                  avatarUrl:
+                                      user['avatar_url'] as String?,
+                                  name: name,
+                                  size: 42.r,
                                 ),
                                 SizedBox(width: 14.w),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      Text(name, style: AppTextStyles.h3),
+                                      Text(
+                                        name,
+                                        style: NotebookText.strong(13.sp),
+                                      ),
                                       SizedBox(height: 2.h),
                                       Text(
-                                        (teacher['subjects'] as Map<String, dynamic>?)?['name_ar'] as String? ?? '',
-                                        style: AppTextStyles.caption,
+                                        (teacher['subjects']
+                                                as Map<String, dynamic>?)?['name_ar']
+                                            as String? ??
+                                            '',
+                                        style: NotebookText.note(11.sp),
                                       ),
                                     ],
                                   ),
                                 ),
-                                if (isSelected)
-                                  Icon(Icons.check_circle, color: AppColors.studentPrimary, size: 22.r)
-                                else
-                                  Icon(Icons.add_circle_outline, color: AppColors.textTertiary, size: 22.r),
+                                AnimatedContainer(
+                                  duration:
+                                      const Duration(milliseconds: 200),
+                                  width: 24.r,
+                                  height: 24.r,
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? NotebookColors.green
+                                        : NotebookColors.surfaceBright,
+                                    borderRadius: BorderRadius.circular(6.r),
+                                    border: Border.all(
+                                      color: isSelected
+                                          ? NotebookColors.green
+                                          : NotebookColors.ink.withAlpha(50),
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  child: isSelected
+                                      ? Icon(Icons.check_rounded,
+                                          size: 16.r, color: Colors.white)
+                                      : null,
+                                ),
                               ],
                             ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.all(16.w),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: AppButton(
-                        text: '${AppStrings.next} (${_selectedIds.length})',
-                        onPressed: _selectedIds.isEmpty
-                            ? null
-                            : () => Navigator.pushNamed(context, AppRouter.studentForm),
+                          );
+                        },
                       ),
                     ),
-                  ),
-                ],
+                    Padding(
+                      padding: EdgeInsets.all(16.w),
+                      child: NotebookPrimaryButton(
+                        label: '${AppStrings.next} (${_selectedIds.length})',
+                        onPressed: _selectedIds.isEmpty
+                            ? null
+                            : () => Navigator.pushNamed(
+                                  context,
+                                  AppRouter.studentForm,
+                                ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           },

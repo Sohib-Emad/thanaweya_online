@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:google_fonts/google_fonts.dart';
 
-import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/notebook_theme.dart';
 
 class StudentLanguageScreen extends StatefulWidget {
   const StudentLanguageScreen({super.key});
@@ -13,26 +12,11 @@ class StudentLanguageScreen extends StatefulWidget {
 }
 
 class _StudentLanguageScreenState extends State<StudentLanguageScreen> {
-  String _selectedLanguage = 'English (US)';
+  String _selectedLanguage = 'العربية';
 
-  final List<String> _subCategories = [
-    'English (US)',
-    'English (UK)',
-  ];
-
-  final List<String> _allLanguages = [
-    'English (US)',
-    'العربية (Arabic)',
-    'Hindi',
-    'Bengali',
-    'Deutsch',
-    'Italian',
-    'Korean',
-    'Francais',
-    'Russian',
-    'Polish',
-    'Spanish',
-    'Mandarin',
+  final List<String> _languages = [
+    'العربية',
+    'English',
   ];
 
   @override
@@ -40,58 +24,21 @@ class _StudentLanguageScreenState extends State<StudentLanguageScreen> {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          leading: IconButton(
-            icon: Icon(
-              Icons.arrow_back_ios_new_rounded,
-              color: const Color(0xFF0F172A),
-              size: 20.r,
-            ),
-            onPressed: () => Navigator.pop(context),
-          ),
-          centerTitle: false,
-          title: Text(
-            'اختر اللغة (Language)',
-            style: GoogleFonts.cairo(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFF0F172A),
-            ),
-          ),
+        backgroundColor: NotebookColors.ground,
+        appBar: NotebookTopBar(
+          title: 'اختر اللغة',
+          subtitle: 'لغة عرض الدفتر',
         ),
-        body: ListView(
-          padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 30.h),
-          physics: const BouncingScrollPhysics(),
-          children: [
-            // SubCategories Header
-            Text(
-              'اللغات الشائعة (SubCategories):',
-              style: GoogleFonts.cairo(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w800,
-                color: const Color(0xFF0F172A),
-              ),
-            ),
-            SizedBox(height: 10.h),
-            ..._subCategories.map((lang) => _buildLanguageItem(lang)),
-
-            SizedBox(height: 24.h),
-
-            // All Languages Header
-            Text(
-              'جميع اللغات (All Languages):',
-              style: GoogleFonts.cairo(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w800,
-                color: const Color(0xFF0F172A),
-              ),
-            ),
-            SizedBox(height: 10.h),
-            ..._allLanguages.map((lang) => _buildLanguageItem(lang)),
-          ],
+        body: NotebookPaper(
+          child: ListView(
+            padding: EdgeInsets.fromLTRB(20.w, 18.h, 20.w, 40.h),
+            physics: const BouncingScrollPhysics(),
+            children: [
+              NotebookSectionHeader(title: 'اللغات المتاحة'),
+              SizedBox(height: 12.h),
+              ..._languages.map(_buildLanguageItem),
+            ],
+          ),
         ),
       ),
     );
@@ -100,32 +47,26 @@ class _StudentLanguageScreenState extends State<StudentLanguageScreen> {
   Widget _buildLanguageItem(String lang) {
     final isSelected = _selectedLanguage == lang;
 
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.selectionClick();
-        setState(() => _selectedLanguage = lang);
-        Navigator.pop(context, lang);
-      },
-      child: Container(
-        margin: EdgeInsets.only(bottom: 10.h),
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16.r),
-          border: Border.all(
-            color: isSelected ? AppColors.studentPrimary : const Color(0xFFF1F5F9),
-            width: isSelected ? 1.5 : 1,
-          ),
-        ),
+    return Padding(
+      padding: EdgeInsets.only(bottom: 10.h),
+      child: NotebookCard(
+        ruled: true,
+        ruledStartY: 24,
+        marginTab: isSelected,
+        borderRadius: 12,
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
+        onTap: () {
+          HapticFeedback.selectionClick();
+          setState(() => _selectedLanguage = lang);
+          Navigator.pop(context, lang);
+        },
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              lang,
-              style: GoogleFonts.cairo(
-                fontSize: 14.sp,
-                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                color: isSelected ? AppColors.studentPrimary : const Color(0xFF0F172A),
+            Expanded(
+              child: Text(
+                lang,
+                style: NotebookText.body(13.sp)
+                    .copyWith(fontWeight: isSelected ? FontWeight.w900 : null),
               ),
             ),
             Container(
@@ -133,11 +74,11 @@ class _StudentLanguageScreenState extends State<StudentLanguageScreen> {
               height: 22.r,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: isSelected ? AppColors.studentPrimary : Colors.transparent,
+                color: isSelected ? NotebookColors.green : Colors.transparent,
                 border: Border.all(
                   color: isSelected
-                      ? AppColors.studentPrimary
-                      : const Color(0xFFCBD5E1),
+                      ? NotebookColors.green
+                      : NotebookColors.pencil.withAlpha(120),
                   width: 2,
                 ),
               ),

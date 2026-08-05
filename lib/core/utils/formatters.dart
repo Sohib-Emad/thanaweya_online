@@ -36,4 +36,15 @@ class Formatters {
     if (remainingMinutes == 0) return '$hours ساعة';
     return '$hours ساعة و $remainingMinutes دقيقة';
   }
+
+  static String timeAgo(DateTime date) {
+    final local = date.toLocal();
+    final diff = DateTime.now().difference(local);
+    if (diff.inSeconds < 60) return 'الآن';
+    if (diff.inMinutes < 60) return 'منذ ${diff.inMinutes} دقيقة';
+    if (diff.inHours < 24) return 'منذ ${diff.inHours} ساعة';
+    if (diff.inDays < 2) return 'أمس';
+    if (diff.inDays < 30) return 'منذ ${diff.inDays} يوم';
+    return formatDate(local);
+  }
 }

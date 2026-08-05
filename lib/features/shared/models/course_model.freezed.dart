@@ -28,6 +28,12 @@ mixin _$CourseModel {
   String? get description => throw _privateConstructorUsedError;
   @JsonKey(name: 'cover_image_url')
   String? get coverImageUrl => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _priceFromJson, toJson: _priceToJson)
+  double? get price => throw _privateConstructorUsedError;
+  @JsonKey(name: 'intro_video_url')
+  String? get introVideoUrl => throw _privateConstructorUsedError;
+  @JsonKey(name: 'intro_video_source_type')
+  String? get introVideoSourceType => throw _privateConstructorUsedError;
   @JsonKey(name: 'is_published')
   bool get isPublished => throw _privateConstructorUsedError;
   int get order => throw _privateConstructorUsedError;
@@ -59,6 +65,9 @@ abstract class $CourseModelCopyWith<$Res> {
     String title,
     String? description,
     @JsonKey(name: 'cover_image_url') String? coverImageUrl,
+    @JsonKey(fromJson: _priceFromJson, toJson: _priceToJson) double? price,
+    @JsonKey(name: 'intro_video_url') String? introVideoUrl,
+    @JsonKey(name: 'intro_video_source_type') String? introVideoSourceType,
     @JsonKey(name: 'is_published') bool isPublished,
     int order,
     @JsonKey(name: 'created_at') DateTime createdAt,
@@ -86,6 +95,9 @@ class _$CourseModelCopyWithImpl<$Res, $Val extends CourseModel>
     Object? title = null,
     Object? description = freezed,
     Object? coverImageUrl = freezed,
+    Object? price = freezed,
+    Object? introVideoUrl = freezed,
+    Object? introVideoSourceType = freezed,
     Object? isPublished = null,
     Object? order = null,
     Object? createdAt = null,
@@ -112,6 +124,18 @@ class _$CourseModelCopyWithImpl<$Res, $Val extends CourseModel>
             coverImageUrl: freezed == coverImageUrl
                 ? _value.coverImageUrl
                 : coverImageUrl // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            price: freezed == price
+                ? _value.price
+                : price // ignore: cast_nullable_to_non_nullable
+                      as double?,
+            introVideoUrl: freezed == introVideoUrl
+                ? _value.introVideoUrl
+                : introVideoUrl // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            introVideoSourceType: freezed == introVideoSourceType
+                ? _value.introVideoSourceType
+                : introVideoSourceType // ignore: cast_nullable_to_non_nullable
                       as String?,
             isPublished: null == isPublished
                 ? _value.isPublished
@@ -150,6 +174,9 @@ abstract class _$$CourseModelImplCopyWith<$Res>
     String title,
     String? description,
     @JsonKey(name: 'cover_image_url') String? coverImageUrl,
+    @JsonKey(fromJson: _priceFromJson, toJson: _priceToJson) double? price,
+    @JsonKey(name: 'intro_video_url') String? introVideoUrl,
+    @JsonKey(name: 'intro_video_source_type') String? introVideoSourceType,
     @JsonKey(name: 'is_published') bool isPublished,
     int order,
     @JsonKey(name: 'created_at') DateTime createdAt,
@@ -176,6 +203,9 @@ class __$$CourseModelImplCopyWithImpl<$Res>
     Object? title = null,
     Object? description = freezed,
     Object? coverImageUrl = freezed,
+    Object? price = freezed,
+    Object? introVideoUrl = freezed,
+    Object? introVideoSourceType = freezed,
     Object? isPublished = null,
     Object? order = null,
     Object? createdAt = null,
@@ -202,6 +232,18 @@ class __$$CourseModelImplCopyWithImpl<$Res>
         coverImageUrl: freezed == coverImageUrl
             ? _value.coverImageUrl
             : coverImageUrl // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        price: freezed == price
+            ? _value.price
+            : price // ignore: cast_nullable_to_non_nullable
+                  as double?,
+        introVideoUrl: freezed == introVideoUrl
+            ? _value.introVideoUrl
+            : introVideoUrl // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        introVideoSourceType: freezed == introVideoSourceType
+            ? _value.introVideoSourceType
+            : introVideoSourceType // ignore: cast_nullable_to_non_nullable
                   as String?,
         isPublished: null == isPublished
             ? _value.isPublished
@@ -233,6 +275,9 @@ class _$CourseModelImpl implements _CourseModel {
     required this.title,
     this.description,
     @JsonKey(name: 'cover_image_url') this.coverImageUrl,
+    @JsonKey(fromJson: _priceFromJson, toJson: _priceToJson) this.price,
+    @JsonKey(name: 'intro_video_url') this.introVideoUrl,
+    @JsonKey(name: 'intro_video_source_type') this.introVideoSourceType,
     @JsonKey(name: 'is_published') this.isPublished = false,
     this.order = 0,
     @JsonKey(name: 'created_at') required this.createdAt,
@@ -255,6 +300,15 @@ class _$CourseModelImpl implements _CourseModel {
   @JsonKey(name: 'cover_image_url')
   final String? coverImageUrl;
   @override
+  @JsonKey(fromJson: _priceFromJson, toJson: _priceToJson)
+  final double? price;
+  @override
+  @JsonKey(name: 'intro_video_url')
+  final String? introVideoUrl;
+  @override
+  @JsonKey(name: 'intro_video_source_type')
+  final String? introVideoSourceType;
+  @override
   @JsonKey(name: 'is_published')
   final bool isPublished;
   @override
@@ -269,7 +323,7 @@ class _$CourseModelImpl implements _CourseModel {
 
   @override
   String toString() {
-    return 'CourseModel(id: $id, teacherId: $teacherId, title: $title, description: $description, coverImageUrl: $coverImageUrl, isPublished: $isPublished, order: $order, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'CourseModel(id: $id, teacherId: $teacherId, title: $title, description: $description, coverImageUrl: $coverImageUrl, price: $price, introVideoUrl: $introVideoUrl, introVideoSourceType: $introVideoSourceType, isPublished: $isPublished, order: $order, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 
   @override
@@ -285,6 +339,11 @@ class _$CourseModelImpl implements _CourseModel {
                 other.description == description) &&
             (identical(other.coverImageUrl, coverImageUrl) ||
                 other.coverImageUrl == coverImageUrl) &&
+            (identical(other.price, price) || other.price == price) &&
+            (identical(other.introVideoUrl, introVideoUrl) ||
+                other.introVideoUrl == introVideoUrl) &&
+            (identical(other.introVideoSourceType, introVideoSourceType) ||
+                other.introVideoSourceType == introVideoSourceType) &&
             (identical(other.isPublished, isPublished) ||
                 other.isPublished == isPublished) &&
             (identical(other.order, order) || other.order == order) &&
@@ -303,6 +362,9 @@ class _$CourseModelImpl implements _CourseModel {
     title,
     description,
     coverImageUrl,
+    price,
+    introVideoUrl,
+    introVideoSourceType,
     isPublished,
     order,
     createdAt,
@@ -330,6 +392,11 @@ abstract class _CourseModel implements CourseModel {
     required final String title,
     final String? description,
     @JsonKey(name: 'cover_image_url') final String? coverImageUrl,
+    @JsonKey(fromJson: _priceFromJson, toJson: _priceToJson)
+    final double? price,
+    @JsonKey(name: 'intro_video_url') final String? introVideoUrl,
+    @JsonKey(name: 'intro_video_source_type')
+    final String? introVideoSourceType,
     @JsonKey(name: 'is_published') final bool isPublished,
     final int order,
     @JsonKey(name: 'created_at') required final DateTime createdAt,
@@ -351,6 +418,15 @@ abstract class _CourseModel implements CourseModel {
   @override
   @JsonKey(name: 'cover_image_url')
   String? get coverImageUrl;
+  @override
+  @JsonKey(fromJson: _priceFromJson, toJson: _priceToJson)
+  double? get price;
+  @override
+  @JsonKey(name: 'intro_video_url')
+  String? get introVideoUrl;
+  @override
+  @JsonKey(name: 'intro_video_source_type')
+  String? get introVideoSourceType;
   @override
   @JsonKey(name: 'is_published')
   bool get isPublished;

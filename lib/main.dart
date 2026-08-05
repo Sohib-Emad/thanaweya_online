@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/l10n/app_localizations.dart';
+import 'features/auth/data/repos/auth_repo.dart';
+import 'features/auth/logic/auth_cubit.dart';
 import 'core/router/app_router.dart';
 import 'core/supabase/secure_local_storage.dart';
 import 'core/theme/app_theme.dart';
@@ -54,22 +57,25 @@ class MyApp extends StatelessWidget {
             systemNavigationBarIconBrightness: Brightness.dark,
             systemNavigationBarContrastEnforced: false,
           ),
-          child: MaterialApp(
-            title: 'ثانوية أونلاين',
-            debugShowCheckedModeBanner: false,
-            theme: AppTheme.lightTheme,
-            darkTheme: AppTheme.darkTheme,
-            themeMode: ThemeMode.light,
-            locale: const Locale('ar'),
-            supportedLocales: AppLocalizations.supportedLocales,
-            localizationsDelegates: const [
-              AppLocalizations.delegate,
-              GlobalMaterialLocalizations.delegate,
-              GlobalWidgetsLocalizations.delegate,
-              GlobalCupertinoLocalizations.delegate,
-            ],
-            initialRoute: AppRouter.splash,
-            onGenerateRoute: AppRouter.onGenerateRoute,
+          child: BlocProvider<AuthCubit>(
+            create: (_) => AuthCubit(authRepo: AuthRepo()),
+            child: MaterialApp(
+              title: 'ثانوية أونلاين',
+              debugShowCheckedModeBanner: false,
+              theme: AppTheme.lightTheme,
+              darkTheme: AppTheme.darkTheme,
+              themeMode: ThemeMode.light,
+              locale: const Locale('ar'),
+              supportedLocales: AppLocalizations.supportedLocales,
+              localizationsDelegates: const [
+                AppLocalizations.delegate,
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+              initialRoute: AppRouter.splash,
+              onGenerateRoute: AppRouter.onGenerateRoute,
+            ),
           ),
         );
       },

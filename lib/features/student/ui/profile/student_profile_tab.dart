@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/router/app_router.dart';
+import '../../../../core/theme/notebook_theme.dart';
+import '../../../auth/logic/auth_cubit.dart';
 
 class StudentProfileTab extends StatefulWidget {
   final bool isTabMode;
@@ -20,8 +23,7 @@ class StudentProfileTab extends StatefulWidget {
 }
 
 class _StudentProfileTabState extends State<StudentProfileTab> {
-  bool _isDarkMode = false;
-  String _selectedLanguage = 'English (US)';
+  String _selectedLanguage = 'العربية';
   String _fullName = 'طالب';
   String _email = '';
 
@@ -40,292 +42,219 @@ class _StudentProfileTabState extends State<StudentProfileTab> {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
-        appBar: widget.isTabMode
-            ? AppBar(
-                backgroundColor: Colors.white,
-                elevation: 0,
-                centerTitle: false,
-                title: Text(
-                  'الملف الشخصي (Profile)',
-                  style: GoogleFonts.cairo(
-                    fontSize: 18.sp,
-                    fontWeight: FontWeight.w800,
-                    color: const Color(0xFF0F172A),
-                  ),
-                ),
-                actions: [
-                  IconButton(
-                    icon: Icon(
-                      Icons.search_rounded,
-                      color: const Color(0xFF0F172A),
-                      size: 22.r,
-                    ),
-                    onPressed: () {},
-                  ),
-                  SizedBox(width: 8.w),
-                ],
-              )
-            : AppBar(
-                backgroundColor: Colors.white,
-                elevation: 0,
-                leading: IconButton(
-                  icon: Icon(
-                    Icons.arrow_back_ios_new_rounded,
-                    color: const Color(0xFF0F172A),
-                    size: 20.r,
-                  ),
-                  onPressed: () => Navigator.pop(context),
-                ),
-                centerTitle: false,
-                title: Text(
-                  'Profile',
-                  style: GoogleFonts.cairo(
-                    fontSize: 18.sp,
-                    fontWeight: FontWeight.w800,
-                    color: const Color(0xFF0F172A),
-                  ),
-                ),
-              ),
-        body: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 120.h),
-          physics: const BouncingScrollPhysics(),
-          child: Column(
-            children: [
-              // Avatar & Name Box
-              Center(
-                child: Column(
-                  children: [
-                    Stack(
-                      children: [
-                        Container(
-                          width: 100.r,
-                          height: 100.r,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: const Color(0xFFE2E8F0),
-                            border: Border.all(
-                              color: AppColors.studentPrimary,
-                              width: 2.5,
-                            ),
-                          ),
-                          child: CircleAvatar(
-                            backgroundColor: const Color(0xFFCBD5E1),
-                            child: Text(
-                              _fullName.substring(0, 1),
-                              style: GoogleFonts.cairo(
-                                fontSize: 40.sp,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white,
+        backgroundColor: NotebookColors.ground,
+        appBar: NotebookTopBar(
+          title: widget.isTabMode ? 'الملف الشخصي' : 'Profile',
+          subtitle: widget.isTabMode ? 'بياناتك وإعداداتك' : null,
+          automaticallyImplyBack: !widget.isTabMode,
+        ),
+        body: NotebookPaper(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(20.w, 18.h, 20.w, 120.h),
+            physics: const BouncingScrollPhysics(),
+            child: Column(
+              children: [
+                // Avatar — signed name at the top of the page
+                Center(
+                  child: Column(
+                    children: [
+                      Stack(
+                        children: [
+                          Container(
+                            width: 100.r,
+                            height: 100.r,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: NotebookColors.surfaceBright,
+                              border: Border.all(
+                                color: NotebookColors.green,
+                                width: 2.5,
                               ),
                             ),
-                          ),
-                        ),
-                        Positioned(
-                          bottom: 0,
-                          left: 0,
-                          child: GestureDetector(
-                            onTap: () {
-                              HapticFeedback.lightImpact();
-                              Navigator.pushNamed(
-                                context,
-                                AppRouter.studentEditProfile,
-                              );
-                            },
-                            child: Container(
-                              width: 32.r,
-                              height: 32.r,
-                              decoration: BoxDecoration(
-                                color: AppColors.studentPrimary,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Colors.white,
-                                  width: 2,
+                            child: CircleAvatar(
+                              backgroundColor: NotebookColors.surfaceBright,
+                              child: Text(
+                                _fullName.substring(0, 1),
+                                style: GoogleFonts.cairo(
+                                  fontSize: 40.sp,
+                                  fontWeight: FontWeight.w900,
+                                  color: NotebookColors.ink,
                                 ),
                               ),
-                              child: Icon(
-                                Icons.photo_camera_rounded,
-                                color: Colors.white,
-                                size: 16.r,
+                            ),
+                          ),
+                          Positioned(
+                            bottom: 0,
+                            left: 0,
+                            child: GestureDetector(
+                              onTap: () {
+                                HapticFeedback.lightImpact();
+                                Navigator.pushNamed(
+                                  context,
+                                  AppRouter.studentEditProfile,
+                                );
+                              },
+                              child: Container(
+                                width: 32.r,
+                                height: 32.r,
+                                decoration: BoxDecoration(
+                                  color: NotebookColors.green,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: NotebookColors.surfaceBright,
+                                    width: 2,
+                                  ),
+                                ),
+                                child: Icon(
+                                  Icons.photo_camera_rounded,
+                                  color: Colors.white,
+                                  size: 16.r,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 12.h),
-                    Text(
-                      _fullName,
-                      style: GoogleFonts.cairo(
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.w900,
-                        color: const Color(0xFF0F172A),
+                        ],
                       ),
-                    ),
-                    SizedBox(height: 2.h),
-                    Text(
-                      _email,
-                      style: GoogleFonts.cairo(
-                        fontSize: 12.sp,
-                        color: const Color(0xFF64748B),
+                      SizedBox(height: 12.h),
+                      Text(
+                        _fullName,
+                        style: NotebookText.heading(18.sp),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-
-              SizedBox(height: 24.h),
-
-              // Menu Card
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24.r),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x060F172A),
-                      blurRadius: 12,
-                      offset: Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Material(
-                  color: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(24.r),
-                    side: const BorderSide(color: Color(0xFFF1F5F9)),
+                      SizedBox(height: 2.h),
+                      Text(
+                        _email,
+                        style: NotebookText.note(12.sp),
+                      ),
+                      SizedBox(height: 6.h),
+                      // signature underline beneath the name
+                      Container(
+                        width: 56.w,
+                        height: 2.h,
+                        color: NotebookColors.marginRed.withAlpha(160),
+                      ),
+                    ],
                   ),
-                  clipBehavior: Clip.antiAlias,
+                ),
+
+                SizedBox(height: 26.h),
+
+                // Menu — one ruled page of settings
+                NotebookCard(
+                  ruled: true,
+                  ruledStartY: 24,
+                  borderRadius: 12,
+                  padding: EdgeInsets.symmetric(vertical: 6.h),
                   child: Column(
-                  children: [
-                    _buildMenuItem(
-                      icon: Icons.person_outline_rounded,
-                      title: 'Edit Profile',
-                      subtitle: 'تعديل الملف الشخصي',
-                      onTap: () => Navigator.pushNamed(
-                        context,
-                        AppRouter.studentEditProfile,
-                      ),
-                    ),
-                    const Divider(height: 1, color: Color(0xFFF1F5F9)),
-                    _buildMenuItem(
-                      icon: Icons.payment_rounded,
-                      title: 'Payment Option',
-                      subtitle: 'خيارات وسائل الدفع',
-                      onTap: () => Navigator.pushNamed(
-                        context,
-                        AppRouter.studentPaymentOptions,
-                      ),
-                    ),
-                    const Divider(height: 1, color: Color(0xFFF1F5F9)),
-                    _buildMenuItem(
-                      icon: Icons.notifications_none_rounded,
-                      title: 'Notifications',
-                      subtitle: 'إعدادات التنبيهات',
-                      onTap: () => Navigator.pushNamed(
-                        context,
-                        AppRouter.studentNotificationSettings,
-                      ),
-                    ),
-                    const Divider(height: 1, color: Color(0xFFF1F5F9)),
-                    _buildMenuItem(
-                      icon: Icons.security_rounded,
-                      title: 'Security',
-                      subtitle: 'الأمان وحماية الحساب',
-                      onTap: () => Navigator.pushNamed(
-                        context,
-                        AppRouter.studentSecurity,
-                      ),
-                    ),
-                    const Divider(height: 1, color: Color(0xFFF1F5F9)),
-                    _buildMenuItem(
-                      icon: Icons.translate_rounded,
-                      title: 'Language',
-                      subtitle: 'لغة التطبيق',
-                      trailingText: _selectedLanguage,
-                      onTap: () async {
-                        final result = await Navigator.pushNamed(
+                    children: [
+                      _buildMenuItem(
+                        icon: Icons.person_outline_rounded,
+                        title: 'تعديل الملف الشخصي',
+                        onTap: () => Navigator.pushNamed(
                           context,
-                          AppRouter.studentLanguage,
-                        );
-                        if (result != null && result is String) {
-                          setState(() => _selectedLanguage = result);
-                        }
-                      },
-                    ),
-                    const Divider(height: 1, color: Color(0xFFF1F5F9)),
-                    _buildMenuItem(
-                      icon: Icons.dark_mode_outlined,
-                      title: 'Dark Mode',
-                      subtitle: 'الوضع الداكن',
-                      trailingWidget: Switch(
-                        value: _isDarkMode,
-                        activeTrackColor: AppColors.studentPrimary,
-                        onChanged: (val) {
-                          setState(() => _isDarkMode = val);
+                          AppRouter.studentEditProfile,
+                        ),
+                      ),
+                      _buildMenuItem(
+                        icon: Icons.payment_rounded,
+                        title: 'خيارات وسائل الدفع',
+                        onTap: () => Navigator.pushNamed(
+                          context,
+                          AppRouter.studentPaymentOptions,
+                        ),
+                      ),
+                      _buildMenuItem(
+                        icon: Icons.notifications_none_rounded,
+                        title: 'إعدادات التنبيهات',
+                        onTap: () => Navigator.pushNamed(
+                          context,
+                          AppRouter.studentNotificationSettings,
+                        ),
+                      ),
+                      _buildMenuItem(
+                        icon: Icons.password_rounded,
+                        title: 'تغيير كلمة المرور',
+                        onTap: () => Navigator.pushNamed(
+                          context,
+                          AppRouter.studentChangePassword,
+                        ),
+                      ),
+                      _buildMenuItem(
+                        icon: Icons.translate_rounded,
+                        title: 'لغة التطبيق',
+                        trailingText: _selectedLanguage,
+                        onTap: () async {
+                          final result = await Navigator.pushNamed(
+                            context,
+                            AppRouter.studentLanguage,
+                          );
+                          if (result != null && result is String) {
+                            setState(() => _selectedLanguage = result);
+                          }
                         },
                       ),
-                      onTap: () {
-                        setState(() => _isDarkMode = !_isDarkMode);
-                      },
-                    ),
-                    const Divider(height: 1, color: Color(0xFFF1F5F9)),
-                    _buildMenuItem(
-                      icon: Icons.description_outlined,
-                      title: 'Terms & Conditions',
-                      subtitle: 'الشروط والأحكام والسياسات',
-                      onTap: () => Navigator.pushNamed(
-                        context,
-                        AppRouter.studentTerms,
+                      _buildMenuItem(
+                        icon: Icons.description_outlined,
+                        title: 'الشروط والأحكام والسياسات',
+                        onTap: () => Navigator.pushNamed(
+                          context,
+                          AppRouter.studentTerms,
+                        ),
                       ),
-                    ),
-                    const Divider(height: 1, color: Color(0xFFF1F5F9)),
-                    _buildMenuItem(
-                      icon: Icons.help_outline_rounded,
-                      title: 'Help Center',
-                      subtitle: 'مركز الدعم والمساعدة',
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'مركز المساعدة والدعم الفني 🎧',
-                              style: GoogleFonts.cairo(
-                                fontWeight: FontWeight.w700,
+                      _buildMenuItem(
+                        icon: Icons.help_outline_rounded,
+                        title: 'مركز الدعم والمساعدة',
+                        onTap: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'مركز المساعدة والدعم الفني',
+                                style: GoogleFonts.cairo(
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
+                              backgroundColor: AppColors.studentPrimary,
                             ),
-                            backgroundColor: AppColors.studentPrimary,
-                          ),
-                        );
-                      },
-                    ),
-                    const Divider(height: 1, color: Color(0xFFF1F5F9)),
-                    _buildMenuItem(
-                      icon: Icons.mail_outline_rounded,
-                      title: 'Invite Friends',
-                      subtitle: 'دعوة الأصدقاء للمنصة',
-                      onTap: () {
-                        Clipboard.setData(
-                          const ClipboardData(
-                            text: 'انضم لمنصة الثانوية أونلاين: https://thanaweya.online/invite',
-                          ),
-                        );
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'تم نسخ رابط الدعوة بنجاح 🚀',
-                              style: GoogleFonts.cairo(
-                                fontWeight: FontWeight.w700,
+                          );
+                        },
+                      ),
+                      _buildMenuItem(
+                        icon: Icons.mail_outline_rounded,
+                        title: 'دعوة الأصدقاء للمنصة',
+                        onTap: () {
+                          Clipboard.setData(
+                            const ClipboardData(
+                              text: 'انضم لمنصة الثانوية أونلاين: https://thanaweya.online/invite',
+                            ),
+                          );
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'تم نسخ رابط الدعوة بنجاح',
+                                style: GoogleFonts.cairo(
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
+                              backgroundColor: const Color(0xFF0FA37F),
                             ),
-                            backgroundColor: const Color(0xFF0FA37F),
-                          ),
-                        );
-                      },
-                    ),
-                  ],
+                          );
+                        },
+                      ),
+                      Divider(
+                        height: 1,
+                        thickness: 1,
+                        color: NotebookColors.ink.withAlpha(30),
+                      ),
+                      _buildMenuItem(
+                        icon: Icons.logout_rounded,
+                        title: 'تسجيل الخروج',
+                        isDanger: true,
+                        onTap: () => _confirmLogout(),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -335,66 +264,127 @@ class _StudentProfileTabState extends State<StudentProfileTab> {
   Widget _buildMenuItem({
     required IconData icon,
     required String title,
-    required String subtitle,
     required VoidCallback onTap,
     String? trailingText,
     Widget? trailingWidget,
+    bool isDanger = false,
   }) {
-    return ListTile(
+    return InkWell(
       onTap: () {
         HapticFeedback.lightImpact();
         onTap();
       },
-      contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
-      leading: Container(
-        width: 38.r,
-        height: 38.r,
-        decoration: BoxDecoration(
-          color: const Color(0xFFF8FAFC),
-          borderRadius: BorderRadius.circular(12.r),
-        ),
-        child: Icon(
-          icon,
-          color: const Color(0xFF0F172A),
-          size: 20.r,
-        ),
-      ),
-      title: Text(
-        title,
-        style: GoogleFonts.cairo(
-          fontSize: 14.sp,
-          fontWeight: FontWeight.w800,
-          color: const Color(0xFF0F172A),
-        ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: GoogleFonts.cairo(
-          fontSize: 11.sp,
-          color: const Color(0xFF94A3B8),
-        ),
-      ),
-      trailing: trailingWidget ??
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (trailingText != null)
-                Text(
-                  trailingText,
-                  style: GoogleFonts.cairo(
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF2563EB),
-                  ),
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+        child: Row(
+          children: [
+            Container(
+              width: 38.r,
+              height: 38.r,
+              decoration: BoxDecoration(
+                color: isDanger
+                    ? NotebookColors.marginRed.withAlpha(14)
+                    : NotebookColors.surfaceBright,
+                borderRadius: BorderRadius.circular(10.r),
+                border: Border.all(
+                  color: isDanger
+                      ? NotebookColors.marginRed.withAlpha(90)
+                      : NotebookColors.ink.withAlpha(28),
+                  width: 1,
                 ),
-              SizedBox(width: 4.w),
-              Icon(
-                Icons.chevron_left_rounded,
-                color: const Color(0xFF94A3B8),
-                size: 22.r,
               ),
-            ],
-          ),
+              child: Icon(
+                icon,
+                color: isDanger ? NotebookColors.marginRed : NotebookColors.ink,
+                size: 19.r,
+              ),
+            ),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Text(
+                title,
+                style: NotebookText.body(13.sp).copyWith(
+                  color: isDanger ? NotebookColors.marginRed : null,
+                  fontWeight: isDanger ? FontWeight.w800 : null,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (trailingWidget != null)
+              trailingWidget
+            else
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (trailingText != null)
+                    Padding(
+                      padding: EdgeInsets.only(left: 4.w),
+                      child: Text(
+                        trailingText,
+                        style: NotebookText.note(11.sp),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  Icon(
+                    Icons.chevron_left_rounded,
+                    color: isDanger
+                        ? NotebookColors.marginRed
+                        : NotebookColors.pencil,
+                    size: 20.r,
+                  ),
+                ],
+              ),
+          ],
+        ),
+      ),
     );
+  }
+
+  Future<void> _confirmLogout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          backgroundColor: NotebookColors.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.r),
+            side: BorderSide(color: NotebookColors.marginRed.withAlpha(80)),
+          ),
+          title: Text(
+            'تسجيل الخروج',
+            style: NotebookText.strong(16.sp),
+          ),
+          content: Text(
+            'هل أنت متأكد أنك تريد تسجيل الخروج من الحساب؟',
+            style: NotebookText.body(13.sp),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(
+                'إلغاء',
+                style: NotebookText.strong(13.sp),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(
+                'تسجيل الخروج',
+                style: NotebookText.strong(13.sp).copyWith(
+                  color: NotebookColors.marginRed,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    HapticFeedback.mediumImpact();
+    context.read<AuthCubit>().signOut();
+    Navigator.pushReplacementNamed(context, AppRouter.login);
   }
 }

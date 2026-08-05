@@ -11,6 +11,12 @@ class TeacherExamsCubit extends Cubit<TeacherExamsState> {
       : _repo = repo,
         super(const TeacherExamsState());
 
+  @override
+  void emit(TeacherExamsState state) {
+    if (isClosed) return;
+    super.emit(state);
+  }
+
   Future<void> loadExams(String teacherId) async {
     emit(state.copyWith(status: TeacherExamsStatus.loading));
     final result = await _repo.getExams(teacherId);
@@ -69,6 +75,67 @@ class TeacherExamsCubit extends Cubit<TeacherExamsState> {
         ));
       },
       failure: (message, _) => emit(state.copyWith(errorMessage: message)),
+    );
+  }
+
+  Future<void> setExamPublished(String examId, bool isPublished) async {
+    final result = await _repo.setExamPublished(examId, isPublished);
+    result.when(
+      success: (_) {
+        emit(state.copyWith(
+          exams: state.exams.map((e) {
+            if (e.id == examId) return e.copyWith(isPublished: isPublished);
+            return e;
+          }).toList(),
+        ));
+      },
+      failure: (message, _) => emit(state.copyWith(errorMessage: message)),
+    );
+  }
+
+  Future<void> updateExam({
+    required String examId,
+    required String title,
+    required int durationMinutes,
+    required DateTime startAt,
+    required DateTime endAt,
+    String? courseId,
+    bool? isPublished,
+  }) async {
+    final result = await _repo.updateExam(
+      examId: examId,
+      title: title,
+      durationMinutes: durationMinutes,
+      startAt: startAt,
+      endAt: endAt,
+      courseId: courseId,
+      isPublished: isPublished,
+    );
+    result.when(
+      success: (_) {
+        emit(state.copyWith(
+          exams: state.exams.map((e) {
+            if (e.id != examId) return e;
+            return e.copyWith(
+              title: title,
+              durationMinutes: durationMinutes,
+              startAt: startAt,
+              endAt: endAt,
+              courseId: courseId ?? e.courseId,
+              isPublished: isPublished ?? e.isPublished,
+            );
+          }).toList(),
+        ));
+      },
+      failure: (message, _) => emit(state.copyWith(errorMessage: message)),
+    );
+  }
+
+  Future<void> loadExamQuestionStats(String teacherId) async {
+    final result = await _repo.getExamQuestionStats(teacherId);
+    result.when(
+      success: (stats) => emit(state.copyWith(examQuestionStats: stats)),
+      failure: (_, _) {},
     );
   }
 
@@ -151,6 +218,7 @@ class TeacherExamsState {
   final List<ExamModel> exams;
   final TeacherExamsStatus questionsStatus;
   final List<QuestionModel> questions;
+  final Map<String, Map<String, int>> examQuestionStats;
   final String? errorMessage;
 
   const TeacherExamsState({
@@ -158,6 +226,7 @@ class TeacherExamsState {
     this.exams = const [],
     this.questionsStatus = TeacherExamsStatus.initial,
     this.questions = const [],
+    this.examQuestionStats = const {},
     this.errorMessage,
   });
 
@@ -166,6 +235,7 @@ class TeacherExamsState {
     List<ExamModel>? exams,
     TeacherExamsStatus? questionsStatus,
     List<QuestionModel>? questions,
+    Map<String, Map<String, int>>? examQuestionStats,
     String? errorMessage,
   }) {
     return TeacherExamsState(
@@ -173,6 +243,7 @@ class TeacherExamsState {
       exams: exams ?? this.exams,
       questionsStatus: questionsStatus ?? this.questionsStatus,
       questions: questions ?? this.questions,
+      examQuestionStats: examQuestionStats ?? this.examQuestionStats,
       errorMessage: errorMessage,
     );
   }

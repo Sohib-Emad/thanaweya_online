@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:thanaweya_online/features/student/data/repos/student_reviews_repo.dart';
 import 'package:thanaweya_online/features/student/logic/student_reviews_cubit.dart';
 
 import '../../../../core/router/app_router.dart';
+import '../../../../core/theme/notebook_theme.dart';
 
 class CourseReviewsScreen extends StatefulWidget {
   final String courseId;
@@ -24,7 +24,7 @@ class _CourseReviewsScreenState extends State<CourseReviewsScreen> {
   final _cubit = StudentReviewsCubit(repo: StudentReviewsRepo());
 
   final List<String> _filters = [
-    'الكل (Excellent)',
+    'الكل',
     'ممتاز',
     'جيد جداً',
     'متوسط',
@@ -61,377 +61,268 @@ class _CourseReviewsScreenState extends State<CourseReviewsScreen> {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          leading: IconButton(
-            icon: Icon(
-              Icons.arrow_back_ios_new_rounded,
-              color: const Color(0xFF0F172A),
-              size: 20.r,
-            ),
-            onPressed: () => Navigator.pop(context),
-          ),
-          centerTitle: false,
-          title: Text(
-            'تقييمات وآراء الطلاب (Reviews)',
-            style: GoogleFonts.cairo(
-              fontSize: 18.sp,
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFF0F172A),
-            ),
-          ),
+        backgroundColor: NotebookColors.ground,
+        appBar: NotebookTopBar(
+          title: 'تقييمات الطلاب',
+          subtitle: 'آراء حقيقية على صفحات الدفتر',
         ),
         body: Stack(
           children: [
-            BlocBuilder<StudentReviewsCubit, StudentReviewsState>(
-              bloc: _cubit,
-              builder: (context, state) {
-                final ratings = state.reviews
-                    .map((r) => (r['rating'] as num?)?.toDouble() ?? 0)
-                    .toList();
-                final average = ratings.isEmpty
-                    ? 0.0
-                    : ratings.reduce((a, b) => a + b) / ratings.length;
-                final averageStr = average.toStringAsFixed(1);
-                return SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 100.h),
-                  physics: const BouncingScrollPhysics(),
-                  child: Column(
-                    children: [
-                      // Overall Rating Hero Card
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          vertical: 20.h,
-                          horizontal: 16.w,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20.r),
-                          border: Border.all(color: const Color(0xFFF1F5F9)),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Color(0x06000000),
-                              blurRadius: 12,
-                              offset: Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          children: [
-                            Text(
-                              averageStr,
-                              style: GoogleFonts.cairo(
-                                fontSize: 38.sp,
-                                fontWeight: FontWeight.w900,
-                                color: const Color(0xFF0F172A),
-                              ),
-                            ),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: List.generate(
-                                5,
-                                (index) => Icon(
-                                  index < average.round()
-                                      ? Icons.star_rounded
-                                      : Icons.star_border_rounded,
-                                  color: const Color(0xFFFBBF24),
-                                  size: 24.r,
-                                ),
-                              ),
-                            ),
-                            SizedBox(height: 6.h),
-                            Text(
-                              'بناءً على ${state.reviews.length} تقييم من الطلاب',
-                              style: GoogleFonts.cairo(
-                                fontSize: 12.sp,
-                                color: const Color(0xFF64748B),
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      SizedBox(height: 20.h),
-
-                      // Filter Chips
-                      SizedBox(
-                        height: 38.h,
-                        child: ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: _filters.length,
-                          separatorBuilder: (context, index) =>
-                              SizedBox(width: 8.w),
-                          itemBuilder: (context, index) {
-                            final isSelected = _selectedFilterIndex == index;
-                            return GestureDetector(
-                              onTap: () {
-                                HapticFeedback.selectionClick();
-                                setState(() => _selectedFilterIndex = index);
-                              },
-                              child: Container(
-                                padding: EdgeInsets.symmetric(horizontal: 18.w),
-                                decoration: BoxDecoration(
-                                  color: isSelected
-                                      ? const Color(0xFF0FA37F)
-                                      : Colors.white,
-                                  borderRadius: BorderRadius.circular(20.r),
-                                  border: Border.all(
-                                    color: isSelected
-                                        ? const Color(0xFF0FA37F)
-                                        : const Color(0xFFE2E8F0),
-                                  ),
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    _filters[index],
-                                    style: GoogleFonts.cairo(
-                                      fontSize: 12.sp,
-                                      fontWeight: isSelected
-                                          ? FontWeight.w800
-                                          : FontWeight.w600,
-                                      color: isSelected
-                                          ? Colors.white
-                                          : const Color(0xFF475569),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-
-                      SizedBox(height: 20.h),
-
-                      // Reviews List
-                      if (state.status == StudentReviewsStatus.loading &&
-                          state.reviews.isEmpty)
-                        Padding(
-                          padding: EdgeInsets.symmetric(vertical: 48.h),
-                          child: const Center(
-                            child: CircularProgressIndicator(),
+            NotebookPaper(
+              child: BlocBuilder<StudentReviewsCubit, StudentReviewsState>(
+                bloc: _cubit,
+                builder: (context, state) {
+                  final ratings = state.reviews
+                      .map((r) => (r['rating'] as num?)?.toDouble() ?? 0)
+                      .toList();
+                  final average = ratings.isEmpty
+                      ? 0.0
+                      : ratings.reduce((a, b) => a + b) / ratings.length;
+                  final averageStr = average.toStringAsFixed(1);
+                  return SingleChildScrollView(
+                    padding: EdgeInsets.fromLTRB(24.w, 16.h, 24.w, 100.h),
+                    physics: const BouncingScrollPhysics(),
+                    child: Column(
+                      children: [
+                        // Overall Rating Hero Card
+                        NotebookCard(
+                          ruled: true,
+                          ruledStartY: 110,
+                          marginTab: true,
+                          padding: EdgeInsets.symmetric(
+                            vertical: 18.h,
+                            horizontal: 16.w,
                           ),
-                        )
-                      else if (state.reviews.isEmpty)
-                        Padding(
-                          padding: EdgeInsets.symmetric(vertical: 48.h),
                           child: Column(
                             children: [
-                              Icon(
-                                Icons.rate_review_outlined,
-                                size: 64,
-                                color: const Color(0xFF94A3B8),
-                              ),
-                              SizedBox(height: 16.h),
                               Text(
-                                'لا توجد تقييمات بعد',
-                                style: GoogleFonts.cairo(
-                                  fontSize: 16.sp,
-                                  color: const Color(0xFF64748B),
+                                averageStr,
+                                style: NotebookText.heading(36.sp),
+                              ),
+                              SizedBox(height: 4.h),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.center,
+                                children: List.generate(
+                                  5,
+                                  (index) => Icon(
+                                    index < average.round()
+                                        ? Icons.star_rounded
+                                        : Icons.star_border_rounded,
+                                    color: const Color(0xFFF59E0B),
+                                    size: 24.r,
+                                  ),
                                 ),
                               ),
                               SizedBox(height: 6.h),
                               Text(
-                                'كن أول من يقيّم هذا الكورس!',
-                                style: GoogleFonts.cairo(
-                                  fontSize: 12.sp,
-                                  color: const Color(0xFF94A3B8),
-                                ),
+                                'بناءً على ${state.reviews.length} تقييم من الطلاب',
+                                style: NotebookText.note(11.sp),
                               ),
                             ],
                           ),
-                        )
-                      else
-                        ...state.reviews.asMap().entries.map((entry) {
-                          final index = entry.key;
-                          final rev = entry.value;
-                          final user =
-                              rev['users'] as Map<String, dynamic>? ?? {};
-                          final name = user['full_name'] as String? ?? 'طالب';
-                          final rating = (rev['rating'] as num?)?.toInt() ?? 0;
-                          final comment = rev['text'] as String? ?? '';
-                          final avatarColor =
-                              _avatarColors[index % _avatarColors.length];
-                          final avatarChar = name.isNotEmpty
-                              ? name.substring(0, 1)
-                              : 'ط';
+                        ),
 
-                          return Container(
-                            margin: EdgeInsets.only(bottom: 14.h),
-                            padding: EdgeInsets.all(16.r),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(18.r),
-                              border: Border.all(
-                                color: const Color(0xFFF1F5F9),
+                        SizedBox(height: 20.h),
+
+                        // Filter Chips
+                        SizedBox(
+                          height: 38.h,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: _filters.length,
+                            separatorBuilder: (context, index) =>
+                                SizedBox(width: 8.w),
+                            itemBuilder: (context, index) {
+                              final isSelected =
+                                  _selectedFilterIndex == index;
+                              return NotebookChip(
+                                label: _filters[index],
+                                selected: isSelected,
+                                onTap: () {
+                                  HapticFeedback.selectionClick();
+                                  setState(
+                                    () => _selectedFilterIndex = index,
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                        ),
+
+                        SizedBox(height: 20.h),
+
+                        // Reviews List
+                        if (state.status ==
+                                StudentReviewsStatus.loading &&
+                            state.reviews.isEmpty)
+                          Padding(
+                            padding: EdgeInsets.symmetric(vertical: 48.h),
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: NotebookColors.green,
                               ),
                             ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
+                          )
+                        else if (state.reviews.isEmpty)
+                          Padding(
+                            padding: EdgeInsets.symmetric(vertical: 24.h),
+                            child: NotebookEmptyNote(
+                              icon: Icons.rate_review_outlined,
+                              message:
+                                  'لا توجد تقييمات بعد — كن أول من يقيّم هذا الكورس',
+                            ),
+                          )
+                        else
+                          ...state.reviews.asMap().entries.map((entry) {
+                            final index = entry.key;
+                            final rev = entry.value;
+                            final user =
+                                rev['users'] as Map<String, dynamic>? ?? {};
+                            final name =
+                                user['full_name'] as String? ?? 'طالب';
+                            final rating =
+                                (rev['rating'] as num?)?.toInt() ?? 0;
+                            final comment = rev['text'] as String? ?? '';
+                            final avatarColor = _avatarColors[
+                                index % _avatarColors.length];
+                            final avatarChar = name.isNotEmpty
+                                ? name.substring(0, 1)
+                                : 'ط';
+
+                            return Padding(
+                              padding: EdgeInsets.only(bottom: 14.h),
+                              child: NotebookCard(
+                                ruled: true,
+                                ruledStartY: 88,
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
                                   children: [
                                     Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
                                       children: [
-                                        CircleAvatar(
-                                          radius: 18.r,
-                                          backgroundColor: avatarColor,
-                                          child: Text(
-                                            avatarChar,
-                                            style: GoogleFonts.cairo(
-                                              fontSize: 14.sp,
-                                              fontWeight: FontWeight.w800,
-                                              color: Colors.white,
+                                        Row(
+                                          children: [
+                                            Container(
+                                              width: 36.r,
+                                              height: 36.r,
+                                              decoration: BoxDecoration(
+                                                color: avatarColor,
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: Center(
+                                                child: Text(
+                                                  avatarChar,
+                                                  style: NotebookText.strong(
+                                                    14.sp,
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
+                                              ),
                                             ),
-                                          ),
+                                            SizedBox(width: 10.w),
+                                            Text(
+                                              name,
+                                              style:
+                                                  NotebookText.strong(13.sp),
+                                            ),
+                                          ],
                                         ),
-                                        SizedBox(width: 10.w),
-                                        Text(
-                                          name,
-                                          style: GoogleFonts.cairo(
-                                            fontSize: 14.sp,
-                                            fontWeight: FontWeight.w800,
-                                            color: const Color(0xFF0F172A),
+                                        Container(
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: 8.w,
+                                            vertical: 3.h,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFFEF3C7),
+                                            borderRadius:
+                                                BorderRadius.circular(12.r),
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              ...List.generate(
+                                                5,
+                                                (i) => Icon(
+                                                  i < rating
+                                                      ? Icons.star_rounded
+                                                      : Icons
+                                                          .star_border_rounded,
+                                                  color: const Color(
+                                                      0xFFF59E0B,
+                                                  ),
+                                                  size: 11.r,
+                                                ),
+                                              ),
+                                              SizedBox(width: 3.w),
+                                              Text(
+                                                '$rating',
+                                                style: NotebookText.strong(
+                                                  11.sp,
+                                                  color: const Color(
+                                                      0xFFB45309),
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
                                       ],
                                     ),
-                                    Container(
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: 10.w,
-                                        vertical: 3.h,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFFEF3C7),
-                                        borderRadius: BorderRadius.circular(
-                                          12.r,
-                                        ),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          ...List.generate(
-                                            5,
-                                            (i) => Icon(
-                                              i < rating
-                                                  ? Icons.star_rounded
-                                                  : Icons.star_border_rounded,
-                                              color: const Color(0xFFD97706),
-                                              size: 12.r,
-                                            ),
-                                          ),
-                                          SizedBox(width: 3.w),
-                                          Text(
-                                            '$rating',
-                                            style: GoogleFonts.cairo(
-                                              fontSize: 11.sp,
-                                              fontWeight: FontWeight.w800,
-                                              color: const Color(0xFFB45309),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                SizedBox(height: 10.h),
-                                Text(
-                                  comment,
-                                  style: GoogleFonts.cairo(
-                                    fontSize: 13.sp,
-                                    color: const Color(0xFF475569),
-                                    height: 1.5,
-                                  ),
-                                ),
-                                SizedBox(height: 10.h),
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.calendar_today_rounded,
-                                      color: const Color(0xFF94A3B8),
-                                      size: 14.r,
-                                    ),
-                                    SizedBox(width: 4.w),
+                                    SizedBox(height: 10.h),
                                     Text(
-                                      _formatDate(rev['created_at'] as String?),
-                                      style: GoogleFonts.cairo(
-                                        fontSize: 11.sp,
-                                        color: const Color(0xFF94A3B8),
-                                      ),
+                                      comment,
+                                      style: NotebookText.body(13.sp),
+                                    ),
+                                    SizedBox(height: 10.h),
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.calendar_today_rounded,
+                                          color: NotebookColors.pencil,
+                                          size: 13.r,
+                                        ),
+                                        SizedBox(width: 4.w),
+                                        Text(
+                                          _formatDate(
+                                            rev['created_at'] as String?,
+                                          ),
+                                          style: NotebookText.note(11.sp),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),
-                              ],
-                            ),
-                          );
-                        }),
-                    ],
-                  ),
-                );
-              },
+                              ),
+                            );
+                          }),
+                      ],
+                    ),
+                  );
+                },
+              ),
             ),
 
-            // Sticky Bottom Write a Review Button
+            // Sticky Bottom Add Review Button
             Positioned(
               left: 20.w,
               right: 20.w,
               bottom: 20.h,
               child: SafeArea(
-                child: SizedBox(
-                  height: 54.h,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      HapticFeedback.selectionClick();
-                      final result = await Navigator.pushNamed(
-                        context,
-                        AppRouter.studentWriteReview,
-                        arguments: widget.courseId,
-                      );
-                      if (result == true) {
-                        _cubit.loadReviews(widget.courseId);
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0FA37F),
-                      elevation: 4,
-                      shadowColor: const Color(0x330FA37F),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30.r),
-                      ),
-                      padding: EdgeInsets.symmetric(horizontal: 16.w),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const SizedBox(width: 32),
-                        Text(
-                          'أضف تقييمك ورأيك (Write a Review)',
-                          style: GoogleFonts.cairo(
-                            fontSize: 15.sp,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                          ),
-                        ),
-                        Container(
-                          width: 38.r,
-                          height: 38.r,
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            Icons.edit_rounded,
-                            color: const Color(0xFF0FA37F),
-                            size: 20.r,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                child: NotebookPrimaryButton(
+                  label: 'أضف تقييمك',
+                  icon: Icons.edit_rounded,
+                  onPressed: () async {
+                    HapticFeedback.selectionClick();
+                    final result = await Navigator.pushNamed(
+                      context,
+                      AppRouter.studentWriteReview,
+                      arguments: widget.courseId,
+                    );
+                    if (result == true) {
+                      _cubit.loadReviews(widget.courseId);
+                    }
+                  },
                 ),
               ),
             ),

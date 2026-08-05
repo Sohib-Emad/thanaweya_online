@@ -28,6 +28,7 @@ class TeacherCoursesRepo {
     required String title,
     String? description,
     String? coverImageUrl,
+    bool isPublished = false,
   }) async {
     try {
       final data = await _client
@@ -37,6 +38,7 @@ class TeacherCoursesRepo {
             'title': title,
             'description': description,
             'cover_image_url': coverImageUrl,
+            'is_published': isPublished,
           })
           .select()
           .single();
@@ -145,6 +147,25 @@ class TeacherCoursesRepo {
     try {
       await _client.from('lessons').delete().eq('id', lessonId);
       return const ApiResult.success(null);
+    } catch (e) {
+      return ApiErrorHandler.handleException(e);
+    }
+  }
+
+  Future<ApiResult<Map<String, int>>> getCourseLessonCounts(
+      String teacherId) async {
+    try {
+      final data = await _client
+          .from('lessons')
+          .select('course_id, courses!inner(teacher_id)')
+          .eq('courses.teacher_id', teacherId);
+      final counts = <String, int>{};
+      for (final row in data) {
+        final courseId = row['course_id'] as String?;
+        if (courseId == null) continue;
+        counts[courseId] = (counts[courseId] ?? 0) + 1;
+      }
+      return ApiResult.success(counts);
     } catch (e) {
       return ApiErrorHandler.handleException(e);
     }

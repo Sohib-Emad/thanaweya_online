@@ -1,25 +1,41 @@
+// ────────────────────────────────────────────────────────────
+// DIRECTION CONTRACT — معلم · السبورة الطباشير (the chalkboard)
+// THESIS: The teacher's world is a classroom blackboard — deep green board
+//   ground, chalk-white ink, mint/red/yellow colored chalk, dashed chalk
+//   frames and rubber stamps (معتمد / مسودة). It is the deliberate opposite
+//   of the student's cream ruled دفتر, so the two roles read as different
+//   rooms of the same school.
+// OWN-WORLD: slate-green ground with faint chalk ruling; chalk-white
+//   headings; mint chalk for primary actions, red chalk for destructive,
+//   yellow for drafts/warnings; dashed chalk borders; stamps not margins.
+// STORY: A teacher walks into their classroom, reads the greeting on the
+//   board, taps a stat to jump to its board, uses the chalk "+" to scribble
+//   a new course/exam/code, and manages students from the side boards.
+// FIRST VIEWPORT: chalkboard masthead with the teacher's name, a greeting
+//   line, the stats card (طالب / دورة / امتحان), recent students, and the
+//   bottom chalk nav whose center is the mint chalk "+" action.
+// FORM: The chalkboard counterpart of the student's دفتر direction; it keeps
+//   the same tab anatomy (الرئيسية، الكورسات، الامتحانات، الطلاب، حسابي)
+//   while mirroring every notebook surface into chalk.
+// FINISH: unreviewed and undocumented is unfinished; this build ends with the
+//   finish review, the verdict, and DESIGN.md.
+// ────────────────────────────────────────────────────────────
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 import 'package:thanaweya_online/core/router/app_router.dart';
+import 'package:thanaweya_online/core/theme/chalkboard_theme.dart';
 import 'package:thanaweya_online/features/shared/models/teacher_model.dart';
 import 'package:thanaweya_online/features/teacher/data/repos/teacher_profile_repo.dart';
 import 'package:thanaweya_online/features/teacher/data/repos/teacher_students_repo.dart';
 import 'package:thanaweya_online/features/teacher/logic/teacher_profile_cubit.dart';
 import 'package:thanaweya_online/features/teacher/ui/courses/courses_list_screen.dart';
+import 'package:thanaweya_online/features/teacher/ui/exams/exams_list_screen.dart';
 import 'package:thanaweya_online/features/teacher/ui/students/students_list_screen.dart';
-
-const _ink = Color(0xFF0F172A);
-const _inkSoft = Color(0xFF64748B);
-const _inkFaint = Color(0xFF94A3B8);
-const _hairline = Color(0xFFEEF2F7);
-const _canvas = Color(0xFFF8FAFC);
-const _brand = Color(0xFF0FA37F);
-const _brandDeep = Color(0xFF065F46);
-const _brandTint = Color(0xFFE6F7F2);
 
 class TeacherHomeScreen extends StatefulWidget {
   const TeacherHomeScreen({super.key});
@@ -79,11 +95,6 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
     return hour < 12 ? 'صباح الخير' : 'مساء الخير';
   }
 
-  String _initialOf(String name) {
-    final trimmed = name.trim();
-    return trimmed.isEmpty ? 'م' : trimmed[0];
-  }
-
   String _stageShortLabel(TeacherStage stage) {
     switch (stage) {
       case TeacherStage.first:
@@ -109,14 +120,15 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
       child: Directionality(
         textDirection: TextDirection.rtl,
         child: Scaffold(
-          backgroundColor: _canvas,
+          backgroundColor: ChalkboardColors.ground,
           body: SafeArea(
+            bottom: false,
             child: IndexedStack(
               index: _currentIndex,
               children: [
                 _buildHomeDashboardView(context),
                 const CoursesListScreen(),
-                const StudentsListScreen(),
+                const ExamsListScreen(),
                 const StudentsListScreen(),
                 _buildSettingsDashboardView(context),
               ],
@@ -131,88 +143,67 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
   // ---------- home ----------
 
   Widget _buildHomeDashboardView(BuildContext context) {
-    return CustomScrollView(
-      physics: const BouncingScrollPhysics(),
-      slivers: [
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 24.h),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(context),
+    return ChalkboardSurface(
+      child: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 24.h),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(context),
 
-                SizedBox(height: 20.h),
+                  SizedBox(height: 20.h),
 
-                BlocBuilder<TeacherProfileCubit, TeacherProfileState>(
-                  builder: (context, profileState) {
-                    return _buildStatsCard(context, profileState);
-                  },
-                ),
+                  BlocBuilder<TeacherProfileCubit, TeacherProfileState>(
+                    builder: (context, profileState) {
+                      return _buildStatsCard(context, profileState);
+                    },
+                  ),
 
-                SizedBox(height: 28.h),
+                  SizedBox(height: 28.h),
 
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'أحدث الطلاب',
-                      style: GoogleFonts.cairo(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w800,
-                        color: _ink,
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () => setState(() => _currentIndex = 2),
-                      child: Text(
-                        'عرض الكل',
-                        style: GoogleFonts.cairo(
-                          fontSize: 12.sp,
-                          color: _brand,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 12.h),
+                  ChalkSectionHeader(
+                    title: 'أحدث الطلاب',
+                    actionLabel: 'عرض الكل',
+                    onAction: () => setState(() => _currentIndex = 3),
+                  ),
+                  SizedBox(height: 12.h),
 
-                if (_recentStudents.isEmpty)
-                  _buildEmptyRecent()
-                else
-                  _buildRecentList(),
-              ],
+                  if (_recentStudents.isEmpty)
+                    const ChalkEmptyNote(
+                      message: 'لا يوجد طلاب بعد',
+                      subMessage: 'عندما ينضم طالب جديد ستجده هنا',
+                      icon: Icons.people_alt_outlined,
+                    )
+                  else
+                    _buildRecentList(),
+                ],
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
   Widget _buildHeader(BuildContext context) {
     final name =
         Supabase.instance.client.auth.currentUser?.userMetadata?['full_name'] ??
-        'مستخدم';
+            'مستخدم';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           _greetingLabel(),
-          style: GoogleFonts.cairo(
-            fontSize: 13.sp,
-            color: _inkSoft,
-            fontWeight: FontWeight.w600,
-          ),
+          style: ChalkboardText.note(13.sp),
         ),
         SizedBox(height: 2.h),
         Text(
           name,
-          style: GoogleFonts.cairo(
-            fontSize: 22.sp,
-            fontWeight: FontWeight.w900,
-            color: _ink,
-          ),
+          style: ChalkboardText.heading(22.sp),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
@@ -220,24 +211,20 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
     );
   }
 
-  // A single plain card with every number on this screen.
+  // A chalk card with the three classroom numbers.
   Widget _buildStatsCard(BuildContext context, TeacherProfileState state) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(color: _hairline),
-      ),
+    return ChalkCard(
+      onTap: null,
       child: Row(
         children: [
           Expanded(
             child: _buildStatCell(
               label: 'طالب',
               value: '${state.studentsCount}',
-              onTap: () => setState(() => _currentIndex = 2),
+              onTap: () => setState(() => _currentIndex = 3),
             ),
           ),
-          Container(width: 1, height: 32.h, color: _hairline),
+          Container(width: 1, height: 32.h, color: ChalkboardColors.ink.withAlpha(45)),
           Expanded(
             child: _buildStatCell(
               label: 'دورة',
@@ -245,12 +232,12 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
               onTap: () => setState(() => _currentIndex = 1),
             ),
           ),
-          Container(width: 1, height: 32.h, color: _hairline),
+          Container(width: 1, height: 32.h, color: ChalkboardColors.ink.withAlpha(45)),
           Expanded(
             child: _buildStatCell(
               label: 'امتحان',
               value: '${state.examsCount}',
-              onTap: () => setState(() => _currentIndex = 3),
+              onTap: () => setState(() => _currentIndex = 2),
             ),
           ),
         ],
@@ -275,20 +262,12 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
           children: [
             Text(
               value,
-              style: GoogleFonts.cairo(
-                fontSize: 20.sp,
-                fontWeight: FontWeight.w800,
-                color: _ink,
-              ),
+              style: ChalkboardText.heading(20.sp),
             ),
             SizedBox(height: 2.h),
             Text(
               label,
-              style: GoogleFonts.cairo(
-                fontSize: 11.sp,
-                fontWeight: FontWeight.w600,
-                color: _inkFaint,
-              ),
+              style: ChalkboardText.note(11.sp),
             ),
           ],
         ),
@@ -297,21 +276,16 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
   }
 
   Widget _buildRecentList() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(color: _hairline),
-      ),
+    return ChalkCard(
+      padding: EdgeInsets.zero,
       child: Column(
         children: [
           for (var i = 0; i < _recentStudents.length; i++) ...[
             if (i > 0)
-              Divider(
-                color: _hairline,
+              Container(
                 height: 1,
-                indent: 14.w,
-                endIndent: 14.w,
+                margin: EdgeInsets.symmetric(horizontal: 14.w),
+                color: ChalkboardColors.ink.withAlpha(35),
               ),
             _buildRecentRow(_recentStudents[i]),
           ],
@@ -325,8 +299,8 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
     final name = users['full_name'] as String? ?? 'طالب';
     final grade =
         (student['students'] as Map<String, dynamic>?)?['grade_level']
-            as String? ??
-        '';
+                as String? ??
+            '';
     final active = student['status'] == 'active';
     final time = student['created_at']?.toString().substring(0, 10) ?? '';
 
@@ -334,28 +308,26 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
       padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
       child: Row(
         children: [
+          ChalkAvatar(
+            initial: name,
+            radius: 16,
+            color: active ? ChalkboardColors.accent : ChalkboardColors.chalkSoft,
+          ),
+          SizedBox(width: 12.w),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   name,
-                  style: GoogleFonts.cairo(
-                    fontSize: 13.5.sp,
-                    fontWeight: FontWeight.w800,
-                    color: _ink,
-                  ),
+                  style: ChalkboardText.strong(13.5.sp),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 SizedBox(height: 3.h),
                 Text(
                   grade.isNotEmpty ? 'المرحلة: $grade' : 'طالب جديد',
-                  style: GoogleFonts.cairo(
-                    fontSize: 11.sp,
-                    fontWeight: FontWeight.w600,
-                    color: _inkSoft,
-                  ),
+                  style: ChalkboardText.note(11.sp),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -368,49 +340,16 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
             children: [
               Text(
                 time,
-                style: GoogleFonts.cairo(fontSize: 10.sp, color: _inkFaint),
+                style: ChalkboardText.note(10.sp),
               ),
               SizedBox(height: 4.h),
-              Text(
-                active ? 'نشط' : 'غير نشط',
-                style: GoogleFonts.cairo(
-                  fontSize: 11.sp,
-                  fontWeight: FontWeight.w700,
-                  color: active ? _brand : _inkFaint,
-                ),
+              ChalkStatusChip(
+                label: active ? 'نشط' : 'غير نشط',
+                color: active
+                    ? ChalkboardColors.accent
+                    : ChalkboardColors.chalkSoft,
               ),
             ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEmptyRecent() {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(20.r),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(color: _hairline),
-      ),
-      child: Column(
-        children: [
-          Icon(Icons.people_alt_rounded, size: 28.r, color: _inkFaint),
-          SizedBox(height: 8.h),
-          Text(
-            'لا يوجد طلاب بعد',
-            style: GoogleFonts.cairo(
-              fontSize: 13.sp,
-              fontWeight: FontWeight.w700,
-              color: _inkSoft,
-            ),
-          ),
-          SizedBox(height: 2.h),
-          Text(
-            'عندما ينضم طالب جديد ستجده هنا',
-            style: GoogleFonts.cairo(fontSize: 11.sp, color: _inkFaint),
           ),
         ],
       ),
@@ -420,125 +359,85 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
   // ---------- settings ----------
 
   Widget _buildSettingsDashboardView(BuildContext context) {
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'حسابك وإعداداتك',
-            style: GoogleFonts.cairo(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w800,
-              color: _ink,
+    return ChalkboardSurface(
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'حسابك وإعداداتك',
+              style: ChalkboardText.heading(16.sp),
             ),
-          ),
-          SizedBox(height: 20.h),
+            SizedBox(height: 20.h),
 
-          Container(
-            padding: EdgeInsets.all(18.r),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20.r),
-              border: Border.all(color: _hairline),
-            ),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 25.r,
-                  backgroundColor: _brandTint,
-                  child: Text(
-                    _initialOf(
-                      Supabase
-                              .instance
-                              .client
-                              .auth
-                              .currentUser
-                              ?.userMetadata?['full_name'] ??
-                          'م',
-                    ),
-                    style: GoogleFonts.cairo(
-                      fontSize: 22.sp,
-                      fontWeight: FontWeight.w900,
-                      color: _brand,
+            ChalkCard(
+              child: Row(
+                children: [
+                  ChalkAvatar(
+                    initial: Supabase
+                            .instance
+                            .client
+                            .auth
+                            .currentUser
+                            ?.userMetadata?['full_name']
+                            ?.toString() ??
+                        'م',
+                    radius: 25,
+                  ),
+                  SizedBox(width: 14.w),
+                  Expanded(
+                    child: BlocBuilder<TeacherProfileCubit, TeacherProfileState>(
+                      builder: (context, profileState) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              profileState.user?.fullName ??
+                                  Supabase
+                                      .instance
+                                      .client
+                                      .auth
+                                      .currentUser
+                                      ?.userMetadata?['full_name'] ??
+                                  'مستخدم',
+                              style: ChalkboardText.strong(17.sp),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            SizedBox(height: 2.h),
+                            Text(
+                              profileState.teacher != null
+                                  ? 'معلم · ${_stageShortOf(profileState.teacher)}'
+                                  : 'معلم',
+                              style: ChalkboardText.note(12.sp),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                   ),
-                ),
-                SizedBox(width: 14.w),
-                Expanded(
-                  child: BlocBuilder<TeacherProfileCubit, TeacherProfileState>(
-                    builder: (context, profileState) {
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            profileState.user?.fullName ??
-                                Supabase
-                                    .instance
-                                    .client
-                                    .auth
-                                    .currentUser
-                                    ?.userMetadata?['full_name'] ??
-                                'مستخدم',
-                            style: GoogleFonts.cairo(
-                              fontSize: 17.sp,
-                              fontWeight: FontWeight.w900,
-                              color: _ink,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          SizedBox(height: 2.h),
-                          Text(
-                            profileState.teacher != null
-                                ? 'معلم · ${_stageShortOf(profileState.teacher)}'
-                                : 'معلم',
-                            style: GoogleFonts.cairo(
-                              fontSize: 12.sp,
-                              color: _inkSoft,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
 
-          SizedBox(height: 20.h),
+            SizedBox(height: 20.h),
 
-          _SettingsOptionRow(
-            icon: Icons.person_outline_rounded,
-            title: 'تعديل الملف الشخصي',
-            onTap: () {},
-          ),
-          SizedBox(height: 10.h),
-          _SettingsOptionRow(
-            icon: Icons.notifications_none_rounded,
-            title: 'إعدادات الإشعارات',
-            onTap: () {
-              Navigator.pushNamed(context, AppRouter.notifications);
-            },
-          ),
-          SizedBox(height: 10.h),
-          _SettingsOptionRow(
-            icon: Icons.qr_code_2_rounded,
-            title: 'أكواد التفعيل المتاحة',
-            onTap: () {
-              Navigator.pushNamed(context, AppRouter.teacherActivationCodes);
-            },
-          ),
+            _SettingsOptionRow(
+              icon: Icons.notifications_none_rounded,
+              title: 'الإشعارات',
+              onTap: () {
+                Navigator.pushNamed(context, AppRouter.notifications);
+              },
+            ),
 
-          SizedBox(height: 28.h),
+            SizedBox(height: 28.h),
 
-          SizedBox(
-            width: double.infinity,
-            height: 52.h,
-            child: OutlinedButton.icon(
+            ChalkOutlineButton(
+              label: 'تسجيل الخروج',
+              icon: Icons.logout_rounded,
+              color: ChalkboardColors.chalkRed,
               onPressed: () {
                 HapticFeedback.lightImpact();
                 Navigator.pushNamedAndRemoveUntil(
@@ -547,24 +446,9 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                   (route) => false,
                 );
               },
-              style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFFEF4444),
-                side: const BorderSide(color: Color(0xFFFCA5A5)),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30.r),
-                ),
-              ),
-              icon: Icon(Icons.logout_rounded, size: 20.r),
-              label: Text(
-                'تسجيل الخروج',
-                style: GoogleFonts.cairo(
-                  fontSize: 15.sp,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -573,19 +457,19 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
 
   Widget _buildBottomNavBar() {
     return Container(
-      color: _canvas,
+      color: ChalkboardColors.ground,
       padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
       child: Container(
-        height: 68.h,
+        height: 66.h,
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(34.r),
-          border: Border.all(color: _hairline),
-          boxShadow: const [
+          color: ChalkboardColors.groundDeep,
+          borderRadius: BorderRadius.circular(33.r),
+          border: Border.all(color: ChalkboardColors.ink.withAlpha(55)),
+          boxShadow: [
             BoxShadow(
-              color: Color(0x140F172A),
+              color: ChalkboardColors.groundDeep.withAlpha(160),
               blurRadius: 24,
-              offset: Offset(0, 10),
+              offset: const Offset(0, 10),
             ),
           ],
         ),
@@ -617,6 +501,15 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
               },
             ),
             _NavBarItem(
+              icon: Icons.quiz_outlined,
+              label: 'الامتحانات',
+              isSelected: _currentIndex == 2,
+              onTap: () {
+                HapticFeedback.selectionClick();
+                setState(() => _currentIndex = 2);
+              },
+            ),
+            _NavBarItem(
               icon: Icons.people_alt_rounded,
               label: 'الطلاب',
               isSelected: _currentIndex == 3,
@@ -643,9 +536,10 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
   void _showQuickCreateModal(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: ChalkboardColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+        side: BorderSide(color: ChalkboardColors.ink.withAlpha(60)),
       ),
       builder: (context) {
         return Directionality(
@@ -659,80 +553,37 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                   width: 40.w,
                   height: 4.h,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE2E8F0),
+                    color: ChalkboardColors.ink.withAlpha(90),
                     borderRadius: BorderRadius.circular(10.r),
                   ),
                 ),
                 SizedBox(height: 16.h),
                 Text(
-                  'إنشاء جديد',
-                  style: GoogleFonts.cairo(
-                    fontSize: 17.sp,
-                    fontWeight: FontWeight.w900,
-                    color: _ink,
-                  ),
+                  'إنشاء جديد على السبورة',
+                  style: ChalkboardText.heading(17.sp),
                 ),
                 SizedBox(height: 12.h),
-                ListTile(
-                  leading: Icon(
-                    Icons.add_circle_outline_rounded,
-                    color: _brand,
-                    size: 26.r,
-                  ),
-                  title: Text(
-                    'دورة تعليمية جديدة',
-                    style: GoogleFonts.cairo(
-                      color: _ink,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 13.5.sp,
-                    ),
-                  ),
+                _QuickCreateTile(
+                  icon: Icons.add_circle_outline_rounded,
+                  iconColor: ChalkboardColors.accent,
+                  label: 'دورة تعليمية جديدة',
                   onTap: () {
                     Navigator.pop(context);
                     Navigator.pushNamed(context, AppRouter.teacherCourses);
                   },
                 ),
-                const Divider(color: Color(0xFFF1F5F9)),
-                ListTile(
-                  leading: Icon(
-                    Icons.quiz_outlined,
-                    color: const Color(0xFFD97706),
-                    size: 26.r,
-                  ),
-                  title: Text(
-                    'اختبار إلكتروني جديد',
-                    style: GoogleFonts.cairo(
-                      color: _ink,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 13.5.sp,
-                    ),
-                  ),
+                Container(
+                  height: 1,
+                  margin: EdgeInsets.symmetric(horizontal: 8.w),
+                  color: ChalkboardColors.ink.withAlpha(30),
+                ),
+                _QuickCreateTile(
+                  icon: Icons.quiz_outlined,
+                  iconColor: ChalkboardColors.chalkYellow,
+                  label: 'اختبار إلكتروني جديد',
                   onTap: () {
                     Navigator.pop(context);
                     Navigator.pushNamed(context, AppRouter.teacherExams);
-                  },
-                ),
-                const Divider(color: Color(0xFFF1F5F9)),
-                ListTile(
-                  leading: Icon(
-                    Icons.qr_code_2_rounded,
-                    color: const Color(0xFF7C3AED),
-                    size: 26.r,
-                  ),
-                  title: Text(
-                    'أكواد تفعيل للطلاب',
-                    style: GoogleFonts.cairo(
-                      color: _ink,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 13.5.sp,
-                    ),
-                  ),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.pushNamed(
-                      context,
-                      AppRouter.teacherActivationCodes,
-                    );
                   },
                 ),
                 SizedBox(height: 8.h),
@@ -762,28 +613,34 @@ class _NavBarItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isSelected ? _brand : _inkFaint;
+    final color =
+        isSelected ? ChalkboardColors.accent : ChalkboardColors.chalkSoft;
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeOut,
-        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
         decoration: BoxDecoration(
-          color: isSelected ? _brandTint : Colors.transparent,
-          borderRadius: BorderRadius.circular(24.r),
+          color: isSelected
+              ? ChalkboardColors.accent.withAlpha(26)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(20.r),
+          border: isSelected
+              ? Border.all(color: ChalkboardColors.accent.withAlpha(120))
+              : null,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 22.r, color: color),
+            Icon(icon, size: 21.r, color: color),
             SizedBox(height: 2.h),
             Text(
               label,
               style: GoogleFonts.cairo(
                 fontSize: 9.sp,
-                fontWeight: FontWeight.w700,
+                fontWeight: isSelected ? FontWeight.w900 : FontWeight.w700,
                 color: color,
               ),
             ),
@@ -808,21 +665,56 @@ class _CenterAction extends StatelessWidget {
         height: 48.r,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          gradient: const LinearGradient(
-            colors: [_brand, _brandDeep],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+          color: ChalkboardColors.accent,
+          border: Border.all(
+            color: ChalkboardColors.ink.withAlpha(120),
+            width: 1.4,
           ),
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
-              color: Color(0x4D0FA37F),
+              color: ChalkboardColors.accent.withAlpha(120),
               blurRadius: 12,
-              offset: Offset(0, 4),
+              offset: const Offset(0, 4),
             ),
           ],
         ),
-        child: Icon(Icons.add_rounded, color: Colors.white, size: 28.r),
+        child: Icon(
+          Icons.add_rounded,
+          color: ChalkboardColors.onAccent,
+          size: 28.r,
+        ),
       ),
+    );
+  }
+}
+
+class _QuickCreateTile extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String label;
+  final VoidCallback onTap;
+
+  const _QuickCreateTile({
+    required this.icon,
+    required this.iconColor,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: Icon(icon, color: iconColor, size: 26.r),
+      title: Text(
+        label,
+        style: ChalkboardText.strong(13.5.sp),
+      ),
+      trailing: Icon(
+        Icons.chevron_left_rounded,
+        color: ChalkboardColors.chalkSoft,
+        size: 22.r,
+      ),
+      onTap: onTap,
     );
   }
 }
@@ -845,28 +737,23 @@ class _SettingsOptionRow extends StatelessWidget {
         HapticFeedback.lightImpact();
         onTap();
       },
-      child: Container(
+      child: ChalkCard(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16.r),
-          border: Border.all(color: _hairline),
-        ),
         child: Row(
           children: [
-            Icon(icon, color: _inkSoft, size: 20.r),
+            Icon(icon, color: ChalkboardColors.chalkSoft, size: 20.r),
             SizedBox(width: 14.w),
             Expanded(
               child: Text(
                 title,
-                style: GoogleFonts.cairo(
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w700,
-                  color: _ink,
-                ),
+                style: ChalkboardText.strong(14.sp),
               ),
             ),
-            Icon(Icons.chevron_left_rounded, size: 22.r, color: _inkFaint),
+            Icon(
+              Icons.chevron_left_rounded,
+              size: 22.r,
+              color: ChalkboardColors.chalkSoft,
+            ),
           ],
         ),
       ),

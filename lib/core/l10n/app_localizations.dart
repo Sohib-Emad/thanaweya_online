@@ -105,8 +105,6 @@ class AppLocalizations {
   String get selectTeachers => 'اختر المعلمين';
   String get gradeLevel => 'المستوى الدراسي';
   String get parentPhone => 'هاتف ولي الأمر';
-  String get activationCode => 'كود التفعيل';
-  String get enterActivationCode => 'أدخل كود التفعيل';
   String get activate => 'تفعيل';
 
   // Student Dashboard

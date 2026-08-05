@@ -93,6 +93,9 @@ CREATE TABLE public.courses (
   title TEXT NOT NULL,
   description TEXT,
   cover_image_url TEXT,
+  price NUMERIC(10,2),
+  intro_video_url TEXT,
+  intro_video_source_type video_source NOT NULL DEFAULT 'youtube',
   is_published BOOLEAN NOT NULL DEFAULT false,
   "order" INTEGER NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -147,30 +150,12 @@ CREATE TABLE public.subscriptions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
   teacher_id UUID NOT NULL REFERENCES public.teachers(id) ON DELETE CASCADE,
-  activation_code_id UUID,
   status subscription_status NOT NULL DEFAULT 'active',
   starts_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   expires_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE(student_id, teacher_id)
 );
-
--- Activation Codes
-CREATE TABLE public.activation_codes (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  teacher_id UUID NOT NULL REFERENCES public.teachers(id) ON DELETE CASCADE,
-  course_id UUID REFERENCES public.courses(id) ON DELETE SET NULL,
-  code TEXT UNIQUE NOT NULL,
-  is_used BOOLEAN NOT NULL DEFAULT false,
-  used_by UUID REFERENCES public.students(id),
-  used_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
--- Add FK for subscriptions.activation_code_id
-ALTER TABLE public.subscriptions
-  ADD CONSTRAINT fk_subscriptions_activation_code
-  FOREIGN KEY (activation_code_id) REFERENCES public.activation_codes(id);
 
 -- Payments
 CREATE TABLE public.payments (
@@ -276,10 +261,6 @@ CREATE INDEX idx_questions_exam ON public.questions(exam_id);
 CREATE INDEX idx_subscriptions_student ON public.subscriptions(student_id);
 CREATE INDEX idx_subscriptions_teacher ON public.subscriptions(teacher_id);
 CREATE INDEX idx_subscriptions_status ON public.subscriptions(status);
-
-CREATE INDEX idx_activation_codes_teacher ON public.activation_codes(teacher_id);
-CREATE INDEX idx_activation_codes_code ON public.activation_codes(code);
-CREATE INDEX idx_activation_codes_used ON public.activation_codes(is_used);
 
 CREATE INDEX idx_payments_payer ON public.payments(payer_id);
 CREATE INDEX idx_payments_status ON public.payments(status);
@@ -389,7 +370,6 @@ ALTER TABLE public.lessons ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.exams ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.questions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.activation_codes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.subscription_plans ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.lesson_progress ENABLE ROW LEVEL SECURITY;
@@ -599,21 +579,6 @@ CREATE POLICY "teachers_view_own_subscriptions" ON public.subscriptions
 
 CREATE POLICY "admin_manage_subscriptions" ON public.subscriptions
   FOR ALL USING (
-    (auth.jwt()->'user_metadata'->>'role') = 'super_admin'
-  );
-
--- ============================================================
--- ACTIVATION CODES
--- ============================================================
-
-CREATE POLICY "teachers_manage_own_codes" ON public.activation_codes
-  FOR ALL USING (teacher_id = auth.uid());
-
-CREATE POLICY "students_view_valid_codes" ON public.activation_codes
-  FOR SELECT USING (is_used = false);
-
-CREATE POLICY "admin_select_all_codes" ON public.activation_codes
-  FOR SELECT USING (
     (auth.jwt()->'user_metadata'->>'role') = 'super_admin'
   );
 

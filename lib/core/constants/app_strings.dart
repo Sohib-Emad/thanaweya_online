@@ -90,9 +90,6 @@ class AppStrings {
   static const String selectTeachers = 'اختر المعلمين';
   static const String gradeLevel = 'المستوى الدراسي';
   static const String parentPhone = 'هاتف ولي الأمر';
-  static const String activationCode = 'كود التفعيل';
-  static const String enterActivationCode = 'أدخل كود التفعيل';
-  static const String activate = 'تفعيل';
 
   // Student Dashboard
   static const String studentDashboard = 'لوحة التحكم';

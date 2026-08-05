@@ -26,8 +26,6 @@ mixin _$SubscriptionModel {
   String get studentId => throw _privateConstructorUsedError;
   @JsonKey(name: 'teacher_id')
   String get teacherId => throw _privateConstructorUsedError;
-  @JsonKey(name: 'activation_code_id')
-  String? get activationCodeId => throw _privateConstructorUsedError;
   SubscriptionStatus get status => throw _privateConstructorUsedError;
   @JsonKey(name: 'starts_at')
   DateTime get startsAt => throw _privateConstructorUsedError;
@@ -57,7 +55,6 @@ abstract class $SubscriptionModelCopyWith<$Res> {
     String id,
     @JsonKey(name: 'student_id') String studentId,
     @JsonKey(name: 'teacher_id') String teacherId,
-    @JsonKey(name: 'activation_code_id') String? activationCodeId,
     SubscriptionStatus status,
     @JsonKey(name: 'starts_at') DateTime startsAt,
     @JsonKey(name: 'expires_at') DateTime? expiresAt,
@@ -83,7 +80,6 @@ class _$SubscriptionModelCopyWithImpl<$Res, $Val extends SubscriptionModel>
     Object? id = null,
     Object? studentId = null,
     Object? teacherId = null,
-    Object? activationCodeId = freezed,
     Object? status = null,
     Object? startsAt = null,
     Object? expiresAt = freezed,
@@ -103,10 +99,6 @@ class _$SubscriptionModelCopyWithImpl<$Res, $Val extends SubscriptionModel>
                 ? _value.teacherId
                 : teacherId // ignore: cast_nullable_to_non_nullable
                       as String,
-            activationCodeId: freezed == activationCodeId
-                ? _value.activationCodeId
-                : activationCodeId // ignore: cast_nullable_to_non_nullable
-                      as String?,
             status: null == status
                 ? _value.status
                 : status // ignore: cast_nullable_to_non_nullable
@@ -142,7 +134,6 @@ abstract class _$$SubscriptionModelImplCopyWith<$Res>
     String id,
     @JsonKey(name: 'student_id') String studentId,
     @JsonKey(name: 'teacher_id') String teacherId,
-    @JsonKey(name: 'activation_code_id') String? activationCodeId,
     SubscriptionStatus status,
     @JsonKey(name: 'starts_at') DateTime startsAt,
     @JsonKey(name: 'expires_at') DateTime? expiresAt,
@@ -167,7 +158,6 @@ class __$$SubscriptionModelImplCopyWithImpl<$Res>
     Object? id = null,
     Object? studentId = null,
     Object? teacherId = null,
-    Object? activationCodeId = freezed,
     Object? status = null,
     Object? startsAt = null,
     Object? expiresAt = freezed,
@@ -187,10 +177,6 @@ class __$$SubscriptionModelImplCopyWithImpl<$Res>
             ? _value.teacherId
             : teacherId // ignore: cast_nullable_to_non_nullable
                   as String,
-        activationCodeId: freezed == activationCodeId
-            ? _value.activationCodeId
-            : activationCodeId // ignore: cast_nullable_to_non_nullable
-                  as String?,
         status: null == status
             ? _value.status
             : status // ignore: cast_nullable_to_non_nullable
@@ -219,7 +205,6 @@ class _$SubscriptionModelImpl implements _SubscriptionModel {
     required this.id,
     @JsonKey(name: 'student_id') required this.studentId,
     @JsonKey(name: 'teacher_id') required this.teacherId,
-    @JsonKey(name: 'activation_code_id') this.activationCodeId,
     required this.status,
     @JsonKey(name: 'starts_at') required this.startsAt,
     @JsonKey(name: 'expires_at') this.expiresAt,
@@ -238,9 +223,6 @@ class _$SubscriptionModelImpl implements _SubscriptionModel {
   @JsonKey(name: 'teacher_id')
   final String teacherId;
   @override
-  @JsonKey(name: 'activation_code_id')
-  final String? activationCodeId;
-  @override
   final SubscriptionStatus status;
   @override
   @JsonKey(name: 'starts_at')
@@ -254,7 +236,7 @@ class _$SubscriptionModelImpl implements _SubscriptionModel {
 
   @override
   String toString() {
-    return 'SubscriptionModel(id: $id, studentId: $studentId, teacherId: $teacherId, activationCodeId: $activationCodeId, status: $status, startsAt: $startsAt, expiresAt: $expiresAt, createdAt: $createdAt)';
+    return 'SubscriptionModel(id: $id, studentId: $studentId, teacherId: $teacherId, status: $status, startsAt: $startsAt, expiresAt: $expiresAt, createdAt: $createdAt)';
   }
 
   @override
@@ -267,8 +249,6 @@ class _$SubscriptionModelImpl implements _SubscriptionModel {
                 other.studentId == studentId) &&
             (identical(other.teacherId, teacherId) ||
                 other.teacherId == teacherId) &&
-            (identical(other.activationCodeId, activationCodeId) ||
-                other.activationCodeId == activationCodeId) &&
             (identical(other.status, status) || other.status == status) &&
             (identical(other.startsAt, startsAt) ||
                 other.startsAt == startsAt) &&
@@ -285,7 +265,6 @@ class _$SubscriptionModelImpl implements _SubscriptionModel {
     id,
     studentId,
     teacherId,
-    activationCodeId,
     status,
     startsAt,
     expiresAt,
@@ -314,7 +293,6 @@ abstract class _SubscriptionModel implements SubscriptionModel {
     required final String id,
     @JsonKey(name: 'student_id') required final String studentId,
     @JsonKey(name: 'teacher_id') required final String teacherId,
-    @JsonKey(name: 'activation_code_id') final String? activationCodeId,
     required final SubscriptionStatus status,
     @JsonKey(name: 'starts_at') required final DateTime startsAt,
     @JsonKey(name: 'expires_at') final DateTime? expiresAt,
@@ -332,9 +310,6 @@ abstract class _SubscriptionModel implements SubscriptionModel {
   @override
   @JsonKey(name: 'teacher_id')
   String get teacherId;
-  @override
-  @JsonKey(name: 'activation_code_id')
-  String? get activationCodeId;
   @override
   SubscriptionStatus get status;
   @override

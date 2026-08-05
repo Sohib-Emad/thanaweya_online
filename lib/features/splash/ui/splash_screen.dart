@@ -10,6 +10,7 @@ import '../../../core/constants/app_assets.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/router/app_router.dart';
 import '../../shared/models/user_model.dart';
+import '../../teacher/data/repos/teacher_profile_repo.dart';
 
 class AnimatedSplashScreen extends StatefulWidget {
   const AnimatedSplashScreen({super.key});
@@ -76,13 +77,26 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
     });
   }
 
-  void _goToNextScreen() {
+  Future<void> _goToNextScreen() async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user != null &&
         Supabase.instance.client.auth.currentSession != null) {
       final role = UserRole.values.asNameMap()[user.userMetadata?['role']] ??
           UserRole.student;
-      Navigator.pushReplacementNamed(context, AppRouter.homeForRole(role));
+      if (role == UserRole.teacher) {
+        final result = await TeacherProfileRepo().getApprovalStatus(user.id);
+        final approved = result.when(
+          success: (status) => status == 'approved',
+          failure: (_, _) => false,
+        );
+        if (!mounted) return;
+        Navigator.pushReplacementNamed(
+          context,
+          approved ? AppRouter.teacherHome : AppRouter.teacherPending,
+        );
+      } else {
+        Navigator.pushReplacementNamed(context, AppRouter.homeForRole(role));
+      }
     } else {
       Navigator.pushReplacementNamed(context, AppRouter.onboarding);
     }

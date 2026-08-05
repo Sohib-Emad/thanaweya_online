@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:google_fonts/google_fonts.dart';
 
-import 'package:thanaweya_online/core/constants/app_colors.dart';
+import 'package:thanaweya_online/core/theme/notebook_theme.dart';
 
 class ExamResultScreen extends StatelessWidget {
   final Map<String, dynamic>? resultData;
@@ -17,64 +16,44 @@ class ExamResultScreen extends StatelessWidget {
         (ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>? ??
             {});
 
-    final int score = args['score'] ?? 4;
-    final int total = args['total'] ?? 5;
+    final int score = args['score'] ?? 0;
+    final int total = args['total'] ?? 0;
     final bool autoSubmitted = args['autoSubmitted'] ?? false;
     final bool isTimeOut = args['isTimeOut'] ?? false;
-    final double percent = (score / total) * 100;
+    final double percent = total > 0 ? (score / total) * 100 : 0;
+    final isPass = percent >= 50;
+    final accent = isPass ? NotebookColors.green : NotebookColors.marginRed;
 
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          automaticallyImplyLeading: false,
-          centerTitle: true,
-          title: Text(
-            'نتيجة الامتحان',
-            style: GoogleFonts.cairo(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFF0F172A),
-            ),
-          ),
+        backgroundColor: NotebookColors.ground,
+        appBar: NotebookTopBar(
+          title: 'نتيجة الامتحان',
+          subtitle: isPass ? 'تم التقييم وحفظ الدرجة' : 'جرى التقييم بنجاح',
         ),
-        body: Center(
+        body: NotebookPaper(
           child: SingleChildScrollView(
-            padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 30.h),
+            padding: EdgeInsets.fromLTRB(24.w, 24.h, 24.w, 40.h),
             physics: const BouncingScrollPhysics(),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 // Auto Submitted Alert Warning Banner
                 if (autoSubmitted) ...[
-                  Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.all(16.r),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFF1F2),
-                      borderRadius: BorderRadius.circular(18.r),
-                      border: Border.all(color: const Color(0xFFFECDD3)),
-                    ),
+                  NotebookHighlightNote(
                     child: Row(
                       children: [
                         Icon(
                           Icons.warning_amber_rounded,
-                          color: const Color(0xFFE11D48),
-                          size: 24.r,
+                          color: NotebookColors.marginRed,
+                          size: 20.r,
                         ),
                         SizedBox(width: 10.w),
                         Expanded(
                           child: Text(
                             'تنبيه: تم تسليم الامتحان تلقائياً بسبب مغادرة الشاشة أو تصغير التطبيق أثناء التقييم.',
-                            style: GoogleFonts.cairo(
-                              fontSize: 12.sp,
-                              fontWeight: FontWeight.w800,
-                              color: const Color(0xFF9F1239),
-                              height: 1.4,
-                            ),
+                            style: NotebookText.strong(11.sp),
                           ),
                         ),
                       ],
@@ -84,30 +63,19 @@ class ExamResultScreen extends StatelessWidget {
                 ],
 
                 if (isTimeOut) ...[
-                  Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.all(16.r),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFFBEB),
-                      borderRadius: BorderRadius.circular(18.r),
-                      border: Border.all(color: const Color(0xFFFDE68A)),
-                    ),
+                  NotebookHighlightNote(
                     child: Row(
                       children: [
                         Icon(
                           Icons.timer_off_rounded,
-                          color: const Color(0xFFD97706),
-                          size: 24.r,
+                          color: NotebookColors.marginRed,
+                          size: 20.r,
                         ),
                         SizedBox(width: 10.w),
                         Expanded(
                           child: Text(
                             'تم تسليم الامتحان تلقائياً بانتهاء الوقت المخصص للحل.',
-                            style: GoogleFonts.cairo(
-                              fontSize: 12.sp,
-                              fontWeight: FontWeight.w800,
-                              color: const Color(0xFF92400E),
-                            ),
+                            style: NotebookText.strong(11.sp),
                           ),
                         ),
                       ],
@@ -116,112 +84,61 @@ class ExamResultScreen extends StatelessWidget {
                   SizedBox(height: 24.h),
                 ],
 
-                // Result Circle Badge
-                Container(
-                  width: 110.r,
-                  height: 110.r,
-                  decoration: BoxDecoration(
-                    color: percent >= 50
-                        ? const Color(0xFFECFDF5)
-                        : const Color(0xFFFFF1F2),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: percent >= 50
-                          ? const Color(0xFF10B981)
-                          : const Color(0xFFE11D48),
-                      width: 3,
-                    ),
-                  ),
-                  child: Center(
-                    child: Icon(
-                      percent >= 50
-                          ? Icons.emoji_events_rounded
-                          : Icons.sentiment_dissatisfied_rounded,
-                      size: 54.r,
-                      color: percent >= 50
-                          ? const Color(0xFF10B981)
-                          : const Color(0xFFE11D48),
-                    ),
-                  ),
-                ),
+                // Result Paper Card with a red stamp
+                NotebookCard(
+                  ruled: true,
+                  ruledStartY: 132,
+                  padding: EdgeInsets.fromLTRB(20.r, 16.r, 20.r, 26.r),
+                  child: Column(
+                    children: [
+                      NotebookStamp(label: 'نتيجة'),
+                      SizedBox(height: 14.h),
 
-                SizedBox(height: 20.h),
+                      Text(
+                        '$score / $total',
+                        style: NotebookText.heading(40.sp, color: accent),
+                      ),
 
-                Text(
-                  percent >= 50
-                      ? 'مبارك! أتممت الامتحان بنجاح 🏆'
-                      : 'للأسف، لم تتجاوز النسبة المطلوبة ⚠️',
-                  style: GoogleFonts.cairo(
-                    fontSize: 18.sp,
-                    fontWeight: FontWeight.w900,
-                    color: const Color(0xFF0F172A),
-                  ),
-                ),
+                      SizedBox(height: 8.h),
 
-                SizedBox(height: 12.h),
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 18.w,
+                          vertical: 6.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: accent.withAlpha(30),
+                          borderRadius: BorderRadius.circular(20.r),
+                        ),
+                        child: Text(
+                          'النسبة المئوية: ${percent.toStringAsFixed(0)}%',
+                          style: NotebookText.strong(13.sp, color: accent),
+                        ),
+                      ),
 
-                Text(
-                  '$score / $total',
-                  style: GoogleFonts.cairo(
-                    fontSize: 42.sp,
-                    fontWeight: FontWeight.w900,
-                    color: percent >= 50
-                        ? AppColors.studentPrimary
-                        : const Color(0xFFE11D48),
-                  ),
-                ),
+                      SizedBox(height: 16.h),
 
-                SizedBox(height: 6.h),
-
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 16.w,
-                    vertical: 6.h,
-                  ),
-                  decoration: BoxDecoration(
-                    color: percent >= 50
-                        ? const Color(0xFFECFDF5)
-                        : const Color(0xFFFFF1F2),
-                    borderRadius: BorderRadius.circular(20.r),
-                  ),
-                  child: Text(
-                    'النسبة المئوية: ${percent.toStringAsFixed(0)}%',
-                    style: GoogleFonts.cairo(
-                      fontSize: 13.sp,
-                      fontWeight: FontWeight.w800,
-                      color: percent >= 50
-                          ? const Color(0xFF10B981)
-                          : const Color(0xFFE11D48),
-                    ),
+                      Text(
+                        isPass
+                            ? 'مبارك، اجتزت الامتحان بنجاح'
+                            : 'لم تتجاوز النسبة المطلوبة',
+                        textAlign: TextAlign.center,
+                        style: NotebookText.heading(18.sp),
+                      ),
+                    ],
                   ),
                 ),
 
                 SizedBox(height: 36.h),
 
                 // Return Button
-                SizedBox(
-                  width: double.infinity,
-                  height: 52.h,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      HapticFeedback.lightImpact();
-                      Navigator.pop(context);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2563EB),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30.r),
-                      ),
-                    ),
-                    child: Text(
-                      'العودة لقائمة الامتحانات',
-                      style: GoogleFonts.cairo(
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
+                NotebookPrimaryButton(
+                  label: 'العودة لقائمة الامتحانات',
+                  icon: Icons.arrow_back_rounded,
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    Navigator.pop(context);
+                  },
                 ),
               ],
             ),

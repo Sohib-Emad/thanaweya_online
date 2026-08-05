@@ -56,6 +56,7 @@ class TeacherExamsRepo {
     required int durationMinutes,
     required DateTime startAt,
     required DateTime endAt,
+    String? courseId,
     bool? isPublished,
   }) async {
     try {
@@ -64,6 +65,7 @@ class TeacherExamsRepo {
         'duration_minutes': durationMinutes,
         'start_at': startAt.toIso8601String(),
         'end_at': endAt.toIso8601String(),
+        if (courseId != null) 'course_id': courseId,
         if (isPublished != null) 'is_published': isPublished,
       }).eq('id', examId);
       return const ApiResult.success(null);
@@ -87,6 +89,54 @@ class TeacherExamsRepo {
           .from('exams')
           .update({'is_published': true}).eq('id', examId);
       return const ApiResult.success(null);
+    } catch (e) {
+      return ApiErrorHandler.handleException(e);
+    }
+  }
+
+  Future<ApiResult<void>> setExamPublished(
+      String examId, bool isPublished) async {
+    try {
+      await _client
+          .from('exams')
+          .update({'is_published': isPublished}).eq('id', examId);
+      return const ApiResult.success(null);
+    } catch (e) {
+      return ApiErrorHandler.handleException(e);
+    }
+  }
+
+  Future<ApiResult<Map<String, Map<String, int>>>> getExamQuestionStats(
+      String teacherId) async {
+    try {
+      final data = await _client
+          .from('questions')
+          .select('exam_id, points, exams!inner(teacher_id)')
+          .eq('exams.teacher_id', teacherId);
+      final stats = <String, Map<String, int>>{};
+      for (final row in data) {
+        final examId = row['exam_id'] as String?;
+        if (examId == null) continue;
+        final entry = stats[examId] ?? {'count': 0, 'points': 0};
+        entry['count'] = entry['count']! + 1;
+        entry['points'] = entry['points']! + ((row['points'] as num?)?.toInt() ?? 0);
+        stats[examId] = entry;
+      }
+      return ApiResult.success(stats);
+    } catch (e) {
+      return ApiErrorHandler.handleException(e);
+    }
+  }
+
+  /// Returns all submissions for an exam with the student's full name.
+  Future<ApiResult<List<Map<String, dynamic>>>> getExamSubmissions(
+      String examId) async {
+    try {
+      final data = await _client.from('exam_submissions').select('''
+            id, score, total_points, started_at, submitted_at,
+            students!inner(users!inner(full_name))
+          ''').eq('exam_id', examId).order('submitted_at', ascending: false);
+      return ApiResult.success(data);
     } catch (e) {
       return ApiErrorHandler.handleException(e);
     }

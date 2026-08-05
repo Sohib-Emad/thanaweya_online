@@ -312,14 +312,6 @@ class MockData {
     },
   ];
 
-  // ─── Activation Codes ───
-  static final mockActivationCodes = [
-    {'code': 'ABCD-1234-EFGH', 'is_used': false},
-    {'code': 'IJKL-5678-MNOP', 'is_used': true},
-    {'code': 'QRST-9012-UVWX', 'is_used': false},
-    {'code': 'YZAB-3456-CDEF', 'is_used': false},
-  ];
-
   // ─── Comments ───
   static final mockComments = [
     {
