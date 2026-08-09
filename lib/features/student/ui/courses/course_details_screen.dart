@@ -3,6 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:video_player/video_player.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
 import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/notebook_theme.dart';
@@ -23,8 +28,12 @@ class CourseDetailsScreen extends StatefulWidget {
 class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
   int _selectedTab = 0; // 0 = About, 1 = Curriculum
   bool _isDescriptionExpanded = false;
+  bool _isSubscribed = false;
 
   late final StudentCoursesCubit _coursesCubit;
+  YoutubePlayerController? _introYoutubeController;
+  VideoPlayerController? _introVideoController;
+  String? _initializedIntroUrl;
 
   @override
   void initState() {
@@ -32,10 +41,68 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
     _coursesCubit = StudentCoursesCubit(repo: StudentCoursesRepo());
     _coursesCubit.loadCourse(widget.courseId);
     _coursesCubit.loadCourseLessons(widget.courseId);
+    _checkSubscription();
+  }
+
+  void _initIntroPlayer(String url, String sourceType) {
+    if (_initializedIntroUrl == url || url.isEmpty) return;
+    _initializedIntroUrl = url;
+    try {
+      _introYoutubeController?.dispose();
+    } catch (_) {}
+    try {
+      _introVideoController?.dispose();
+    } catch (_) {}
+    _introYoutubeController = null;
+    _introVideoController = null;
+
+    if (sourceType == 'youtube') {
+      final videoId = YoutubePlayer.convertUrlToId(url) ?? url.trim();
+      _introYoutubeController = YoutubePlayerController(
+        initialVideoId: videoId,
+        flags: const YoutubePlayerFlags(
+          autoPlay: false,
+          mute: false,
+        ),
+      );
+    } else {
+      try {
+        _introVideoController = VideoPlayerController.networkUrl(Uri.parse(url))
+          ..initialize().then((_) {
+            if (mounted) setState(() {});
+          });
+      } catch (e) {
+        debugPrint('[CourseDetails] media url error: $e');
+      }
+    }
+  }
+
+  Future<void> _checkSubscription() async {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return;
+    final res = await StudentCoursesRepo().checkIsSubscribed(
+      studentId: userId,
+      courseId: widget.courseId,
+    );
+    if (!mounted) return;
+    res.when(
+      success: (isSub) => setState(() => _isSubscribed = isSub),
+      failure: (_, __) {},
+    );
   }
 
   @override
   void dispose() {
+    try {
+      _introYoutubeController?.dispose();
+    } catch (e) {
+      debugPrint('[CourseDetails] introYoutubeController dispose error: $e');
+    }
+    try {
+      _introVideoController?.dispose();
+    } catch (e) {
+      debugPrint('[CourseDetails] introVideoController dispose error: $e');
+    }
     _coursesCubit.close();
     super.dispose();
   }
@@ -76,7 +143,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                       (lessons[i].durationSeconds! / 60).ceil(),
                     )
                   : '',
-              'isUnlocked': true,
+              'isUnlocked': _isSubscribed,
             },
         ],
       },
@@ -95,16 +162,22 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
     },
     {'icon': Icons.menu_book_rounded, 'text': 'ملخصات ومذكرات للمراجعة'},
     {'icon': Icons.quiz_outlined, 'text': 'كويزات وامتحانات تجريبية'},
-    {
-      'icon': Icons.bar_chart_rounded,
-      'text': 'متابعة تقدمك درساً بدرس',
-    },
+    {'icon': Icons.bar_chart_rounded, 'text': 'متابعة تقدمك درساً بدرس'},
   ];
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<StudentCoursesCubit, StudentCoursesState>(
+    return BlocConsumer<StudentCoursesCubit, StudentCoursesState>(
       bloc: _coursesCubit,
+      listener: (context, state) {
+        if (state.course != null) {
+          final url = state.course!['intro_video_url'] as String? ?? '';
+          final type = state.course!['intro_video_source_type'] as String? ?? 'youtube';
+          if (url.isNotEmpty) {
+            _initIntroPlayer(url, type);
+          }
+        }
+      },
       builder: (context, state) {
         if (state.courseStatus == StudentCoursesStatus.loading &&
             state.course == null) {
@@ -134,6 +207,11 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
     final subjectName = subjects['name_ar'] as String? ?? '';
     final lessonCount = _lessonCountOf(course['lessons']);
     final description = course['description'] as String? ?? '';
+    final price = (course['price'] as num?)?.toDouble();
+    final introVideoUrl = course['intro_video_url'] as String? ?? '';
+    final introVideoSourceType =
+        course['intro_video_source_type'] as String? ?? 'youtube';
+    final coverUrl = course['cover_image_url'] as String? ?? '';
     final totalSeconds = state.lessons.fold<int>(
       0,
       (sum, l) => sum + (l.durationSeconds ?? 0),
@@ -146,8 +224,10 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
       textDirection: TextDirection.rtl,
       child: Scaffold(
         backgroundColor: NotebookColors.ground,
-        body: Stack(
-          children: [
+        body: SafeArea(
+          bottom: false,
+          child: Stack(
+            children: [
             NotebookPaper(
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
@@ -155,46 +235,33 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 1. Course cover — an ink page in the دفتر
+                    // 1. Course cover — an ink page in the دفتر with embedded intro video
                     Container(
                       height: 210.h,
                       width: double.infinity,
                       color: NotebookColors.ink,
                       child: Stack(
                         children: [
-                          Positioned.fill(
-                            child: CustomPaint(
-                              painter: RuledLinesPainter(
-                                lineGap: 30,
-                                color: Colors.white.withAlpha(22),
+                          if (introVideoUrl.isNotEmpty)
+                            Positioned.fill(
+                              child: _buildEmbeddedIntroPlayer(
+                                introVideoUrl,
+                                introVideoSourceType,
                               ),
-                            ),
-                          ),
-                          // red margin line on the cover
-                          Positioned(
-                            right: 0,
-                            top: 0,
-                            bottom: 0,
-                            child: Container(
-                              width: 6,
-                              color: NotebookColors.marginRed.withAlpha(90),
-                            ),
-                          ),
-                          Center(
-                            child: Container(
-                              width: 64.r,
-                              height: 64.r,
-                              decoration: BoxDecoration(
-                                color: NotebookColors.green,
-                                shape: BoxShape.circle,
+                            )
+                          else if (coverUrl.isNotEmpty)
+                            Positioned.fill(
+                              child: CachedNetworkImage(
+                                imageUrl: coverUrl,
+                                fit: BoxFit.cover,
+                                placeholder: (_, __) => _coverPlaceholder(),
+                                errorWidget: (_, __, ___) => _coverPlaceholder(),
                               ),
-                              child: Icon(
-                                Icons.play_arrow_rounded,
-                                color: Colors.white,
-                                size: 30.r,
-                              ),
+                            )
+                          else
+                            Positioned.fill(
+                              child: _coverPlaceholder(),
                             ),
-                          ),
                           Positioned(
                             top: 18.h,
                             right: 16.w,
@@ -207,8 +274,9 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                                   color: NotebookColors.surfaceBright,
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                    color: NotebookColors.marginRed
-                                        .withAlpha(140),
+                                    color: NotebookColors.marginRed.withAlpha(
+                                      140,
+                                    ),
                                     width: 1.4,
                                   ),
                                 ),
@@ -320,6 +388,32 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                                   style: NotebookText.body(12.sp),
                                 ),
                               ],
+                              if (price != null) ...[
+                                SizedBox(width: 14.w),
+                                Container(
+                                  width: 1,
+                                  height: 14.h,
+                                  color: NotebookColors.ink.withAlpha(40),
+                                ),
+                                SizedBox(width: 14.w),
+                                Icon(
+                                  Icons.payments_outlined,
+                                  size: 15.r,
+                                  color: NotebookColors.marginRed,
+                                ),
+                                SizedBox(width: 4.w),
+                                Flexible(
+                                  child: Text(
+                                    Formatters.formatEgp(price),
+                                    style: NotebookText.strong(
+                                      12.sp,
+                                      color: NotebookColors.marginRed,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                         ],
@@ -365,21 +459,68 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
               bottom: 20.h,
               child: SafeArea(
                 child: NotebookPrimaryButton(
-                  label: 'الاشتراك في الكورس',
-                  icon: Icons.edit_rounded,
-                  onPressed: () {
-                    HapticFeedback.heavyImpact();
-                    Navigator.pushNamed(
-                      context,
-                      AppRouter.studentPaymentMethods,
-                    );
-                  },
+                  label: _isSubscribed
+                      ? 'أنت مشترك في هذا الكورس ✓'
+                      : (price != null
+                          ? 'اشترك وتفعيل الكود — ${Formatters.formatEgp(price)}'
+                          : 'تفعيل كود الاشتراك'),
+                  icon: _isSubscribed
+                      ? Icons.check_circle_rounded
+                      : Icons.vpn_key_rounded,
+                  onPressed: _isSubscribed
+                      ? null
+                      : () {
+                          HapticFeedback.heavyImpact();
+                          if (teacherId.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                backgroundColor: NotebookColors.marginRed,
+                                content: Text(
+                                  'تعذر تحديد المدرس، حاول مرة أخرى',
+                                  style: NotebookText.strong(12.sp),
+                                ),
+                              ),
+                            );
+                            return;
+                          }
+                          Navigator.pushNamed(
+                            context,
+                            AppRouter.studentPaymentMethods,
+                            arguments: {
+                              'courseId': widget.courseId,
+                              'teacherId': teacherId,
+                              'courseTitle': course['title'] ?? '',
+                              'price': price,
+                            },
+                          ).then((_) => _checkSubscription());
+                        },
                 ),
               ),
             ),
           ],
         ),
       ),
+      )
+    );
+  }
+
+  Widget _buildEmbeddedIntroPlayer(String url, String sourceType) {
+    if (sourceType == 'youtube' && _introYoutubeController != null) {
+      return YoutubePlayer(
+        controller: _introYoutubeController!,
+        showVideoProgressIndicator: true,
+        progressIndicatorColor: NotebookColors.green,
+      );
+    }
+    if (_introVideoController != null &&
+        _introVideoController!.value.isInitialized) {
+      return AspectRatio(
+        aspectRatio: _introVideoController!.value.aspectRatio,
+        child: VideoPlayer(_introVideoController!),
+      );
+    }
+    return Center(
+      child: CircularProgressIndicator(color: NotebookColors.green),
     );
   }
 
@@ -422,20 +563,21 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
           // Instructor — signed teacher card
           const NotebookSectionHeader(title: 'المحاضر'),
           SizedBox(height: 12.h),
-          GestureDetector(
-            onTap: () => Navigator.pushNamed(
-              context,
-              AppRouter.studentTeacherPage,
-              arguments: {
-                'teacherId': teacherId,
-                'title': teacherName,
-                'avatarUrl': teacherAvatarUrl,
-              },
-            ),
-            child: NotebookCard(
-              ruled: true,
-              ruledStartY: 72,
-              onTap: null,
+          NotebookCard(
+            ruled: true,
+            ruledStartY: 72,
+            onTap: () {
+              HapticFeedback.lightImpact();
+              Navigator.pushNamed(
+                context,
+                AppRouter.studentTeacherPage,
+                arguments: {
+                  'teacherId': teacherId,
+                  'title': teacherName,
+                  'avatarUrl': teacherAvatarUrl,
+                },
+              );
+            },
               child: Row(
                 children: [
                   NotebookTeacherAvatar(
@@ -448,10 +590,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          teacherName,
-                          style: NotebookText.heading(14.sp),
-                        ),
+                        Text(teacherName, style: NotebookText.heading(14.sp)),
                         SizedBox(height: 2.h),
                         Text(
                           subjectName.isEmpty ? 'مدرس' : subjectName,
@@ -480,7 +619,6 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                 ],
               ),
             ),
-          ),
 
           SizedBox(height: 24.h),
 
@@ -523,10 +661,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'آراء الطلاب',
-                style: NotebookText.heading(16.sp),
-              ),
+              Text('آراء الطلاب', style: NotebookText.heading(16.sp)),
               GestureDetector(
                 onTap: () => Navigator.pushNamed(
                   context,
@@ -537,8 +672,10 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                   children: [
                     Text(
                       'عرض الكل',
-                      style: NotebookText.strong(12.sp,
-                          color: NotebookColors.green),
+                      style: NotebookText.strong(
+                        12.sp,
+                        color: NotebookColors.green,
+                      ),
                     ),
                     Icon(
                       Icons.chevron_left_rounded,
@@ -556,6 +693,64 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
             message: 'تقييمات الطلاب متاحة في صفحة الكورس',
           ),
         ],
+      ),
+    );
+  }
+
+  void _showLockedLessonDialog(String lessonTitle) {
+    HapticFeedback.heavyImpact();
+    final course = _coursesCubit.state.course ?? {};
+    final teachers = course['teachers'] as Map<String, dynamic>? ?? {};
+    final teacherId = teachers['id'] as String? ?? '';
+    final price = (course['price'] as num?)?.toDouble();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20.r),
+          ),
+          backgroundColor: NotebookColors.ground,
+          title: Row(
+            children: [
+              Icon(
+                Icons.lock_rounded,
+                color: NotebookColors.marginRed,
+                size: 24.r,
+              ),
+              SizedBox(width: 8.w),
+              Text('الدرس مغلق', style: NotebookText.heading(16.sp)),
+            ],
+          ),
+          content: Text(
+            'عفواً، المنهج متاح للاطلاع فقط. لمشاهدة فيديو "$lessonTitle" يجب الدفع والاشتراك وتفعيل الكود أولاً.',
+            style: NotebookText.body(13.sp),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('إلغاء', style: NotebookText.strong(13.sp)),
+            ),
+            NotebookPrimaryButton(
+              label: 'الدفع وتفعيل الكود',
+              onPressed: () {
+                Navigator.pop(ctx);
+                Navigator.pushNamed(
+                  context,
+                  AppRouter.studentPaymentMethods,
+                  arguments: {
+                    'courseId': widget.courseId,
+                    'teacherId': teacherId,
+                    'courseTitle': course['title'] ?? '',
+                    'price': price,
+                  },
+                ).then((_) => _checkSubscription());
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -585,8 +780,10 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                   if (totalDuration.isNotEmpty)
                     Text(
                       totalDuration,
-                      style: NotebookText.strong(12.sp,
-                          color: NotebookColors.green),
+                      style: NotebookText.strong(
+                        12.sp,
+                        color: NotebookColors.green,
+                      ),
                     ),
                 ],
               ),
@@ -605,6 +802,10 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                     ruledStartY: 64,
                     onTap: () {
                       HapticFeedback.lightImpact();
+                      if (!unlocked) {
+                        _showLockedLessonDialog(lesTitle);
+                        return;
+                      }
                       Navigator.pushNamed(
                         context,
                         AppRouter.studentVideoPlayer,
@@ -614,7 +815,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                           'title': lesTitle,
                           'courseId': widget.courseId,
                         },
-                      );
+                      ).then((_) => _checkSubscription());
                     },
                     child: Row(
                       children: [
@@ -655,13 +856,20 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                              if (dur.isNotEmpty) ...[
-                                SizedBox(height: 2.h),
-                                Text(
-                                  dur,
-                                  style: NotebookText.note(10.sp),
+                              SizedBox(height: 2.h),
+                              Text(
+                                unlocked
+                                    ? (dur.isNotEmpty ? dur : 'درس متاح')
+                                    : (dur.isNotEmpty
+                                        ? '$dur · يتطلب الاشتراك والدفع 🔒'
+                                        : 'يتطلب الاشتراك والدفع 🔒'),
+                                style: NotebookText.note(
+                                  10.sp,
+                                  color: unlocked
+                                      ? NotebookColors.pencil
+                                      : NotebookColors.marginRed,
                                 ),
-                              ],
+                              ),
                             ],
                           ),
                         ),
@@ -671,14 +879,16 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                           decoration: BoxDecoration(
                             color: unlocked
                                 ? NotebookColors.green
-                                : NotebookColors.ink.withAlpha(40),
+                                : NotebookColors.marginRed.withAlpha(40),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
                             unlocked
                                 ? Icons.play_arrow_rounded
-                                : Icons.lock_outline_rounded,
-                            color: Colors.white,
+                                : Icons.lock_rounded,
+                            color: unlocked
+                                ? Colors.white
+                                : NotebookColors.marginRed,
                             size: 16.r,
                           ),
                         ),
@@ -692,6 +902,59 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
           );
         }).toList(),
       ),
+    );
+  }
+
+  Widget _coverPlaceholder() {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        CustomPaint(
+          painter: RuledLinesPainter(
+            lineGap: 30,
+            color: Colors.white.withAlpha(22),
+          ),
+        ),
+        // red margin line on the cover
+        Positioned(
+          right: 0,
+          top: 0,
+          bottom: 0,
+          child: Container(
+            width: 6,
+            color: NotebookColors.marginRed.withAlpha(90),
+          ),
+        ),
+        Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 64.r,
+                height: 64.r,
+                decoration: BoxDecoration(
+                  color: NotebookColors.green,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.video_library_rounded,
+                  color: Colors.white,
+                  size: 30.r,
+                ),
+              ),
+              SizedBox(height: 8.h),
+              Text(
+                'لا يوجد فيديو تعريفي',
+                style: GoogleFonts.cairo(
+                  fontSize: 11.sp,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white.withAlpha(230),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

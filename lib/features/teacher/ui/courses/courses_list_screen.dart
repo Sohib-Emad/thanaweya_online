@@ -4,7 +4,8 @@
 //   course is a chalk-framed card stamped منشور (mint) or مسودة (yellow),
 //   with its lesson count written in chalk and edit/delete/publish actions
 //   drawn at the foot of the frame. Adding or editing a course happens in a
-//   chalk modal (title + description + publish stamp).
+//   chalk modal (title + description + cover + price + intro video + publish
+//   stamp).
 // FINISH: unreviewed and undocumented is unfinished; this build ends with the
 //   finish review, the verdict, and DESIGN.md.
 // ────────────────────────────────────────────────────────────
@@ -81,7 +82,8 @@ class _CoursesListScreenState extends State<CoursesListScreen> {
                   state.courses.isEmpty) {
                 return Center(
                   child: ChalkEmptyNote(
-                    message: state.errorMessage ?? 'حدث خطأ أثناء تحميل الدورات',
+                    message:
+                        state.errorMessage ?? 'حدث خطأ أثناء تحميل الدورات',
                     icon: Icons.error_outline_rounded,
                     actionLabel: 'إعادة المحاولة',
                     onAction: _loadCourses,
@@ -102,7 +104,10 @@ class _CoursesListScreenState extends State<CoursesListScreen> {
                 color: ChalkboardColors.accent,
                 child: ListView.separated(
                   physics: const BouncingScrollPhysics(),
-                  padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 20.w,
+                    vertical: 20.h,
+                  ),
                   itemCount: state.courses.length,
                   separatorBuilder: (_, _) => SizedBox(height: 14.h),
                   itemBuilder: (context, index) {
@@ -145,10 +150,7 @@ class _CoursesListScreenState extends State<CoursesListScreen> {
           foregroundColor: ChalkboardColors.onAccent,
           elevation: 4,
           icon: const Icon(Icons.add_rounded, size: 22),
-          label: Text(
-            'إنشاء دورة',
-            style: ChalkboardText.strong(13.sp),
-          ),
+          label: Text('إنشاء دورة', style: ChalkboardText.strong(13.sp)),
         ),
       ),
     );
@@ -165,17 +167,16 @@ class _CoursesListScreenState extends State<CoursesListScreen> {
             color: ChalkboardColors.chalkSoft,
           ),
           SizedBox(width: 6.w),
-          Text(
-            'إضافة صورة غلاف للدورة',
-            style: ChalkboardText.note(11.sp),
-          ),
+          Text('إضافة صورة غلاف للدورة', style: ChalkboardText.note(11.sp)),
         ],
       ),
     );
   }
 
   Future<void> _confirmDeleteCourse(
-      BuildContext context, CourseModel course) async {
+    BuildContext context,
+    CourseModel course,
+  ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
@@ -187,10 +188,7 @@ class _CoursesListScreenState extends State<CoursesListScreen> {
               borderRadius: BorderRadius.circular(16.r),
               side: BorderSide(color: ChalkboardColors.ink.withAlpha(60)),
             ),
-            title: Text(
-              'حذف الدورة؟',
-              style: ChalkboardText.heading(16.sp),
-            ),
+            title: Text('حذف الدورة؟', style: ChalkboardText.heading(16.sp)),
             content: Text(
               'سيتم حذف «${course.title}» مع كل دروسها، ولا يمكن التراجع.',
               style: ChalkboardText.body(12.sp),
@@ -200,16 +198,20 @@ class _CoursesListScreenState extends State<CoursesListScreen> {
                 onPressed: () => Navigator.pop(dialogContext, false),
                 child: Text(
                   'إلغاء',
-                  style: ChalkboardText.strong(12.sp,
-                      color: ChalkboardColors.chalkSoft),
+                  style: ChalkboardText.strong(
+                    12.sp,
+                    color: ChalkboardColors.chalkSoft,
+                  ),
                 ),
               ),
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext, true),
                 child: Text(
                   'حذف',
-                  style: ChalkboardText.strong(12.sp,
-                      color: ChalkboardColors.chalkRed),
+                  style: ChalkboardText.strong(
+                    12.sp,
+                    color: ChalkboardColors.chalkRed,
+                  ),
                 ),
               ),
             ],
@@ -224,10 +226,22 @@ class _CoursesListScreenState extends State<CoursesListScreen> {
 
   void _showCourseSheet(BuildContext context, CourseModel? course) {
     final titleController = TextEditingController(text: course?.title ?? '');
-    final descController =
-        TextEditingController(text: course?.description ?? '');
+    final descController = TextEditingController(
+      text: course?.description ?? '',
+    );
+    final priceController = TextEditingController(
+      text: _formatPrice(course?.price),
+    );
+    final introYoutubeController = TextEditingController(
+      text: course?.introVideoSourceType == 'upload'
+          ? ''
+          : (course?.introVideoUrl ?? ''),
+    );
     var isPublished = course?.isPublished ?? false;
+    var introModeIndex = course?.introVideoSourceType == 'upload' ? 1 : 0;
     XFile? coverFile;
+    XFile? introVideoFile;
+    var introVideoRemoved = false;
 
     showModalBottomSheet(
       context: context,
@@ -249,256 +263,526 @@ class _CoursesListScreenState extends State<CoursesListScreen> {
                   top: 24.h,
                   bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 24.h,
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      course == null ? 'إنشاء دورة جديدة' : 'تعديل الدورة',
-                      style: ChalkboardText.heading(17.sp),
-                    ),
-                    SizedBox(height: 20.h),
-                    ChalkInputField(
-                      label: 'عنوان الدورة',
-                      controller: titleController,
-                      icon: Icons.menu_book_outlined,
-                      hint: 'مثال: مراجعة الفيزياء للثانوية العامة',
-                    ),
-                    SizedBox(height: 18.h),
-                    ChalkInputField(
-                      label: 'وصف الدورة',
-                      controller: descController,
-                      icon: Icons.notes_rounded,
-                      hint: 'اكتب وصفاً موجزاً لما تتضمنه الدورة',
-                      maxLines: 2,
-                    ),
-                    SizedBox(height: 14.h),
-                    Text(
-                      'صورة الغلاف (اختياري)',
-                      style: ChalkboardText.strong(12.sp),
-                    ),
-                    SizedBox(height: 8.h),
-                    GestureDetector(
-                      onTap: () async {
-                        HapticFeedback.lightImpact();
-                        try {
-                          final file = await ImagePicker().pickImage(
-                            source: ImageSource.gallery,
-                            imageQuality: 85,
-                          );
-                          if (file != null) {
-                            setSheetState(() => coverFile = file);
-                          }
-                        } catch (_) {
-                          if (sheetContext.mounted) {
-                            ScaffoldMessenger.of(sheetContext).showSnackBar(
-                              SnackBar(
-                                backgroundColor: ChalkboardColors.accentDeep,
-                                content: Text(
-                                  'تعذر اختيار الصورة من جهازك',
-                                  style: ChalkboardText.strong(12.sp),
-                                ),
-                              ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        course == null ? 'إنشاء دورة جديدة' : 'تعديل الدورة',
+                        style: ChalkboardText.heading(17.sp),
+                      ),
+                      SizedBox(height: 20.h),
+                      ChalkInputField(
+                        label: 'عنوان الدورة',
+                        controller: titleController,
+                        icon: Icons.menu_book_outlined,
+                        hint: 'مثال: مراجعة الفيزياء للثانوية العامة',
+                      ),
+                      SizedBox(height: 18.h),
+                      ChalkInputField(
+                        label: 'وصف الدورة',
+                        controller: descController,
+                        icon: Icons.notes_rounded,
+                        hint: 'اكتب وصفاً موجزاً لما تتضمنه الدورة',
+                        maxLines: 2,
+                      ),
+                      SizedBox(height: 14.h),
+                      Text(
+                        'صورة الغلاف (اختياري)',
+                        style: ChalkboardText.strong(12.sp),
+                      ),
+                      SizedBox(height: 8.h),
+                      GestureDetector(
+                        onTap: () async {
+                          HapticFeedback.lightImpact();
+                          try {
+                            final file = await ImagePicker().pickImage(
+                              source: ImageSource.gallery,
+                              imageQuality: 85,
                             );
-                          }
-                        }
-                      },
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        height: coverFile != null
-                            ? 110.h
-                            : course?.coverImageUrl?.isNotEmpty == true
-                                ? 110.h
-                                : 56.h,
-                        decoration: BoxDecoration(
-                          color: ChalkboardColors.surfaceBright.withAlpha(120),
-                          borderRadius: BorderRadius.circular(14.r),
-                          border: Border.all(
-                            color: coverFile != null
-                                ? ChalkboardColors.accent.withAlpha(190)
-                                : ChalkboardColors.ink.withAlpha(60),
-                            width: coverFile != null ? 1.6 : 1,
-                          ),
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        child: coverFile != null
-                            ? Stack(
-                                fit: StackFit.expand,
-                                children: [
-                                  Image.file(
-                                    File(coverFile!.path),
-                                    fit: BoxFit.cover,
-                                  ),
-                                  Positioned(
-                                    top: 6.r,
-                                    left: 6.r,
-                                    child: GestureDetector(
-                                      onTap: () =>
-                                          setSheetState(() => coverFile = null),
-                                      child: Container(
-                                        padding: EdgeInsets.all(5.r),
-                                        decoration: const BoxDecoration(
-                                          color: Colors.black54,
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: Icon(
-                                          Icons.close_rounded,
-                                          size: 16.r,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              )
-                            : course?.coverImageUrl?.isNotEmpty == true
-                                ? Stack(
-                                    fit: StackFit.expand,
-                                    children: [
-                                      Image.network(
-                                        course!.coverImageUrl!,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (_, _, _) =>
-                                            _buildCoverPlaceholder(context),
-                                      ),
-                                      Positioned(
-                                        top: 6.r,
-                                        left: 6.r,
-                                        child: GestureDetector(
-                                          onTap: () => setSheetState(() {}),
-                                          child: Container(
-                                            padding: EdgeInsets.all(5.r),
-                                            decoration: const BoxDecoration(
-                                              color: Colors.black54,
-                                              shape: BoxShape.circle,
-                                            ),
-                                            child: Icon(
-                                              Icons.close_rounded,
-                                              size: 16.r,
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  )
-                                : _buildCoverPlaceholder(context),
-                      ),
-                    ),
-                    SizedBox(height: 14.h),
-                    GestureDetector(
-                      onTap: () {
-                        HapticFeedback.selectionClick();
-                        setSheetState(() => isPublished = !isPublished);
-                      },
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 20.r,
-                            height: 20.r,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: isPublished
-                                  ? ChalkboardColors.accent
-                                  : Colors.transparent,
-                              border: Border.all(
-                                color: isPublished
-                                    ? ChalkboardColors.accent
-                                    : ChalkboardColors.ink.withAlpha(90),
-                                width: 1.4,
-                              ),
-                            ),
-                            child: isPublished
-                                ? Icon(
-                                    Icons.check_rounded,
-                                    size: 14.r,
-                                    color: ChalkboardColors.onAccent,
-                                  )
-                                : null,
-                          ),
-                          SizedBox(width: 10.w),
-                          Text(
-                            isPublished ? 'منشورة الآن' : 'تُحفظ كمسودة',
-                            style: ChalkboardText.strong(12.sp),
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(height: 24.h),
-                    ChalkPrimaryButton(
-                      label: course == null ? 'حفظ الدورة' : 'حفظ التعديلات',
-                      icon: Icons.check_rounded,
-                      onPressed: () async {
-                        final title = titleController.text.trim();
-                        final description = descController.text.trim();
-                        if (title.isEmpty) return;
-
-                        final userId =
-                            Supabase.instance.client.auth.currentUser?.id;
-                        if (userId == null) return;
-
-                        String? coverImageUrl;
-                        if (coverFile != null) {
-                          final coverKey =
-                              '${DateTime.now().millisecondsSinceEpoch}';
-                          coverImageUrl = await StorageHelper.uploadCourseCover(
-                            teacherId: userId,
-                            courseId: course?.id ?? coverKey,
-                            file: coverFile!,
-                          );
-                          if (coverImageUrl == null) {
+                            if (file != null) {
+                              setSheetState(() => coverFile = file);
+                            }
+                          } catch (_) {
                             if (sheetContext.mounted) {
                               ScaffoldMessenger.of(sheetContext).showSnackBar(
                                 SnackBar(
-                                  backgroundColor:
-                                      ChalkboardColors.accentDeep,
+                                  backgroundColor: ChalkboardColors.accentDeep,
                                   content: Text(
-                                    'فشل رفع صورة الغلاف، حاول مرة أخرى',
+                                    'تعذر اختيار الصورة من جهازك',
                                     style: ChalkboardText.strong(12.sp),
                                   ),
                                 ),
                               );
                             }
-                            return;
                           }
-                        }
-
-                        if (course == null) {
-                          _cubit.createCourse(
-                            teacherId: userId,
-                            title: title,
-                            description:
-                                description.isNotEmpty ? description : null,
-                            coverImageUrl: coverImageUrl,
-                            isPublished: isPublished,
-                          );
-                        } else {
-                          _cubit.updateCourse(
-                            courseId: course.id,
-                            title: title,
-                            description:
-                                description.isNotEmpty ? description : null,
-                            coverImageUrl: coverImageUrl,
-                            isPublished: isPublished,
-                          );
-                        }
-                        if (!sheetContext.mounted) return;
-                        Navigator.pop(sheetContext);
-                        if (!mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            backgroundColor: ChalkboardColors.accentDeep,
-                            content: Text(
-                              course == null
-                                  ? 'تمت إضافة الدورة إلى السبورة'
-                                  : 'تم حفظ تعديلات الدورة',
-                              style: ChalkboardText.strong(12.sp),
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          height: coverFile != null
+                              ? 110.h
+                              : course?.coverImageUrl?.isNotEmpty == true
+                              ? 110.h
+                              : 56.h,
+                          decoration: BoxDecoration(
+                            color: ChalkboardColors.surfaceBright.withAlpha(
+                              120,
+                            ),
+                            borderRadius: BorderRadius.circular(14.r),
+                            border: Border.all(
+                              color: coverFile != null
+                                  ? ChalkboardColors.accent.withAlpha(190)
+                                  : ChalkboardColors.ink.withAlpha(60),
+                              width: coverFile != null ? 1.6 : 1,
                             ),
                           ),
-                        );
-                      },
-                    ),
-                  ],
+                          clipBehavior: Clip.antiAlias,
+                          child: coverFile != null
+                              ? Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    Image.file(
+                                      File(coverFile!.path),
+                                      fit: BoxFit.cover,
+                                    ),
+                                    Positioned(
+                                      top: 6.r,
+                                      left: 6.r,
+                                      child: GestureDetector(
+                                        onTap: () => setSheetState(
+                                          () => coverFile = null,
+                                        ),
+                                        child: Container(
+                                          padding: EdgeInsets.all(5.r),
+                                          decoration: const BoxDecoration(
+                                            color: Colors.black54,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Icon(
+                                            Icons.close_rounded,
+                                            size: 16.r,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : course?.coverImageUrl?.isNotEmpty == true
+                              ? Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    Image.network(
+                                      course!.coverImageUrl!,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, _, _) =>
+                                          _buildCoverPlaceholder(context),
+                                    ),
+                                    Positioned(
+                                      top: 6.r,
+                                      left: 6.r,
+                                      child: GestureDetector(
+                                        onTap: () => setSheetState(() {}),
+                                        child: Container(
+                                          padding: EdgeInsets.all(5.r),
+                                          decoration: const BoxDecoration(
+                                            color: Colors.black54,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Icon(
+                                            Icons.close_rounded,
+                                            size: 16.r,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : _buildCoverPlaceholder(context),
+                        ),
+                      ),
+                      SizedBox(height: 18.h),
+                      ChalkInputField(
+                        label: 'سعر الكورس (ج.م)',
+                        controller: priceController,
+                        icon: Icons.payments_outlined,
+                        hint: 'مثال: 350 — اتركه فارغاً لكورس مجاني',
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                      ),
+                      SizedBox(height: 18.h),
+                      Text(
+                        'الفيديو التعريفي (اختياري)',
+                        style: ChalkboardText.strong(12.sp),
+                      ),
+                      SizedBox(height: 8.h),
+                      ChalkSegmentedControl(
+                        options: const ['رابط يوتيوب', 'رفع مباشر'],
+                        index: introModeIndex,
+                        onChanged: (i) {
+                          HapticFeedback.selectionClick();
+                          setSheetState(() => introModeIndex = i);
+                        },
+                      ),
+                      SizedBox(height: 12.h),
+                      if (introModeIndex == 0)
+                        ChalkInputField(
+                          label: 'رابط الفيديو التعريفي',
+                          controller: introYoutubeController,
+                          icon: Icons.link_rounded,
+                          hint: 'https://youtube.com/watch?v=...',
+                        )
+                      else ...[
+                        GestureDetector(
+                          onTap: () async {
+                            HapticFeedback.lightImpact();
+                            try {
+                              final file = await ImagePicker().pickVideo(
+                                source: ImageSource.gallery,
+                                maxDuration: const Duration(minutes: 60),
+                              );
+                              if (file != null) {
+                                setSheetState(() => introVideoFile = file);
+                              }
+                            } catch (_) {
+                              if (sheetContext.mounted) {
+                                ScaffoldMessenger.of(sheetContext).showSnackBar(
+                                  SnackBar(
+                                    backgroundColor:
+                                        ChalkboardColors.accentDeep,
+                                    content: Text(
+                                      'تعذر اختيار الفيديو من جهازك',
+                                      style: ChalkboardText.strong(12.sp),
+                                    ),
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: EdgeInsets.all(14.r),
+                            decoration: BoxDecoration(
+                              color: introVideoFile != null
+                                  ? ChalkboardColors.accent.withAlpha(22)
+                                  : ChalkboardColors.surface,
+                              borderRadius: BorderRadius.circular(14.r),
+                              border: Border.all(
+                                color: introVideoFile != null
+                                    ? ChalkboardColors.accent.withAlpha(190)
+                                    : ChalkboardColors.ink.withAlpha(60),
+                                width: introVideoFile != null ? 1.6 : 1,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 40.r,
+                                  height: 40.r,
+                                  decoration: BoxDecoration(
+                                    color: introVideoFile != null
+                                        ? ChalkboardColors.accent
+                                        : ChalkboardColors.accent.withAlpha(22),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    introVideoFile != null
+                                        ? Icons.check_rounded
+                                        : Icons.video_file_outlined,
+                                    color: introVideoFile != null
+                                        ? ChalkboardColors.onAccent
+                                        : ChalkboardColors.accent,
+                                    size: 20.r,
+                                  ),
+                                ),
+                                SizedBox(width: 10.w),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        introVideoFile != null
+                                            ? introVideoFile!.name
+                                            : 'اختيار فيديو من جهازك',
+                                        style: ChalkboardText.strong(13.sp),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      SizedBox(height: 3.h),
+                                      Text(
+                                        introVideoFile != null
+                                            ? 'تم اختيار الملف بنجاح'
+                                            : 'MP4 / MOV · يُرفع إلى خوادم المنصة',
+                                        style: ChalkboardText.note(11.sp),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (introVideoFile != null)
+                                  GestureDetector(
+                                    onTap: () => setSheetState(
+                                      () => introVideoFile = null,
+                                    ),
+                                    child: Icon(
+                                      Icons.close_rounded,
+                                      color: ChalkboardColors.chalkRed,
+                                      size: 20.r,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                      if (course?.introVideoUrl?.isNotEmpty == true)
+                        Padding(
+                          padding: EdgeInsets.only(top: 10.h),
+                          child: GestureDetector(
+                            onTap: () {
+                              HapticFeedback.selectionClick();
+                              setSheetState(() {
+                                introVideoRemoved = true;
+                                introVideoFile = null;
+                              });
+                            },
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.delete_outline_rounded,
+                                  size: 16.r,
+                                  color: introVideoRemoved
+                                      ? ChalkboardColors.chalkYellow
+                                      : ChalkboardColors.chalkRed,
+                                ),
+                                SizedBox(width: 6.w),
+                                Text(
+                                  introVideoRemoved
+                                      ? 'سيتم إزالة الفيديو التعريفي عند الحفظ'
+                                      : 'إزالة الفيديو التعريفي الحالي',
+                                  style: ChalkboardText.strong(
+                                    12.sp,
+                                    color: introVideoRemoved
+                                        ? ChalkboardColors.chalkYellow
+                                        : ChalkboardColors.chalkRed,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      SizedBox(height: 14.h),
+                      GestureDetector(
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          setSheetState(() => isPublished = !isPublished);
+                        },
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 20.r,
+                              height: 20.r,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: isPublished
+                                    ? ChalkboardColors.accent
+                                    : Colors.transparent,
+                                border: Border.all(
+                                  color: isPublished
+                                      ? ChalkboardColors.accent
+                                      : ChalkboardColors.ink.withAlpha(90),
+                                  width: 1.4,
+                                ),
+                              ),
+                              child: isPublished
+                                  ? Icon(
+                                      Icons.check_rounded,
+                                      size: 14.r,
+                                      color: ChalkboardColors.onAccent,
+                                    )
+                                  : null,
+                            ),
+                            SizedBox(width: 10.w),
+                            Text(
+                              isPublished ? 'منشورة الآن' : 'تُحفظ كمسودة',
+                              style: ChalkboardText.strong(12.sp),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: 24.h),
+                      ChalkPrimaryButton(
+                        label: course == null ? 'حفظ الدورة' : 'حفظ التعديلات',
+                        icon: Icons.check_rounded,
+                        onPressed: () async {
+                          final title = titleController.text.trim();
+                          final description = descController.text.trim();
+                          if (title.isEmpty) return;
+
+                          final userId =
+                              Supabase.instance.client.auth.currentUser?.id;
+                          if (userId == null) return;
+
+                          // Price (EGP) — empty means free course. Validate
+                          // before any uploads so we never orphan files.
+                          final priceText = priceController.text.trim();
+                          if (priceText.isNotEmpty) {
+                            final checkPrice = double.tryParse(priceText);
+                            if (checkPrice == null) {
+                              if (sheetContext.mounted) {
+                                ScaffoldMessenger.of(sheetContext).showSnackBar(
+                                  SnackBar(
+                                    backgroundColor:
+                                        ChalkboardColors.accentDeep,
+                                    content: Text(
+                                      'أدخل سعراً صحيحاً بالجنيه المصري',
+                                      style: ChalkboardText.strong(12.sp),
+                                    ),
+                                  ),
+                                );
+                              }
+                              return;
+                            }
+                            if (checkPrice < 0) {
+                              if (sheetContext.mounted) {
+                                ScaffoldMessenger.of(sheetContext).showSnackBar(
+                                  SnackBar(
+                                    backgroundColor:
+                                        ChalkboardColors.accentDeep,
+                                    content: Text(
+                                      'السعر لا يمكن أن يكون سالباً',
+                                      style: ChalkboardText.strong(12.sp),
+                                    ),
+                                  ),
+                                );
+                              }
+                              return;
+                            }
+                          }
+                          final parsedPrice = priceText.isEmpty
+                              ? null
+                              : double.tryParse(priceText);
+                          final clearPrice =
+                              course != null && parsedPrice == null;
+
+                          String? coverImageUrl;
+                          if (coverFile != null) {
+                            final coverKey =
+                                '${DateTime.now().millisecondsSinceEpoch}';
+                            coverImageUrl =
+                                await StorageHelper.uploadCourseCover(
+                                  teacherId: userId,
+                                  courseId: course?.id ?? coverKey,
+                                  file: coverFile!,
+                                );
+                            if (coverImageUrl == null) {
+                              if (sheetContext.mounted) {
+                                ScaffoldMessenger.of(sheetContext).showSnackBar(
+                                  SnackBar(
+                                    backgroundColor:
+                                        ChalkboardColors.accentDeep,
+                                    content: Text(
+                                      'فشل رفع صورة الغلاف، حاول مرة أخرى',
+                                      style: ChalkboardText.strong(12.sp),
+                                    ),
+                                  ),
+                                );
+                              }
+                              return;
+                            }
+                          }
+
+                          // Intro video — resolve final value from the sheet.
+                          String? introVideoUrl = course?.introVideoUrl;
+                          String? introVideoSourceType =
+                              course?.introVideoSourceType;
+                          var clearIntroVideo = false;
+                          if (introVideoRemoved) {
+                            clearIntroVideo = true;
+                            introVideoUrl = null;
+                            introVideoSourceType = null;
+                          } else if (introVideoFile != null) {
+                            final introKey =
+                                '${DateTime.now().millisecondsSinceEpoch}';
+                            final uploaded =
+                                await StorageHelper.uploadCourseIntroVideo(
+                                  teacherId: userId,
+                                  courseId: course?.id ?? introKey,
+                                  file: introVideoFile!,
+                                );
+                            if (uploaded == null) {
+                              if (sheetContext.mounted) {
+                                ScaffoldMessenger.of(sheetContext).showSnackBar(
+                                  SnackBar(
+                                    backgroundColor:
+                                        ChalkboardColors.accentDeep,
+                                    content: Text(
+                                      'فشل رفع الفيديو التعريفي، حاول مرة أخرى',
+                                      style: ChalkboardText.strong(12.sp),
+                                    ),
+                                  ),
+                                );
+                              }
+                              return;
+                            }
+                            introVideoUrl = uploaded;
+                            introVideoSourceType = 'upload';
+                          } else if (introModeIndex == 0 &&
+                              introYoutubeController.text.trim().isNotEmpty) {
+                            introVideoUrl = introYoutubeController.text.trim();
+                            introVideoSourceType = 'youtube';
+                          }
+
+                          if (course == null) {
+                            _cubit.createCourse(
+                              teacherId: userId,
+                              title: title,
+                              description: description.isNotEmpty
+                                  ? description
+                                  : null,
+                              coverImageUrl: coverImageUrl,
+                              price: parsedPrice,
+                              introVideoUrl: introVideoUrl,
+                              introVideoSourceType: introVideoSourceType,
+                              isPublished: isPublished,
+                            );
+                          } else {
+                            _cubit.updateCourse(
+                              courseId: course.id,
+                              title: title,
+                              description: description.isNotEmpty
+                                  ? description
+                                  : null,
+                              coverImageUrl: coverImageUrl,
+                              price: parsedPrice,
+                              introVideoUrl: introVideoUrl,
+                              introVideoSourceType: introVideoSourceType,
+                              clearPrice: clearPrice,
+                              clearIntroVideo: clearIntroVideo,
+                              isPublished: isPublished,
+                            );
+                          }
+                          if (!sheetContext.mounted) return;
+                          Navigator.pop(sheetContext);
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              backgroundColor: ChalkboardColors.accentDeep,
+                              content: Text(
+                                course == null
+                                    ? 'تمت إضافة الدورة إلى السبورة'
+                                    : 'تم حفظ تعديلات الدورة',
+                                style: ChalkboardText.strong(12.sp),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               );
             },
@@ -507,6 +791,12 @@ class _CoursesListScreenState extends State<CoursesListScreen> {
       },
     );
   }
+}
+
+String _formatPrice(double? price) {
+  if (price == null) return '';
+  if (price == price.roundToDouble()) return price.toInt().toString();
+  return price.toStringAsFixed(2);
 }
 
 class _CourseCard extends StatelessWidget {
@@ -529,8 +819,9 @@ class _CourseCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final published = course.isPublished;
-    final accent =
-        published ? ChalkboardColors.accent : ChalkboardColors.chalkYellow;
+    final accent = published
+        ? ChalkboardColors.accent
+        : ChalkboardColors.chalkYellow;
     return ChalkCard(
       onTap: onTap,
       accent: accent,
@@ -540,10 +831,7 @@ class _CourseCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              _CourseCover(
-                coverUrl: course.coverImageUrl,
-                accent: accent,
-              ),
+              _CourseCover(coverUrl: course.coverImageUrl, accent: accent),
               SizedBox(width: 12.w),
               Expanded(
                 child: Column(
@@ -580,10 +868,35 @@ class _CourseCard extends StatelessWidget {
                 color: ChalkboardColors.chalkSoft,
               ),
               SizedBox(width: 6.w),
-              Text(
-                '$lessonCount درس',
-                style: ChalkboardText.note(11.sp),
-              ),
+              Text('$lessonCount درس', style: ChalkboardText.note(11.sp)),
+              if (course.price != null) ...[
+                SizedBox(width: 12.w),
+                Icon(
+                  Icons.payments_outlined,
+                  size: 14.r,
+                  color: ChalkboardColors.accent,
+                ),
+                SizedBox(width: 4.w),
+                Flexible(
+                  child: Text(
+                    '${_formatPrice(course.price)} ج.م',
+                    style: ChalkboardText.strong(
+                      12.sp,
+                      color: ChalkboardColors.accent,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+              if (course.introVideoUrl?.isNotEmpty == true) ...[
+                SizedBox(width: 10.w),
+                Icon(
+                  Icons.movie_filter_outlined,
+                  size: 15.r,
+                  color: ChalkboardColors.chalkBlue,
+                ),
+              ],
               const Spacer(),
               _IconAction(
                 icon: Icons.publish_rounded,
@@ -646,11 +959,7 @@ class _CourseCover extends StatelessWidget {
   }
 
   Widget _icon() {
-    return Icon(
-      Icons.menu_book_outlined,
-      color: accent,
-      size: 24.r,
-    );
+    return Icon(Icons.menu_book_outlined, color: accent, size: 24.r);
   }
 }
 

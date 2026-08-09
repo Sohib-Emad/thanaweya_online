@@ -169,6 +169,21 @@ class StudentCoursesCubit extends Cubit<StudentCoursesState> {
       failure: (_, __) {},
     );
   }
+
+  Future<void> loadTeacherProfile(String teacherId) async {
+    emit(state.copyWith(teacherProfileStatus: StudentCoursesStatus.loading));
+    final result = await _repo.getTeacherProfile(teacherId);
+    result.when(
+      success: (profile) => emit(state.copyWith(
+        teacherProfileStatus: StudentCoursesStatus.loaded,
+        teacherProfile: profile,
+      )),
+      failure: (message, _) => emit(state.copyWith(
+        teacherProfileStatus: StudentCoursesStatus.error,
+        errorMessage: message,
+      )),
+    );
+  }
 }
 
 enum StudentCoursesStatus { initial, loading, loaded, error }
@@ -191,6 +206,8 @@ class StudentCoursesState {
   final List<Map<String, dynamic>> subjects;
   final List<LessonProgressModel> progress;
   final String? errorMessage;
+  final Map<String, dynamic>? teacherProfile;
+  final StudentCoursesStatus teacherProfileStatus;
 
   const StudentCoursesState({
     this.status = StudentCoursesStatus.initial,
@@ -210,6 +227,8 @@ class StudentCoursesState {
     this.subjects = const [],
     this.progress = const [],
     this.errorMessage,
+    this.teacherProfile,
+    this.teacherProfileStatus = StudentCoursesStatus.initial,
   });
 
   StudentCoursesState copyWith({
@@ -230,6 +249,8 @@ class StudentCoursesState {
     List<Map<String, dynamic>>? subjects,
     List<LessonProgressModel>? progress,
     String? errorMessage,
+    Map<String, dynamic>? teacherProfile,
+    StudentCoursesStatus? teacherProfileStatus,
   }) {
     return StudentCoursesState(
       status: status ?? this.status,
@@ -249,6 +270,8 @@ class StudentCoursesState {
       subjects: subjects ?? this.subjects,
       progress: progress ?? this.progress,
       errorMessage: errorMessage,
+      teacherProfile: teacherProfile ?? this.teacherProfile,
+      teacherProfileStatus: teacherProfileStatus ?? this.teacherProfileStatus,
     );
   }
 }

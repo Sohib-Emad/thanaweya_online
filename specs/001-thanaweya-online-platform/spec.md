@@ -43,6 +43,10 @@ A teacher creates courses, adds lessons to each course, and uploads video conten
 3. **Given** a teacher pastes a YouTube link, **When** they tap preview, **Then** the system fetches and displays the video thumbnail and duration.
 4. **Given** a teacher saves a lesson, **When** the lesson is saved, **Then** it appears in the course lesson list in the correct order.
 5. **Given** a lesson is marked as "free preview", **When** a student views the course, **Then** that lesson is accessible without a subscription.
+6. **Given** a teacher creates or edits a course, **When** they enter a price in Egyptian Pounds, **Then** the price is saved with the course and displayed on the course card (empty price = free course).
+7. **Given** a teacher creates or edits a course, **When** they attach an intro video (direct upload or YouTube link), **Then** the intro video URL and source type are saved with the course and shown on the course card.
+8. **Given** a course has a price, **When** a student browses courses or opens the course details, **Then** the price is shown on the course card and next to the enroll button.
+9. **Given** a course has an intro video, **When** a student opens the course details, **Then** the play button on the cover plays the intro video.
 
 ---
 
@@ -61,6 +65,9 @@ A student selects one or more subjects, chooses a teacher for each subject, regi
 3. **Given** a student fills in their personal data, **When** they submit, **Then** they are prompted for an activation code or payment.
 4. **Given** a student enters a valid activation code, **When** the code is verified, **Then** their subscription is activated and they can access the teacher's content.
 5. **Given** a student is subscribed to multiple teachers, **When** they open the home screen, **Then** they see tabs for each teacher with that teacher's courses listed below.
+6. **Given** a student confirms a paid course subscription with a saved card, **When** the subscription is confirmed, **Then** an active subscription and a successful payment record are created, and the student can open the course lessons.
+7. **Given** a student opens a free course, **When** they confirm the free subscription, **Then** an active subscription is created without a payment record.
+8. **Given** a student enters an already-used activation code, **When** the code is redeemed, **Then** they see a clear error and no subscription is created.
 
 ---
 
@@ -140,6 +147,7 @@ A Super Admin manages the entire platform: approves new teacher registrations, m
 - What happens when a YouTube video is deleted or made private after being added to a lesson?
 - What happens when a student loses internet mid-exam?
 - What happens when a teacher uploads a very large video file?
+- What happens when a teacher enters a negative or non-numeric course price?
 - What happens when two students try to use the same activation code simultaneously?
 - What happens when a Super Admin tries to approve themselves as a teacher?
 
@@ -172,13 +180,19 @@ A Super Admin manages the entire platform: approves new teacher registrations, m
 - **FR-023**: System MUST support dynamic subscription plans managed by Super Admin
 - **FR-024**: Teachers MUST be able to view reports with charts showing student performance
 - **FR-025**: System MUST support comments on lessons for student-teacher interaction
+- **FR-026**: Teachers MUST be able to set a course price in Egyptian Pounds (EGP) when creating or editing a course; an empty price means the course is free
+- **FR-027**: Teachers MUST be able to attach an intro video to a course, either by direct upload or a YouTube link, when creating or editing a course
+- **FR-028**: Students MUST see the course price (EGP) on course cards and on the course details page
+- **FR-029**: Students MUST be able to watch the course intro video from the course details page
+- **FR-030**: Students MUST be able to complete a course subscription through the payment flow; this MUST create an active subscription record and a successful payment record in the database
+- **FR-031**: Students MUST be able to redeem a teacher-generated activation code to activate a subscription atomically and securely (no double redemption)
 
 ### Key Entities
 
 - **User**: Base entity for all roles. Contains authentication credentials, role type, and profile data.
 - **Teacher**: Extends User. Contains subject, bio, approval status, subscription plan.
 - **Student**: Extends User. Contains grade level, parent phone, linked teachers.
-- **Course**: Belongs to a Teacher. Contains name, description, cover image, lessons list.
+- **Course**: Belongs to a Teacher. Contains name, description, cover image, price (EGP, nullable = free), intro video (URL + source type upload/youtube), lessons list.
 - **Lesson**: Belongs to a Course. Contains title, video source type (upload/youtube), video URL, duration, order, free preview flag.
 - **Exam**: Belongs to a Teacher/Course. Contains title, time limit, start/end dates, questions list.
 - **Question**: Belongs to an Exam. Contains type (MCQ/TF/essay), text, choices, correct answer, points.

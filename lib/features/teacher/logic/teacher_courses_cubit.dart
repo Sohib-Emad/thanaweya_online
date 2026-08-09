@@ -8,8 +8,8 @@ class TeacherCoursesCubit extends Cubit<TeacherCoursesState> {
   final TeacherCoursesRepo _repo;
 
   TeacherCoursesCubit({required TeacherCoursesRepo repo})
-      : _repo = repo,
-        super(const TeacherCoursesState());
+    : _repo = repo,
+      super(const TeacherCoursesState());
 
   @override
   void emit(TeacherCoursesState state) {
@@ -21,14 +21,15 @@ class TeacherCoursesCubit extends Cubit<TeacherCoursesState> {
     emit(state.copyWith(status: TeacherCoursesStatus.loading));
     final result = await _repo.getCourses(teacherId);
     result.when(
-      success: (courses) => emit(state.copyWith(
-        status: TeacherCoursesStatus.loaded,
-        courses: courses,
-      )),
-      failure: (message, _) => emit(state.copyWith(
-        status: TeacherCoursesStatus.error,
-        errorMessage: message,
-      )),
+      success: (courses) => emit(
+        state.copyWith(status: TeacherCoursesStatus.loaded, courses: courses),
+      ),
+      failure: (message, _) => emit(
+        state.copyWith(
+          status: TeacherCoursesStatus.error,
+          errorMessage: message,
+        ),
+      ),
     );
   }
 
@@ -37,6 +38,9 @@ class TeacherCoursesCubit extends Cubit<TeacherCoursesState> {
     required String title,
     String? description,
     String? coverImageUrl,
+    double? price,
+    String? introVideoUrl,
+    String? introVideoSourceType,
     bool isPublished = false,
   }) async {
     emit(state.copyWith(status: TeacherCoursesStatus.loading));
@@ -45,19 +49,26 @@ class TeacherCoursesCubit extends Cubit<TeacherCoursesState> {
       title: title,
       description: description,
       coverImageUrl: coverImageUrl,
+      price: price,
+      introVideoUrl: introVideoUrl,
+      introVideoSourceType: introVideoSourceType,
       isPublished: isPublished,
     );
     result.when(
       success: (course) {
-        emit(state.copyWith(
-          status: TeacherCoursesStatus.loaded,
-          courses: [...state.courses, course],
-        ));
+        emit(
+          state.copyWith(
+            status: TeacherCoursesStatus.loaded,
+            courses: [...state.courses, course],
+          ),
+        );
       },
-      failure: (message, _) => emit(state.copyWith(
-        status: TeacherCoursesStatus.error,
-        errorMessage: message,
-      )),
+      failure: (message, _) => emit(
+        state.copyWith(
+          status: TeacherCoursesStatus.error,
+          errorMessage: message,
+        ),
+      ),
     );
   }
 
@@ -65,9 +76,11 @@ class TeacherCoursesCubit extends Cubit<TeacherCoursesState> {
     final result = await _repo.deleteCourse(courseId);
     result.when(
       success: (_) {
-        emit(state.copyWith(
-          courses: state.courses.where((c) => c.id != courseId).toList(),
-        ));
+        emit(
+          state.copyWith(
+            courses: state.courses.where((c) => c.id != courseId).toList(),
+          ),
+        );
       },
       failure: (message, _) => emit(state.copyWith(errorMessage: message)),
     );
@@ -77,14 +90,18 @@ class TeacherCoursesCubit extends Cubit<TeacherCoursesState> {
     emit(state.copyWith(lessonsStatus: TeacherCoursesStatus.loading));
     final result = await _repo.getLessons(courseId);
     result.when(
-      success: (lessons) => emit(state.copyWith(
-        lessonsStatus: TeacherCoursesStatus.loaded,
-        lessons: lessons,
-      )),
-      failure: (message, _) => emit(state.copyWith(
-        lessonsStatus: TeacherCoursesStatus.error,
-        errorMessage: message,
-      )),
+      success: (lessons) => emit(
+        state.copyWith(
+          lessonsStatus: TeacherCoursesStatus.loaded,
+          lessons: lessons,
+        ),
+      ),
+      failure: (message, _) => emit(
+        state.copyWith(
+          lessonsStatus: TeacherCoursesStatus.error,
+          errorMessage: message,
+        ),
+      ),
     );
   }
 
@@ -107,15 +124,19 @@ class TeacherCoursesCubit extends Cubit<TeacherCoursesState> {
     );
     result.when(
       success: (lesson) {
-        emit(state.copyWith(
-          lessonsStatus: TeacherCoursesStatus.loaded,
-          lessons: [...state.lessons, lesson],
-        ));
+        emit(
+          state.copyWith(
+            lessonsStatus: TeacherCoursesStatus.loaded,
+            lessons: [...state.lessons, lesson],
+          ),
+        );
       },
-      failure: (message, _) => emit(state.copyWith(
-        lessonsStatus: TeacherCoursesStatus.error,
-        errorMessage: message,
-      )),
+      failure: (message, _) => emit(
+        state.copyWith(
+          lessonsStatus: TeacherCoursesStatus.error,
+          errorMessage: message,
+        ),
+      ),
     );
   }
 
@@ -123,9 +144,11 @@ class TeacherCoursesCubit extends Cubit<TeacherCoursesState> {
     final result = await _repo.deleteLesson(lessonId);
     result.when(
       success: (_) {
-        emit(state.copyWith(
-          lessons: state.lessons.where((l) => l.id != lessonId).toList(),
-        ));
+        emit(
+          state.copyWith(
+            lessons: state.lessons.where((l) => l.id != lessonId).toList(),
+          ),
+        );
       },
       failure: (message, _) => emit(state.copyWith(errorMessage: message)),
     );
@@ -136,6 +159,11 @@ class TeacherCoursesCubit extends Cubit<TeacherCoursesState> {
     required String title,
     String? description,
     String? coverImageUrl,
+    double? price,
+    String? introVideoUrl,
+    String? introVideoSourceType,
+    bool? clearPrice,
+    bool? clearIntroVideo,
     bool? isPublished,
   }) async {
     final result = await _repo.updateCourse(
@@ -143,21 +171,35 @@ class TeacherCoursesCubit extends Cubit<TeacherCoursesState> {
       title: title,
       description: description,
       coverImageUrl: coverImageUrl,
+      price: price,
+      introVideoUrl: introVideoUrl,
+      introVideoSourceType: introVideoSourceType,
+      clearPrice: clearPrice,
+      clearIntroVideo: clearIntroVideo,
       isPublished: isPublished,
     );
     result.when(
       success: (_) {
-        emit(state.copyWith(
-          courses: state.courses.map((c) {
-            if (c.id != courseId) return c;
-            return c.copyWith(
-              title: title,
-              description: description,
-              coverImageUrl: coverImageUrl ?? c.coverImageUrl,
-              isPublished: isPublished ?? c.isPublished,
-            );
-          }).toList(),
-        ));
+        emit(
+          state.copyWith(
+            courses: state.courses.map((c) {
+              if (c.id != courseId) return c;
+              return c.copyWith(
+                title: title,
+                description: description,
+                coverImageUrl: coverImageUrl ?? c.coverImageUrl,
+                price: clearPrice == true ? null : (price ?? c.price),
+                introVideoUrl: clearIntroVideo == true
+                    ? null
+                    : (introVideoUrl ?? c.introVideoUrl),
+                introVideoSourceType: clearIntroVideo == true
+                    ? null
+                    : (introVideoSourceType ?? c.introVideoSourceType),
+                isPublished: isPublished ?? c.isPublished,
+              );
+            }).toList(),
+          ),
+        );
       },
       failure: (message, _) => emit(state.copyWith(errorMessage: message)),
     );
@@ -179,17 +221,19 @@ class TeacherCoursesCubit extends Cubit<TeacherCoursesState> {
     );
     result.when(
       success: (_) {
-        emit(state.copyWith(
-          lessons: state.lessons.map((l) {
-            if (l.id != lessonId) return l;
-            return l.copyWith(
-              title: title,
-              description: description,
-              videoUrlOrId: videoUrlOrId ?? l.videoUrlOrId,
-              isFreePreview: isFreePreview ?? l.isFreePreview,
-            );
-          }).toList(),
-        ));
+        emit(
+          state.copyWith(
+            lessons: state.lessons.map((l) {
+              if (l.id != lessonId) return l;
+              return l.copyWith(
+                title: title,
+                description: description,
+                videoUrlOrId: videoUrlOrId ?? l.videoUrlOrId,
+                isFreePreview: isFreePreview ?? l.isFreePreview,
+              );
+            }).toList(),
+          ),
+        );
       },
       failure: (message, _) => emit(state.copyWith(errorMessage: message)),
     );
@@ -198,8 +242,7 @@ class TeacherCoursesCubit extends Cubit<TeacherCoursesState> {
   Future<void> loadCourseLessonCounts(String teacherId) async {
     final result = await _repo.getCourseLessonCounts(teacherId);
     result.when(
-      success: (counts) =>
-          emit(state.copyWith(courseLessonCounts: counts)),
+      success: (counts) => emit(state.copyWith(courseLessonCounts: counts)),
       failure: (_, _) {},
     );
   }

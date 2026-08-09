@@ -18,6 +18,7 @@ import '../../features/teacher/ui/exams/add_questions_screen.dart';
 import '../../features/teacher/ui/exams/exam_results_screen.dart';
 import '../../features/teacher/ui/students/students_list_screen.dart';
 import '../../features/teacher/ui/students/student_detail_screen.dart';
+import '../../features/teacher/ui/cards/teacher_cards_screen.dart';
 import '../../features/student/ui/onboarding/subject_selection_screen.dart';
 import '../../features/student/ui/onboarding/teacher_selection_screen.dart';
 import '../../features/student/ui/onboarding/student_form_screen.dart';
@@ -94,6 +95,7 @@ class AppRouter {
   static const String teacherExamResults = '/teacher/exams/results';
   static const String teacherStudents = '/teacher/students';
   static const String teacherStudentDetail = '/teacher/student-detail';
+  static const String teacherCards = '/teacher/cards';
 
   // Student
   static const String studentSubjects = '/student/subjects';
@@ -141,10 +143,7 @@ class AppRouter {
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     if (settings.name == studentFilter) {
-      return _fadeRoute<CourseFilters>(
-        settings,
-        const CourseFilterScreen(),
-      );
+      return _fadeRoute<CourseFilters>(settings, const CourseFilterScreen());
     }
     return _fadeRoute<dynamic>(settings, _buildPage(settings));
   }
@@ -204,8 +203,7 @@ class AppRouter {
         final examId = settings.arguments as String? ?? '';
         return AddQuestionsScreen(examId: examId);
       case teacherExamResults:
-        final resultsArgs =
-            settings.arguments as Map<String, dynamic>? ?? {};
+        final resultsArgs = settings.arguments as Map<String, dynamic>? ?? {};
         return ExamResultsScreen(
           examId: resultsArgs['examId'] ?? '',
           examTitle: resultsArgs['examTitle'] ?? '',
@@ -220,6 +218,8 @@ class AppRouter {
           grade: studentArgs['grade'] ?? '',
           email: studentArgs['email'] ?? '',
         );
+      case teacherCards:
+        return const TeacherCardsScreen();
 
       // Student
       case studentSubjects:
@@ -288,7 +288,13 @@ class AppRouter {
         final courseId = settings.arguments as String? ?? '';
         return WriteReviewScreen(courseId: courseId);
       case studentPaymentMethods:
-        return const PaymentMethodsScreen();
+        final payArgs = settings.arguments as Map<String, dynamic>? ?? {};
+        return PaymentMethodsScreen(
+          courseId: payArgs['courseId'] ?? '',
+          teacherId: payArgs['teacherId'] ?? '',
+          courseTitle: payArgs['courseTitle'] ?? '',
+          price: (payArgs['price'] as num?)?.toDouble(),
+        );
       case studentComments:
         final lessonId = settings.arguments as String? ?? '';
         return LessonCommentsScreen(lessonId: lessonId);

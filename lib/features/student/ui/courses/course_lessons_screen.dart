@@ -23,6 +23,7 @@ class CourseLessonsScreen extends StatefulWidget {
 
 class _CourseLessonsScreenState extends State<CourseLessonsScreen> {
   late final StudentCoursesCubit _coursesCubit;
+  bool _isSubscribed = false;
 
   @override
   void initState() {
@@ -33,6 +34,21 @@ class _CourseLessonsScreenState extends State<CourseLessonsScreen> {
     if (userId != null) {
       _coursesCubit.loadProgress(userId);
     }
+    _checkSubscription();
+  }
+
+  Future<void> _checkSubscription() async {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return;
+    final res = await StudentCoursesRepo().checkIsSubscribed(
+      studentId: userId,
+      courseId: widget.courseId,
+    );
+    if (!mounted) return;
+    res.when(
+      success: (isSub) => setState(() => _isSubscribed = isSub),
+      failure: (_, __) {},
+    );
   }
 
   @override
@@ -41,8 +57,62 @@ class _CourseLessonsScreenState extends State<CourseLessonsScreen> {
     super.dispose();
   }
 
+  void _showLockedLessonDialog(String lessonTitle) {
+    HapticFeedback.heavyImpact();
+    showDialog(
+      context: context,
+      builder: (ctx) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20.r),
+          ),
+          backgroundColor: NotebookColors.ground,
+          title: Row(
+            children: [
+              Icon(
+                Icons.lock_rounded,
+                color: NotebookColors.marginRed,
+                size: 24.r,
+              ),
+              SizedBox(width: 8.w),
+              Text('الدرس مغلق', style: NotebookText.heading(16.sp)),
+            ],
+          ),
+          content: Text(
+            'عفواً، المنهج متاح للاطلاع فقط. لمشاهدة فيديو "$lessonTitle" يجب الدفع والاشتراك وتفعيل الكود أولاً.',
+            style: NotebookText.body(13.sp),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('إلغاء', style: NotebookText.strong(13.sp)),
+            ),
+            NotebookPrimaryButton(
+              label: 'الدفع وتفعيل الكود',
+              onPressed: () {
+                Navigator.pop(ctx);
+                Navigator.pushNamed(
+                  context,
+                  AppRouter.studentPaymentMethods,
+                  arguments: {
+                    'courseId': widget.courseId,
+                  },
+                ).then((_) => _checkSubscription());
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _openLesson(LessonModel lesson) {
     HapticFeedback.lightImpact();
+    if (!_isSubscribed) {
+      _showLockedLessonDialog(lesson.title);
+      return;
+    }
     Navigator.pushNamed(
       context,
       AppRouter.studentVideoPlayer,
@@ -54,7 +124,7 @@ class _CourseLessonsScreenState extends State<CourseLessonsScreen> {
         'description': lesson.description ?? '',
         'courseId': widget.courseId,
       },
-    );
+    ).then((_) => _checkSubscription());
   }
 
   @override
@@ -138,10 +208,14 @@ class _CourseLessonsScreenState extends State<CourseLessonsScreen> {
                                 child: Icon(
                                   isCompleted
                                       ? Icons.check_circle_rounded
-                                      : Icons.play_circle_outline_rounded,
+                                      : (!_isSubscribed
+                                          ? Icons.lock_rounded
+                                          : Icons.play_circle_outline_rounded),
                                   color: isCompleted
                                       ? NotebookColors.green
-                                      : NotebookColors.ink,
+                                      : (!_isSubscribed
+                                          ? NotebookColors.marginRed
+                                          : NotebookColors.ink),
                                   size: 22.r,
                                 ),
                               ),

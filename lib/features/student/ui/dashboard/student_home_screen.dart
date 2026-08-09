@@ -28,6 +28,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:thanaweya_online/core/router/app_router.dart';
 import 'package:thanaweya_online/core/theme/notebook_theme.dart';
+import 'package:thanaweya_online/core/utils/formatters.dart';
 import 'package:thanaweya_online/features/student/data/repos/student_courses_repo.dart';
 import 'package:thanaweya_online/features/student/logic/student_courses_cubit.dart';
 import 'package:thanaweya_online/features/student/ui/courses/course_filter_screen.dart';
@@ -60,42 +61,43 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     Color(0xFF0284C7),
   ];
 
-  Color _colorFor(String key) =>
-      _palette[key.hashCode.abs() % _palette.length];
+  Color _colorFor(String key) => _palette[key.hashCode.abs() % _palette.length];
 
-  List<Map<String, dynamic>> get _studentEnrolledCourses =>
-      _coursesCubit.state.popularCourses
-          .where((c) {
-            if (_homeSubjectFilter != 'الكل' &&
-                c['subject_name'] != _homeSubjectFilter) {
-              return false;
-            }
-            if (_homeFilters != null && !_homeFilters!.matches(c)) {
-              return false;
-            }
-            return true;
-          })
-          .map((c) {
-            return {
-              'id': c['id'],
-              'title': c['title'],
-              'teacher': c['teacher_name'],
-              'subject': c['subject_name'],
-              'cover': c['cover_image_url'],
-              'stage': c['stage'],
-              'color': _colorFor(c['id'] as String),
-            };
-          })
-          .toList();
+  List<Map<String, dynamic>> get _studentEnrolledCourses => _coursesCubit
+      .state
+      .popularCourses
+      .where((c) {
+        if (_homeSubjectFilter != 'الكل' &&
+            c['subject_name'] != _homeSubjectFilter) {
+          return false;
+        }
+        if (_homeFilters != null && !_homeFilters!.matches(c)) {
+          return false;
+        }
+        return true;
+      })
+      .map((c) {
+        return {
+          'id': c['id'],
+          'title': c['title'],
+          'teacher': c['teacher_name'],
+          'subject': c['subject_name'],
+          'cover': c['cover_image_url'],
+          'stage': c['stage'],
+          'price': (c['price'] as num?)?.toDouble(),
+          'introVideoUrl': c['intro_video_url'] as String? ?? '',
+          'color': _colorFor(c['id'] as String),
+        };
+      })
+      .toList();
 
   List<Map<String, dynamic>> get _popularTeachersList =>
       _coursesCubit.state.approvedTeachers.map((t) {
         final users = t['users'] as Map<String, dynamic>?;
-        final name =
-            users?['full_name'] as String? ?? '';
+        final name = users?['full_name'] as String? ?? '';
         final subject =
             (t['subjects'] as Map<String, dynamic>?)?['name_ar'] as String? ??
-                '';
+            '';
         return {
           'id': t['id'],
           'name': 'أ. $name',
@@ -107,6 +109,54 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
         };
       }).toList();
 
+  Future<void> _ensureStudentProfileExists(String userId) async {
+    try {
+      final client = Supabase.instance.client;
+      final user = client.auth.currentUser;
+      if (user == null) return;
+
+      // 1. Ensure public.users row exists
+      final userRes = await client
+          .from('users')
+          .select('id')
+          .eq('id', userId)
+          .maybeSingle();
+
+      if (userRes == null) {
+        final email = user.email ?? '';
+        final fullName = user.userMetadata?['full_name']?.toString() ?? 'طالب';
+        final phone = user.userMetadata?['phone']?.toString() ?? '01000000000';
+        final role = user.userMetadata?['role']?.toString() ?? 'student';
+        await client.from('users').insert({
+          'id': userId,
+          'email': email,
+          'full_name': fullName,
+          'phone': phone,
+          'role': role,
+        });
+        debugPrint('[StudentHome] Auto-created users profile for user: $userId');
+      }
+
+      // 2. Ensure public.students row exists
+      final res = await client
+          .from('students')
+          .select('id')
+          .eq('id', userId)
+          .maybeSingle();
+
+      if (res == null) {
+        await client.from('students').insert({
+          'id': userId,
+          'grade_level': 'first',
+          'parent_phone': '01000000000',
+        });
+        debugPrint('[StudentHome] Auto-created student profile for user: $userId');
+      }
+    } catch (e) {
+      debugPrint('[StudentHome] Failed to ensure student profile: $e');
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -116,11 +166,15 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
         user?.userMetadata?['full_name']?.toString().split(' ').first ?? 'طالب';
     final userId = user?.id;
     if (userId != null) {
-      _coursesCubit.loadSubscribedTeachers(userId);
-      _coursesCubit.loadMyCourses(userId);
-      _coursesCubit.loadPopularCourses();
-      _coursesCubit.loadApprovedTeachers();
-      _coursesCubit.loadSubjects();
+      _ensureStudentProfileExists(userId).then((_) {
+        if (mounted) {
+          _coursesCubit.loadSubscribedTeachers(userId);
+          _coursesCubit.loadMyCourses(userId);
+          _coursesCubit.loadPopularCourses();
+          _coursesCubit.loadApprovedTeachers();
+          _coursesCubit.loadSubjects();
+        }
+      });
     }
   }
 
@@ -147,8 +201,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                 builder: (context, _) => _buildHomeDashboardTab(context),
               ),
               const StudentMyCoursesListScreen(),
-              const StudentTransactionsScreen(),
-              const StudentExamsListScreen(),
+              StudentTransactionsScreen(isSelected: _currentIndex == 2),
+              StudentExamsListScreen(isSelected: _currentIndex == 3),
               const StudentProfileTab(isTabMode: true),
             ],
           ),
@@ -189,10 +243,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                         color: NotebookColors.ink.withAlpha(45),
                       ),
                       SizedBox(width: 10.w),
-                      Text(
-                        'دفتر الطالب',
-                        style: NotebookText.note(12.sp),
-                      ),
+                      Text('دفتر الطالب', style: NotebookText.note(12.sp)),
                     ],
                   ),
                   SizedBox(height: 14.h),
@@ -217,8 +268,10 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                       ),
                       // Notifications — a red margin-note bell
                       GestureDetector(
-                        onTap: () =>
-                            Navigator.pushNamed(context, AppRouter.notifications),
+                        onTap: () => Navigator.pushNamed(
+                          context,
+                          AppRouter.notifications,
+                        ),
                         child: Container(
                           width: 40.r,
                           height: 40.r,
@@ -262,8 +315,9 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                       style: NotebookText.body(13.sp),
                       decoration: InputDecoration(
                         hintText: 'ابحث عن مادة أو دورة أو مدرس...',
-                        hintStyle: NotebookText.note(12.sp)
-                            .copyWith(color: NotebookColors.pencil.withAlpha(180)),
+                        hintStyle: NotebookText.note(
+                          12.sp,
+                        ).copyWith(color: NotebookColors.pencil.withAlpha(180)),
                         border: InputBorder.none,
                         isDense: true,
                       ),
@@ -362,9 +416,12 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
             SizedBox(height: 26.h),
 
             // ── 4. Popular Courses — ruled summary pages ──
-            NotebookSectionHeader(title: 'الكورسات الشائعة', onAction: () {
-              setState(() => _homeSubjectFilter = 'الكل');
-            }),
+            NotebookSectionHeader(
+              title: 'الكورسات الشائعة',
+              onAction: () {
+                setState(() => _homeSubjectFilter = 'الكل');
+              },
+            ),
             SizedBox(height: 12.h),
 
             // Filter chips (highlighter chips)
@@ -373,18 +430,19 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 padding: EdgeInsets.symmetric(horizontal: 24.w),
-                children: [
-                  'الكل',
-                  ..._coursesCubit.state.subjects
-                      .map((s) => s['name_ar'] as String),
-                ].map((label) {
-                  return NotebookChip(
-                    label: label,
-                    selected: _homeSubjectFilter == label,
-                    onTap: () =>
-                        setState(() => _homeSubjectFilter = label),
-                  );
-                }).toList(),
+                children:
+                    [
+                      'الكل',
+                      ..._coursesCubit.state.subjects.map(
+                        (s) => s['name_ar'] as String,
+                      ),
+                    ].map((label) {
+                      return NotebookChip(
+                        label: label,
+                        selected: _homeSubjectFilter == label,
+                        onTap: () => setState(() => _homeSubjectFilter = label),
+                      );
+                    }).toList(),
               ),
             ),
             if (_homeFilters != null && _homeFilters!.isActive)
@@ -407,8 +465,10 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                       onTap: () => setState(() => _homeFilters = null),
                       child: Text(
                         'مسح',
-                        style: NotebookText.strong(12.sp,
-                            color: NotebookColors.marginRed),
+                        style: NotebookText.strong(
+                          12.sp,
+                          color: NotebookColors.marginRed,
+                        ),
                       ),
                     ),
                   ],
@@ -533,10 +593,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                   const SizedBox.shrink(),
                 const Spacer(),
                 GestureDetector(
-                  onTap: () => Navigator.pushNamed(
-                    context,
-                    AppRouter.studentBookmarks,
-                  ),
+                  onTap: () =>
+                      Navigator.pushNamed(context, AppRouter.studentBookmarks),
                   child: Icon(
                     Icons.bookmark_border_rounded,
                     size: 16.r,
@@ -561,18 +619,24 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
             ),
             SizedBox(height: 5.h),
             // marker underline
-            Container(
-              width: 44.w,
-              height: 3.h,
-              color: color,
-            ),
+            Container(width: 44.w, height: 3.h, color: color),
             const Spacer(),
             Row(
               children: [
-                Text(
-                  'متابعة الكورس',
-                  style: NotebookText.note(10.sp),
-                ),
+                if (course['price'] != null)
+                  Flexible(
+                    child: Text(
+                      Formatters.formatEgp((course['price'] as num).toDouble()),
+                      style: NotebookText.strong(
+                        11.sp,
+                        color: NotebookColors.marginRed,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  )
+                else
+                  Text('متابعة الكورس', style: NotebookText.note(10.sp)),
                 const Spacer(),
                 Container(
                   width: 26.r,
@@ -600,19 +664,13 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
       fit: StackFit.expand,
       children: [
         const CustomPaint(
-          painter: RuledLinesPainter(
-            lineGap: 22,
-            color: Color(0x33FFFFFF),
-          ),
+          painter: RuledLinesPainter(lineGap: 22, color: Color(0x33FFFFFF)),
         ),
         Center(
           child: Container(
             width: 34.r,
             height: 34.r,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
             child: Icon(
               Icons.play_arrow_rounded,
               color: Colors.white,
@@ -631,6 +689,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     final firstName = name.replaceAll('أ. ', '').split(' ').first;
 
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: () {
         HapticFeedback.lightImpact();
         Navigator.pushNamed(
@@ -643,36 +702,43 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           },
         );
       },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          NotebookTeacherAvatar(
-            avatarUrl: teacher['avatarUrl'] as String?,
-            name: (teacher['name'] as String).replaceFirst('أ. ', ''),
-            size: 62.r,
-          ),
-          SizedBox(height: 8.h),
-          Text(
-            firstName,
-            style: NotebookText.strong(12.sp),
-          ),
-          SizedBox(height: 2.h),
-          // signature underline beneath the name
-          Container(
-            width: 34.w,
-            height: 2.h,
-            color: NotebookColors.marginRed.withAlpha(160),
-          ),
-          if (subject.isNotEmpty) ...[
-            SizedBox(height: 3.h),
+      child: SizedBox(
+        width: 72.w,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            NotebookTeacherAvatar(
+              avatarUrl: teacher['avatarUrl'] as String?,
+              name: (teacher['name'] as String).replaceFirst('أ. ', ''),
+              size: 62.r,
+            ),
+            SizedBox(height: 8.h),
             Text(
-              subject,
-              style: NotebookText.note(10.sp),
+              firstName,
+              style: NotebookText.strong(12.sp),
+              textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
+            SizedBox(height: 2.h),
+            // signature underline beneath the name
+            Container(
+              width: 34.w,
+              height: 2.h,
+              color: NotebookColors.marginRed.withAlpha(160),
+            ),
+            if (subject.isNotEmpty) ...[
+              SizedBox(height: 3.h),
+              Text(
+                subject,
+                style: NotebookText.note(10.sp),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -781,11 +847,7 @@ class _NavBarItem extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.max,
           children: [
-            Icon(
-              isSelected ? activeIcon : icon,
-              size: 20,
-              color: color,
-            ),
+            Icon(isSelected ? activeIcon : icon, size: 20, color: color),
             const SizedBox(height: 2),
             Text(
               label,

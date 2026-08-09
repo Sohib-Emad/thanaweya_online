@@ -11,7 +11,9 @@ import 'package:thanaweya_online/features/student/data/repos/student_exams_repo.
 import 'package:thanaweya_online/features/student/logic/student_exams_cubit.dart';
 
 class StudentExamsListScreen extends StatefulWidget {
-  const StudentExamsListScreen({super.key});
+  final bool isSelected;
+
+  const StudentExamsListScreen({super.key, this.isSelected = false});
 
   @override
   State<StudentExamsListScreen> createState() => _StudentExamsListScreenState();
@@ -24,6 +26,14 @@ class _StudentExamsListScreenState extends State<StudentExamsListScreen> {
   void initState() {
     super.initState();
     _loadExams();
+  }
+
+  @override
+  void didUpdateWidget(covariant StudentExamsListScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isSelected && !oldWidget.isSelected) {
+      _loadExams();
+    }
   }
 
   @override
@@ -67,11 +77,20 @@ class _StudentExamsListScreenState extends State<StudentExamsListScreen> {
               );
             }
             if (state.availableExams.isEmpty) {
-              return const Padding(
-                padding: EdgeInsets.all(24),
-                child: NotebookEmptyNote(
-                  icon: Icons.quiz_outlined,
-                  message: 'لا توجد امتحانات متاحة حالياً\nستظهر هنا امتحاناتك عندما يضيفها المدرسون',
+              return RefreshIndicator(
+                onRefresh: _loadExams,
+                color: NotebookColors.green,
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 100.h),
+                      child: const NotebookEmptyNote(
+                        icon: Icons.quiz_outlined,
+                        message: 'لا توجد امتحانات متاحة حالياً\nستظهر هنا امتحاناتك عندما يضيفها المدرسون',
+                      ),
+                    ),
+                  ],
                 ),
               );
             }

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:thanaweya_online/core/router/app_router.dart';
 import 'package:video_player/video_player.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
@@ -43,6 +45,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   bool _isYoutube = true;
   bool _isUploadLoading = false;
 
+  bool _isSubscribed = false;
+  bool _isCheckingSubscription = true;
+
   YoutubePlayerController? _youtubeController;
   VideoPlayerController? _videoController;
 
@@ -59,12 +64,47 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
     }
     _activeTitle = widget.title;
     _activeDescription = widget.description;
-    _initPlayer(
-      url: widget.videoUrl,
-      sourceType: widget.videoSourceType,
-      title: widget.title,
-      description: widget.description,
-      notify: false,
+
+    _checkSubscription();
+  }
+
+  Future<void> _checkSubscription() async {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) {
+      setState(() {
+        _isSubscribed = false;
+        _isCheckingSubscription = false;
+      });
+      return;
+    }
+    // Check if user is subscribed to this course/teacher
+    final res = await StudentCoursesRepo().checkIsSubscribed(
+      studentId: userId,
+      courseId: widget.courseId,
+    );
+    if (!mounted) return;
+    res.when(
+      success: (isSub) {
+        setState(() {
+          _isSubscribed = isSub;
+          _isCheckingSubscription = false;
+        });
+        if (isSub) {
+          _initPlayer(
+            url: widget.videoUrl,
+            sourceType: widget.videoSourceType,
+            title: widget.title,
+            description: widget.description,
+            notify: false,
+          );
+        }
+      },
+      failure: (_, __) {
+        setState(() {
+          _isSubscribed = false;
+          _isCheckingSubscription = false;
+        });
+      },
     );
   }
 
@@ -136,12 +176,62 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   }
 
   void _openLesson(LessonModel lesson) {
+    if (!_isSubscribed) {
+      _showSubscriptionRequiredDialog();
+      return;
+    }
     HapticFeedback.lightImpact();
     _initPlayer(
       url: lesson.videoUrlOrId,
       sourceType: lesson.videoSourceType.name,
       title: lesson.title,
       description: lesson.description ?? '',
+    );
+  }
+
+  void _showSubscriptionRequiredDialog() {
+    HapticFeedback.heavyImpact();
+    showDialog(
+      context: context,
+      builder: (context) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20.r),
+          ),
+          backgroundColor: NotebookColors.ground,
+          title: Row(
+            children: [
+              Icon(Icons.lock_rounded, color: NotebookColors.marginRed, size: 24.r),
+              SizedBox(width: 8.w),
+              Text('المحتوى مغلق', style: NotebookText.heading(16.sp)),
+            ],
+          ),
+          content: Text(
+            'هذه الحصة متاحة فقط للطلاب المشتركين. يرجى تفعيل كود الاشتراك أو الاشتراك للوصول الكامل للفيديوهات.',
+            style: NotebookText.body(13.sp),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('إلغاء', style: NotebookText.strong(13.sp)),
+            ),
+            NotebookPrimaryButton(
+              label: 'تفعيل كود الاشتراك',
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(
+                  context,
+                  AppRouter.studentPaymentMethods,
+                  arguments: {
+                    'courseId': widget.courseId,
+                  },
+                ).then((_) => _checkSubscription());
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -300,40 +390,128 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       aspectRatio: 16 / 9,
       child: Container(
         color: Colors.black,
-        child: _isYoutube
-            ? (_youtubeController != null
-                ? Stack(
-                    children: [
-                      YoutubePlayer(
-                        controller: _youtubeController!,
-                        showVideoProgressIndicator: true,
-                      ),
-                      if (!_youtubeController!.value.isReady)
-                        const Center(
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                          ),
-                        ),
-                    ],
-                  )
-                : const SizedBox())
-            : (_videoController != null
-                ? Stack(
-                    children: [
-                      Positioned.fill(
-                        child: Center(child: VideoPlayer(_videoController!)),
-                      ),
-                      if (_isUploadLoading)
-                        const Center(
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                          ),
-                        )
-                      else
-                        _buildUploadOverlay(),
-                    ],
-                  )
-                : const SizedBox()),
+        child: _isCheckingSubscription
+            ? const Center(
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                ),
+              )
+            : (!_isSubscribed
+                ? _buildLockedOverlay()
+                : (_isYoutube
+                    ? (_youtubeController != null
+                        ? Stack(
+                            children: [
+                              YoutubePlayer(
+                                controller: _youtubeController!,
+                                showVideoProgressIndicator: true,
+                              ),
+                              if (!_youtubeController!.value.isReady)
+                                const Center(
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                  ),
+                                ),
+                            ],
+                          )
+                        : const SizedBox())
+                    : (_videoController != null
+                        ? Stack(
+                            children: [
+                              Positioned.fill(
+                                child: Center(child: VideoPlayer(_videoController!)),
+                              ),
+                              if (_isUploadLoading)
+                                const Center(
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                  ),
+                                )
+                              else
+                                _buildUploadOverlay(),
+                            ],
+                          )
+                        : const SizedBox()))),
+      ),
+    );
+  }
+
+  Widget _buildLockedOverlay() {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F172A),
+        borderRadius: BorderRadius.circular(12.r),
+      ),
+      padding: EdgeInsets.all(16.r),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 44.r,
+            height: 44.r,
+            decoration: BoxDecoration(
+              color: NotebookColors.marginRed.withAlpha(40),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.lock_rounded,
+              color: NotebookColors.marginRed,
+              size: 24.r,
+            ),
+          ),
+          SizedBox(height: 8.h),
+          Text(
+            'هذا الفيديو مغلق للمشتركين فقط',
+            style: GoogleFonts.cairo(
+              fontSize: 13.sp,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+            ),
+          ),
+          SizedBox(height: 2.h),
+          Text(
+            'اشترك في الكورس وفعل كود الاشتراك لمشاهدة جميع الفيديوهات',
+            style: GoogleFonts.cairo(
+              fontSize: 10.sp,
+              color: Colors.white.withAlpha(180),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 10.h),
+          GestureDetector(
+            onTap: () {
+              Navigator.pushNamed(
+                context,
+                AppRouter.studentPaymentMethods,
+                arguments: {
+                  'courseId': widget.courseId,
+                },
+              ).then((_) => _checkSubscription());
+            },
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 7.h),
+              decoration: BoxDecoration(
+                color: NotebookColors.green,
+                borderRadius: BorderRadius.circular(20.r),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.vpn_key_rounded, color: Colors.white, size: 14.r),
+                  SizedBox(width: 6.w),
+                  Text(
+                    'تفعيل كود الاشتراك',
+                    style: GoogleFonts.cairo(
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

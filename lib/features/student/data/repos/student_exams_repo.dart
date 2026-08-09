@@ -11,14 +11,32 @@ class StudentExamsRepo {
   Future<ApiResult<List<Map<String, dynamic>>>> getAvailableExams(
       String studentId) async {
     try {
-      final now = DateTime.now().toIso8601String();
+      // 1. Get the student's active subscriptions to teachers
+      final subRes = await _client
+          .from('subscriptions')
+          .select('teacher_id')
+          .eq('student_id', studentId)
+          .eq('status', 'active');
+
+      if (subRes.isEmpty) {
+        return const ApiResult.success([]);
+      }
+
+      final teacherIds = subRes.map((e) => e['teacher_id'] as String).toList();
+
+      // 2. Fetch exams for those teachers
+      final now = DateTime.now().toUtc().toIso8601String();
       final data = await _client.from('exams').select('''
             id, title, duration_minutes, start_at, end_at, max_score, is_published, created_at,
             teachers!inner(id, subject_id,
               users!inner(id, full_name)
             ),
             questions(count)
-          ''').eq('is_published', true).lte('start_at', now).gte('end_at', now);
+          ''')
+          .eq('is_published', true)
+          .inFilter('teacher_id', teacherIds)
+          .lte('start_at', now)
+          .gte('end_at', now);
       return ApiResult.success(data);
     } catch (e) {
       return ApiErrorHandler.handleException(e);

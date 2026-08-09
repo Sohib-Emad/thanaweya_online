@@ -425,6 +425,16 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
             SizedBox(height: 20.h),
 
             _SettingsOptionRow(
+              icon: Icons.vpn_key_outlined,
+              title: 'كروت الدفع والتفعيل',
+              onTap: () {
+                Navigator.pushNamed(context, AppRouter.teacherCards);
+              },
+            ),
+
+            SizedBox(height: 12.h),
+
+            _SettingsOptionRow(
               icon: Icons.notifications_none_rounded,
               title: 'الإشعارات',
               onTap: () {
@@ -584,6 +594,20 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                   onTap: () {
                     Navigator.pop(context);
                     Navigator.pushNamed(context, AppRouter.teacherExams);
+                  },
+                ),
+                Container(
+                  height: 1,
+                  margin: EdgeInsets.symmetric(horizontal: 8.w),
+                  color: ChalkboardColors.ink.withAlpha(30),
+                ),
+                _QuickCreateTile(
+                  icon: Icons.add_card_rounded,
+                  iconColor: ChalkboardColors.accent,
+                  label: 'كروت التفعيل والدفع',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.pushNamed(context, AppRouter.teacherCards);
                   },
                 ),
                 SizedBox(height: 8.h),

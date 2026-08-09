@@ -276,3 +276,53 @@
 - Each user story should be independently completable and testable
 - Commit after each task or logical group
 - Stop at any checkpoint to validate story independently
+
+---
+
+## Phase 12: Course Price & Intro Video (US2 Extension)
+
+**Goal**: Teacher can set a course price (EGP) and attach an intro video (direct upload or YouTube link) from the course create/edit sheet.
+
+**Spec**: spec.md US2 scenarios 6-7, FR-026, FR-027
+
+### Implementation
+
+- [X] T084 [P] Extend `lib/features/shared/models/course_model.dart` with `price`, `introVideoUrl`, `introVideoSourceType` fields (DONE)
+- [X] T085 [P] Add `uploadCourseIntroVideo` to `lib/core/supabase/storage_helper.dart` (DONE)
+- [X] T086 [P] Add `price`, `intro_video_url`, `intro_video_source_type` columns to courses in `lib/core/supabase/schema.sql` (DONE)
+- [X] T087 Add idempotent migration (video_source enum + columns) to `lib/core/supabase/fix_complete.sql`
+- [X] T088 Extend `TeacherCoursesRepo.createCourse` / `updateCourse` in `lib/features/teacher/data/repos/teacher_courses_repo.dart` to persist price + intro video
+- [X] T089 Pass price + intro video through `TeacherCoursesCubit` in `lib/features/teacher/logic/teacher_courses_cubit.dart` (params + local state sync)
+- [X] T090 Add price field + intro video picker to the course sheet and show price/intro badge on the course card in `lib/features/teacher/ui/courses/courses_list_screen.dart`
+- [X] T091 Validate with `flutter analyze` and mark this phase complete
+
+---
+
+## Phase 13: Student Display of Price & Intro Video (US2/FR-028, FR-029)
+
+**Goal**: Students see the course price and can watch the intro video.
+
+### Implementation
+
+- [X] T092 Add `price`, `intro_video_url`, `intro_video_source_type` to the selects in `lib/features/student/data/repos/student_courses_repo.dart` (getCourse, getMyCourses, getPopularCourses)
+- [X] T093 Add `Formatters.formatEgp` shared helper to `lib/core/utils/formatters.dart`
+- [X] T094 Show price (meta row + enroll CTA) and play intro video from the cover in `lib/features/student/ui/courses/course_details_screen.dart`
+- [X] T095 Show price + intro-video badge on course cards in `lib/features/student/ui/courses/teacher_page_screen.dart`
+- [X] T096 Show price on popular course cards in `lib/features/student/ui/dashboard/student_home_screen.dart`
+- [X] T097 Validate with `flutter analyze` / `flutter test` and mark this phase complete
+
+---
+
+## Phase 14: Functional Subscription & Payment (FR-030, FR-031)
+
+**Goal**: Student subscription works end-to-end — card payment creates subscription + payment records, and activation codes redeem atomically.
+
+### Implementation
+
+- [X] T098 SQL: `payments.course_id` column, `users_insert_own_payments` + subscriptions insert/update policies, `redeem_activation_code` + `create_subscription_with_payment` RPCs in `lib/core/supabase/fix_complete.sql` and `schema.sql`
+- [X] T099 Add `subscribeWithPayment` (RPC), `subscribeFree` (onConflict upsert), `redeemActivationCode` to `lib/features/student/data/repos/student_payments_repo.dart`
+- [X] T100 Add matching methods to `lib/features/student/logic/student_payments_cubit.dart`
+- [X] T101 Pass course context (courseId/teacherId/title/price) to `PaymentMethodsScreen` via `lib/core/router/app_router.dart`
+- [X] T102 Rebuild `lib/features/student/ui/courses/payment_methods_screen.dart`: course summary, card-payment tab, activation-code tab, real confirm + fixed success dialog → course lessons
+- [X] T103 Wire the enroll CTA in `lib/features/student/ui/courses/course_details_screen.dart` to pass course context; free courses subscribe directly
+- [X] T104 Validate with `flutter analyze` / `flutter test` and mark this phase complete

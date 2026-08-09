@@ -180,6 +180,68 @@ test/
 
 **Structure Decision**: Single Flutter project with feature-based folder organization. Each role (teacher/student/admin) has its own feature folder. Shared code lives in `shared/`. Core infrastructure in `core/`.
 
+## Feature Update 2026-08-05: Course Price & Intro Video
+
+**Goal**: Teacher can set a course price (EGP) and attach an intro video (direct upload or YouTube link) from the course create/edit sheet (`courses_list_screen.dart`).
+
+**Touch points**:
+
+| File | Change |
+|------|--------|
+| `lib/features/shared/models/course_model.dart` | `price`, `introVideoUrl`, `introVideoSourceType` fields — **DONE** |
+| `lib/core/supabase/storage_helper.dart` | `uploadCourseIntroVideo` — **DONE** |
+| `lib/core/supabase/schema.sql` | courses: `price NUMERIC(10,2)`, `intro_video_url TEXT`, `intro_video_source_type video_source` — **DONE** |
+| `lib/core/supabase/fix_complete.sql` | Idempotent migration for existing DBs (enum + columns) |
+| `lib/features/teacher/data/repos/teacher_courses_repo.dart` | `createCourse` / `updateCourse` persist price + intro video |
+| `lib/features/teacher/logic/teacher_courses_cubit.dart` | Pass-through params + local state sync |
+| `lib/features/teacher/ui/courses/courses_list_screen.dart` | Price field, intro video picker (YouTube/upload segmented), card shows price + intro badge |
+
+**Decisions**:
+- Price is optional and nullable; an empty price = free course (matches `CourseModel.price` nullable and schema nullable column).
+- Intro video mirrors the lesson-video UX (`ChalkSegmentedControl`: YouTube link / direct upload), reusing `uploadCourseIntroVideo` into the `lesson-videos` bucket.
+- On create, the intro video upload runs before the course exists, so a timestamp key is used for the storage path — same pattern as the existing cover-image upload.
+- `updateCourse` keeps null = "don't touch" semantics (the publish toggle relies on it); explicit `clearPrice` / `clearIntroVideo` flags let the edit sheet remove values.
+
+## Feature Update 2026-08-05: Student Display of Price & Intro Video
+
+**Goal**: Surface the teacher-set course price and intro video to students (browse + purchase page).
+
+**Touch points**:
+
+| File | Change |
+|------|--------|
+| `lib/features/student/data/repos/student_courses_repo.dart` | Add `price`, `intro_video_url`, `intro_video_source_type` to the selects of `getCourse`, `getMyCourses`, `getPopularCourses` |
+| `lib/core/utils/formatters.dart` | New `Formatters.formatEgp` shared price helper |
+| `lib/features/student/ui/courses/course_details_screen.dart` | Price in meta row + enroll CTA label; cover play button opens the intro video via `VideoPlayerScreen` |
+| `lib/features/student/ui/courses/teacher_page_screen.dart` | Price + intro-video badge on course cards |
+| `lib/features/student/ui/dashboard/student_home_screen.dart` | Price on popular course cards |
+
+**Decisions**:
+- Intro video plays through the existing unified `VideoPlayerScreen` (YouTube + uploaded), opened from the cover play button.
+- A course without a price shows no price chip; the enroll CTA keeps its default label.
+- "My courses" cards are skipped — already-enrolled students don't need pricing there.
+
+## Feature Update 2026-08-05: Functional Subscription & Payment
+
+**Goal**: Replace the fake payment stub with a real subscription flow: card payment creates `subscriptions` + `payments` rows; activation codes redeem atomically via a SECURITY DEFINER RPC.
+
+**Touch points**:
+
+| File | Change |
+|------|--------|
+| `lib/core/supabase/fix_complete.sql` / `schema.sql` | `payments.course_id` column; `users_insert_own_payments` + subscriptions insert/update policies; `redeem_activation_code(p_code)` RPC (atomic claim + subscription upsert) |
+| `lib/features/student/data/repos/student_payments_repo.dart` | `subscribeWithPayment`, `subscribeFree`, `redeemActivationCode` |
+| `lib/features/student/logic/student_payments_cubit.dart` | Matching state methods |
+| `lib/core/router/app_router.dart` | `studentPaymentMethods` passes courseId/teacherId/title/price |
+| `lib/features/student/ui/courses/payment_methods_screen.dart` | Rebuilt: course summary, card-payment tab, activation-code tab, real confirm, fixed success dialog → course lessons |
+| `lib/features/student/ui/courses/course_details_screen.dart` | Enroll CTA passes course context; free courses subscribe directly |
+
+**Decisions**:
+- Payments are recorded in-app (gateway `paymob` placeholder); real Paymob card capture is a later swap-in.
+- Subscription is per-teacher (matches the `subscriptions` UNIQUE(student_id, teacher_id) schema + RLS), 1-year expiry.
+- Paid subscription + payment record are created atomically via the `create_subscription_with_payment` RPC (SECURITY DEFINER) — no partial state, and renewals upsert on the `(student_id, teacher_id)` unique constraint.
+- Activation codes use the `redeem_activation_code` RPC (row lock `FOR UPDATE`) so two students can't redeem the same code; the old direct-update RLS policy is dropped (redundant attack surface).
+
 ## Complexity Tracking
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |

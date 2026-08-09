@@ -23,6 +23,16 @@ class Formatters {
     return NumberFormat.currency(locale: 'ar', symbol: 'ج.م').format(amount);
   }
 
+  /// Formats an optional EGP price as `350 ج.م` (or `350.50 ج.م`).
+  /// Returns an empty string when [amount] is null.
+  static String formatEgp(double? amount) {
+    if (amount == null) return '';
+    final text = amount == amount.roundToDouble()
+        ? amount.toInt().toString()
+        : amount.toStringAsFixed(2);
+    return '$text ج.م';
+  }
+
   static String formatDuration(int seconds) {
     final minutes = seconds ~/ 60;
     final remainingSeconds = seconds % 60;

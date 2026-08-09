@@ -28,7 +28,10 @@ BEGIN
     EXECUTE 'CREATE POLICY "students_update_own_subscriptions" ON public.subscriptions FOR UPDATE USING (student_id = auth.uid())';
   END IF;
 
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'activation_codes' AND policyname = 'students_update_unused_codes') THEN
-    EXECUTE 'CREATE POLICY "students_update_unused_codes" ON public.activation_codes FOR UPDATE USING (is_used = false) WITH CHECK (is_used = true)';
+  -- Activation code redemption now goes through the SECURITY DEFINER RPC
+  -- public.redeem_activation_code (atomic FOR UPDATE claim). The old direct
+  -- student-update policy is a redundant attack surface, so drop it.
+  IF EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'activation_codes' AND policyname = 'students_update_unused_codes') THEN
+    EXECUTE 'DROP POLICY "students_update_unused_codes" ON public.activation_codes';
   END IF;
 END $$;

@@ -7,17 +7,71 @@
 -- 1. ENUMS
 -- ============================================================
 
-CREATE TYPE user_role AS ENUM ('super_admin', 'teacher', 'student');
-CREATE TYPE teacher_stage AS ENUM ('first', 'second', 'third');
-CREATE TYPE approval_status AS ENUM ('pending', 'approved', 'rejected');
-CREATE TYPE student_grade AS ENUM ('first', 'second', 'third');
-CREATE TYPE video_source AS ENUM ('youtube', 'upload');
-CREATE TYPE question_type AS ENUM ('mcq', 'true_false', 'essay');
-CREATE TYPE subscription_status AS ENUM ('active', 'suspended', 'expired');
-CREATE TYPE billing_period AS ENUM ('monthly', 'term', 'yearly');
-CREATE TYPE payer_type AS ENUM ('teacher_subscription', 'student_subscription');
-CREATE TYPE payment_gateway AS ENUM ('paymob', 'fawry', 'kashier');
-CREATE TYPE payment_status AS ENUM ('pending', 'success', 'failed', 'refunded');
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role') THEN
+    CREATE TYPE user_role AS ENUM ('super_admin', 'teacher', 'student');
+  END IF;
+END $$;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'teacher_stage') THEN
+    CREATE TYPE teacher_stage AS ENUM ('first', 'second', 'third');
+  END IF;
+END $$;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'approval_status') THEN
+    CREATE TYPE approval_status AS ENUM ('pending', 'approved', 'rejected');
+  END IF;
+END $$;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'student_grade') THEN
+    CREATE TYPE student_grade AS ENUM ('first', 'second', 'third');
+  END IF;
+END $$;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'video_source') THEN
+    CREATE TYPE video_source AS ENUM ('youtube', 'upload');
+  END IF;
+END $$;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'question_type') THEN
+    CREATE TYPE question_type AS ENUM ('mcq', 'true_false', 'essay');
+  END IF;
+END $$;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'subscription_status') THEN
+    CREATE TYPE subscription_status AS ENUM ('active', 'suspended', 'expired');
+  END IF;
+END $$;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'billing_period') THEN
+    CREATE TYPE billing_period AS ENUM ('monthly', 'term', 'yearly');
+  END IF;
+END $$;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'payer_type') THEN
+    CREATE TYPE payer_type AS ENUM ('teacher_subscription', 'student_subscription');
+  END IF;
+END $$;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'payment_gateway') THEN
+    CREATE TYPE payment_gateway AS ENUM ('paymob', 'fawry', 'kashier');
+  END IF;
+END $$;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'payment_status') THEN
+    CREATE TYPE payment_status AS ENUM ('pending', 'success', 'failed', 'refunded');
+  END IF;
+END $$;
 
 -- ============================================================
 -- 2. TABLES
@@ -163,6 +217,7 @@ CREATE TABLE public.payments (
   payer_id UUID NOT NULL REFERENCES public.users(id),
   payer_type payer_type NOT NULL,
   plan_id UUID REFERENCES public.subscription_plans(id),
+  course_id UUID REFERENCES public.courses(id) ON DELETE SET NULL,
   amount NUMERIC(10,2) NOT NULL,
   payment_gateway payment_gateway NOT NULL,
   gateway_transaction_id TEXT,
@@ -604,10 +659,135 @@ CREATE POLICY "admin_manage_plans" ON public.subscription_plans
 CREATE POLICY "users_view_own_payments" ON public.payments
   FOR SELECT USING (payer_id = auth.uid());
 
+CREATE POLICY "users_insert_own_payments" ON public.payments
+  FOR INSERT WITH CHECK (payer_id = auth.uid());
+
 CREATE POLICY "admin_manage_payments" ON public.payments
   FOR ALL USING (
     (auth.jwt()->'user_metadata'->>'role') = 'super_admin'
   );
+
+-- Activation code redemption — atomic + secure (SECURITY DEFINER)
+CREATE OR REPLACE FUNCTION public.redeem_activation_code(p_code TEXT)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_code public.activation_codes%ROWTYPE;
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'unauthorized';
+  END IF;
+
+  -- Ensure the user profile row exists in public.users
+  INSERT INTO public.users (id, email, full_name, phone, role)
+  VALUES (
+    auth.uid(),
+    COALESCE(auth.jwt()->>'email', ''),
+    COALESCE(auth.jwt()->'user_metadata'->>'full_name', 'طالب'),
+    COALESCE(auth.jwt()->'user_metadata'->>'phone', '01000000000'),
+    'student'
+  )
+  ON CONFLICT (id) DO NOTHING;
+
+  -- Ensure the student profile row exists
+  INSERT INTO public.students (id, grade_level, parent_phone)
+  VALUES (auth.uid(), 'first', '')
+  ON CONFLICT (id) DO NOTHING;
+
+  -- Lock the code row so two students can't redeem it at once
+  SELECT * INTO v_code
+  FROM public.activation_codes
+  WHERE code = p_code
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'code_not_found';
+  END IF;
+
+  IF v_code.is_used THEN
+    RAISE EXCEPTION 'code_already_used';
+  END IF;
+
+  UPDATE public.activation_codes
+  SET is_used = true, used_by = auth.uid(), used_at = NOW()
+  WHERE id = v_code.id;
+
+  -- Create / renew the student's subscription to the code's teacher
+  INSERT INTO public.subscriptions (
+    student_id, teacher_id, activation_code_id, status, starts_at, expires_at
+  )
+  VALUES (
+    auth.uid(), v_code.teacher_id, v_code.id, 'active', NOW(), NOW() + INTERVAL '1 year'
+  )
+  ON CONFLICT (student_id, teacher_id)
+  DO UPDATE SET
+    status = 'active',
+    expires_at = EXCLUDED.expires_at,
+    activation_code_id = EXCLUDED.activation_code_id;
+
+  RETURN jsonb_build_object('ok', true, 'teacher_id', v_code.teacher_id);
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.redeem_activation_code(TEXT) TO authenticated;
+
+-- Paid subscription — atomic payment + subscription (SECURITY DEFINER)
+CREATE OR REPLACE FUNCTION public.create_subscription_with_payment(
+  p_teacher_id UUID,
+  p_amount NUMERIC,
+  p_course_id UUID DEFAULT NULL,
+  p_gateway TEXT DEFAULT 'paymob'
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  -- Ensure the user profile row exists in public.users
+  INSERT INTO public.users (id, email, full_name, phone, role)
+  VALUES (
+    auth.uid(),
+    COALESCE(auth.jwt()->>'email', ''),
+    COALESCE(auth.jwt()->'user_metadata'->>'full_name', 'طالب'),
+    COALESCE(auth.jwt()->'user_metadata'->>'phone', '01000000000'),
+    'student'
+  )
+  ON CONFLICT (id) DO NOTHING;
+
+  -- Ensure the student profile row exists in public.students
+  INSERT INTO public.students (id, grade_level, parent_phone)
+  VALUES (auth.uid(), 'first', '')
+  ON CONFLICT (id) DO NOTHING;
+
+  INSERT INTO public.subscriptions (
+    student_id, teacher_id, status, starts_at, expires_at
+  )
+  VALUES (
+    auth.uid(), p_teacher_id, 'active', NOW(), NOW() + INTERVAL '1 year'
+  )
+  ON CONFLICT (student_id, teacher_id)
+  DO UPDATE SET
+    status = 'active',
+    expires_at = EXCLUDED.expires_at;
+
+  INSERT INTO public.payments (
+    payer_id, payer_type, course_id, amount, payment_gateway,
+    gateway_transaction_id, status
+  )
+  VALUES (
+    auth.uid(), 'student_subscription', p_course_id, p_amount, p_gateway,
+    'TXN-' || EXTRACT(EPOCH FROM NOW())::BIGINT::TEXT, 'success'
+  );
+
+  RETURN jsonb_build_object('ok', true);
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.create_subscription_with_payment(UUID, NUMERIC, UUID, TEXT) TO authenticated;
 
 -- ============================================================
 -- LESSON PROGRESS

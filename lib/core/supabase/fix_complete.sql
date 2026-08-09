@@ -33,6 +33,145 @@ DO $$ BEGIN
   END IF;
 END $$;
 
+-- 2.5 Ensure video_source type exists (for intro_video_source_type)
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'video_source') THEN
+    CREATE TYPE video_source AS ENUM ('youtube', 'upload');
+  END IF;
+END $$;
+
+-- 2.6 Ensure courses has price + intro video columns (idempotent)
+ALTER TABLE public.courses
+  ADD COLUMN IF NOT EXISTS price NUMERIC(10,2),
+  ADD COLUMN IF NOT EXISTS intro_video_url TEXT,
+  ADD COLUMN IF NOT EXISTS intro_video_source_type video_source NOT NULL DEFAULT 'youtube';
+
+-- 2.7 Ensure payments tracks the purchased course (idempotent)
+ALTER TABLE public.payments
+  ADD COLUMN IF NOT EXISTS course_id UUID REFERENCES public.courses(id) ON DELETE SET NULL;
+
+-- 2.8 Activation code redemption — atomic + secure (SECURITY DEFINER)
+CREATE OR REPLACE FUNCTION public.redeem_activation_code(p_code TEXT)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_code public.activation_codes%ROWTYPE;
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'unauthorized';
+  END IF;
+
+  -- Ensure the user profile row exists in public.users
+  INSERT INTO public.users (id, email, full_name, phone, role)
+  VALUES (
+    auth.uid(),
+    COALESCE(auth.jwt()->>'email', ''),
+    COALESCE(auth.jwt()->'user_metadata'->>'full_name', 'طالب'),
+    COALESCE(auth.jwt()->'user_metadata'->>'phone', '01000000000'),
+    'student'
+  )
+  ON CONFLICT (id) DO NOTHING;
+
+  -- Ensure the student profile row exists
+  INSERT INTO public.students (id, grade_level, parent_phone)
+  VALUES (auth.uid(), 'first', '')
+  ON CONFLICT (id) DO NOTHING;
+
+  -- Lock the code row so two students can't redeem it at once
+  SELECT * INTO v_code
+  FROM public.activation_codes
+  WHERE code = p_code
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'code_not_found';
+  END IF;
+
+  IF v_code.is_used THEN
+    RAISE EXCEPTION 'code_already_used';
+  END IF;
+
+  UPDATE public.activation_codes
+  SET is_used = true, used_by = auth.uid(), used_at = NOW()
+  WHERE id = v_code.id;
+
+  -- Create / renew the student's subscription to the code's teacher
+  INSERT INTO public.subscriptions (
+    student_id, teacher_id, activation_code_id, status, starts_at, expires_at
+  )
+  VALUES (
+    auth.uid(), v_code.teacher_id, v_code.id, 'active', NOW(), NOW() + INTERVAL '1 year'
+  )
+  ON CONFLICT (student_id, teacher_id)
+  DO UPDATE SET
+    status = 'active',
+    expires_at = EXCLUDED.expires_at,
+    activation_code_id = EXCLUDED.activation_code_id;
+
+  RETURN jsonb_build_object('ok', true, 'teacher_id', v_code.teacher_id);
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.redeem_activation_code(TEXT) TO authenticated;
+
+-- 2.9 Paid subscription — atomic payment + subscription (SECURITY DEFINER)
+CREATE OR REPLACE FUNCTION public.create_subscription_with_payment(
+  p_teacher_id UUID,
+  p_amount NUMERIC,
+  p_course_id UUID DEFAULT NULL,
+  p_gateway TEXT DEFAULT 'paymob'
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  -- Ensure the user profile row exists in public.users
+  INSERT INTO public.users (id, email, full_name, phone, role)
+  VALUES (
+    auth.uid(),
+    COALESCE(auth.jwt()->>'email', ''),
+    COALESCE(auth.jwt()->'user_metadata'->>'full_name', 'طالب'),
+    COALESCE(auth.jwt()->'user_metadata'->>'phone', '01000000000'),
+    'student'
+  )
+  ON CONFLICT (id) DO NOTHING;
+
+  -- Ensure the student profile row exists in public.students
+  INSERT INTO public.students (id, grade_level, parent_phone)
+  VALUES (auth.uid(), 'first', '')
+  ON CONFLICT (id) DO NOTHING;
+
+  INSERT INTO public.subscriptions (
+    student_id, teacher_id, status, starts_at, expires_at
+  )
+  VALUES (
+    auth.uid(), p_teacher_id, 'active', NOW(), NOW() + INTERVAL '1 year'
+  )
+  ON CONFLICT (student_id, teacher_id)
+  DO UPDATE SET
+    status = 'active',
+    expires_at = EXCLUDED.expires_at;
+
+  INSERT INTO public.payments (
+    payer_id, payer_type, course_id, amount, payment_gateway,
+    gateway_transaction_id, status
+  )
+  VALUES (
+    auth.uid(), 'student_subscription', p_course_id, p_amount, p_gateway,
+    'TXN-' || EXTRACT(EPOCH FROM NOW())::BIGINT::TEXT, 'success'
+  );
+
+  RETURN jsonb_build_object('ok', true);
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.create_subscription_with_payment(UUID, NUMERIC, UUID, TEXT) TO authenticated;
+
 -- 3. Ensure tables exist
 CREATE TABLE IF NOT EXISTS public.users (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -296,16 +435,19 @@ CREATE POLICY "teachers_manage_own_lessons" ON public.lessons FOR ALL USING (
   course_id IN (SELECT id FROM public.courses WHERE teacher_id = auth.uid())
 );
 CREATE POLICY "public_select_lessons" ON public.lessons FOR SELECT USING (is_free_preview = true);
+CREATE POLICY "students_select_lessons" ON public.lessons FOR SELECT TO authenticated USING (true);
 CREATE POLICY "admin_all_lessons" ON public.lessons FOR ALL USING ((auth.jwt()->'user_metadata'->>'role') = 'super_admin');
 
 -- 13. EXAMS policies
 CREATE POLICY "teachers_manage_own_exams" ON public.exams FOR ALL USING (teacher_id = auth.uid());
+CREATE POLICY "students_select_published_exams" ON public.exams FOR SELECT TO authenticated USING (is_published = true);
 CREATE POLICY "admin_all_exams" ON public.exams FOR ALL USING ((auth.jwt()->'user_metadata'->>'role') = 'super_admin');
 
 -- 14. QUESTIONS policies
 CREATE POLICY "teachers_manage_own_questions" ON public.questions FOR ALL USING (
   exam_id IN (SELECT id FROM public.exams WHERE teacher_id = auth.uid())
 );
+CREATE POLICY "students_select_questions" ON public.questions FOR SELECT TO authenticated USING (exam_id IN (SELECT id FROM public.exams WHERE is_published = true));
 CREATE POLICY "admin_all_questions" ON public.questions FOR ALL USING ((auth.jwt()->'user_metadata'->>'role') = 'super_admin');
 
 -- 15. SUBSCRIPTIONS policies
@@ -324,6 +466,25 @@ CREATE POLICY "admin_all_plans" ON public.subscription_plans FOR ALL USING ((aut
 -- 18. PAYMENTS policies
 CREATE POLICY "users_view_own_payments" ON public.payments FOR SELECT USING (payer_id = auth.uid());
 CREATE POLICY "admin_all_payments" ON public.payments FOR ALL USING ((auth.jwt()->'user_metadata'->>'role') = 'super_admin');
+
+-- 18.1 PAYMENTS insert policy (idempotent)
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'payments' AND policyname = 'users_insert_own_payments') THEN
+    EXECUTE 'CREATE POLICY "users_insert_own_payments" ON public.payments FOR INSERT WITH CHECK (payer_id = auth.uid())';
+  END IF;
+END $$;
+
+-- 18.2 SUBSCRIPTIONS insert/update policies (idempotent)
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'subscriptions' AND policyname = 'students_insert_own_subscriptions') THEN
+    EXECUTE 'CREATE POLICY "students_insert_own_subscriptions" ON public.subscriptions FOR INSERT WITH CHECK (student_id = auth.uid())';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'subscriptions' AND policyname = 'students_update_own_subscriptions') THEN
+    EXECUTE 'CREATE POLICY "students_update_own_subscriptions" ON public.subscriptions FOR UPDATE USING (student_id = auth.uid())';
+  END IF;
+END $$;
 
 -- 19. LESSON PROGRESS policies
 CREATE POLICY "students_manage_own_progress" ON public.lesson_progress FOR ALL USING (student_id = auth.uid());

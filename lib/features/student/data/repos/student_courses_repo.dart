@@ -10,7 +10,8 @@ class StudentCoursesRepo {
   final SupabaseClient _client = Supabase.instance.client;
 
   Future<ApiResult<List<Map<String, dynamic>>>> getSubscribedTeachers(
-      String studentId) async {
+    String studentId,
+  ) async {
     try {
       final subData = await _client
           .from('subscriptions')
@@ -20,8 +21,7 @@ class StudentCoursesRepo {
 
       if (subData.isEmpty) return const ApiResult.success([]);
 
-      final teacherIds =
-          subData.map((e) => e['teacher_id'] as String).toList();
+      final teacherIds = subData.map((e) => e['teacher_id'] as String).toList();
 
       final teachersData = await _client
           .from('teachers')
@@ -33,9 +33,7 @@ class StudentCoursesRepo {
           .select('id, full_name, avatar_url')
           .inFilter('id', teacherIds);
 
-      final usersMap = {
-        for (final u in usersData) u['id'] as String: u,
-      };
+      final usersMap = {for (final u in usersData) u['id'] as String: u};
 
       final result = <Map<String, dynamic>>[];
       for (final sub in subData) {
@@ -47,10 +45,7 @@ class StudentCoursesRepo {
         final user = usersMap[teacherId] ?? {};
         result.add({
           ...sub,
-          'teachers': {
-            ...teacher,
-            'users': user,
-          },
+          'teachers': {...teacher, 'users': user},
         });
       }
 
@@ -61,7 +56,8 @@ class StudentCoursesRepo {
   }
 
   Future<ApiResult<List<CourseModel>>> getTeacherCourses(
-      String teacherId) async {
+    String teacherId,
+  ) async {
     try {
       final data = await _client
           .from('courses')
@@ -77,8 +73,7 @@ class StudentCoursesRepo {
     }
   }
 
-  Future<ApiResult<List<LessonModel>>> getCourseLessons(
-      String courseId) async {
+  Future<ApiResult<List<LessonModel>>> getCourseLessons(String courseId) async {
     try {
       final data = await _client
           .from('lessons')
@@ -114,7 +109,8 @@ class StudentCoursesRepo {
   }
 
   Future<ApiResult<List<LessonProgressModel>>> getStudentProgress(
-      String studentId) async {
+    String studentId,
+  ) async {
     try {
       final data = await _client
           .from('lesson_progress')
@@ -161,7 +157,8 @@ class StudentCoursesRepo {
   /// Courses of the teachers the student is subscribed to,
   /// enriched with teacher name, subject name and lesson counts.
   Future<ApiResult<List<Map<String, dynamic>>>> getMyCourses(
-      String studentId) async {
+    String studentId,
+  ) async {
     try {
       final subData = await _client
           .from('subscriptions')
@@ -179,7 +176,9 @@ class StudentCoursesRepo {
       final coursesData = await _client
           .from('courses')
           .select('''
-            id, teacher_id, title, description, cover_image_url, is_published, "order", created_at, updated_at,
+            id, teacher_id, title, description, cover_image_url,
+            price, intro_video_url, intro_video_source_type,
+            is_published, "order", created_at, updated_at,
             lessons(count)
           ''')
           .inFilter('teacher_id', teacherIds)
@@ -209,29 +208,69 @@ class StudentCoursesRepo {
             .inFilter('id', subjectIds);
       }
 
-      final usersMap = {
-        for (final u in userRows) u['id'] as String: u,
-      };
-      final teachersMap = {
-        for (final t in teacherRows) t['id'] as String: t,
-      };
-      final subjectsMap = {
-        for (final s in subjectRows) s['id'] as String: s,
-      };
+      // Fetch all lessons for these courses to count them and map progress
+      final courseIds = coursesData.map((e) => e['id'] as String).toList();
+      var lessonsData = <Map<String, dynamic>>[];
+      var progressData = <Map<String, dynamic>>[];
+
+      if (courseIds.isNotEmpty) {
+        lessonsData = await _client
+            .from('lessons')
+            .select('id, course_id')
+            .inFilter('course_id', courseIds);
+
+        final lessonIds = lessonsData.map((e) => e['id'] as String).toList();
+        if (lessonIds.isNotEmpty) {
+          progressData = await _client
+              .from('lesson_progress')
+              .select('lesson_id, is_completed')
+              .eq('student_id', studentId)
+              .inFilter('lesson_id', lessonIds)
+              .eq('is_completed', true);
+        }
+      }
+
+      final completedLessonIds = progressData
+          .map((e) => e['lesson_id'] as String)
+          .toSet();
+
+      final courseLessonsMap = <String, List<String>>{};
+      for (final lesson in lessonsData) {
+        final cId = lesson['course_id'] as String;
+        final lId = lesson['id'] as String;
+        courseLessonsMap.putIfAbsent(cId, () => []).add(lId);
+      }
+
+      final usersMap = {for (final u in userRows) u['id'] as String: u};
+      final teachersMap = {for (final t in teacherRows) t['id'] as String: t};
+      final subjectsMap = {for (final s in subjectRows) s['id'] as String: s};
 
       final result = <Map<String, dynamic>>[];
       for (final course in coursesData) {
+        final courseId = course['id'] as String;
         final teacherId = course['teacher_id'] as String;
         final teacher = teachersMap[teacherId] ?? {};
         final subjectId = teacher['subject_id'];
+
+        final courseLessonIds = courseLessonsMap[courseId] ?? [];
+        final totalCount = courseLessonIds.length;
+        final completedCount = courseLessonIds
+            .where((lId) => completedLessonIds.contains(lId))
+            .length;
+        final progress = totalCount > 0 ? (completedCount / totalCount) : 0.0;
+
         result.add({
           ...course,
           'teacher_name':
               (usersMap[teacherId]?['full_name'] as String?) ?? 'مدرس',
-          'subject_name':
-              subjectId != null ? (subjectsMap[subjectId]?['name_ar'] as String?) ?? '' : '',
+          'subject_name': subjectId != null
+              ? (subjectsMap[subjectId]?['name_ar'] as String?) ?? ''
+              : '',
           'subject_id': subjectId,
           'stage': teacher['stage'],
+          'totalCount': totalCount,
+          'completedCount': completedCount,
+          'progress': progress,
         });
       }
 
@@ -258,7 +297,9 @@ class StudentCoursesRepo {
       final coursesData = await _client
           .from('courses')
           .select('''
-            id, teacher_id, title, description, cover_image_url, is_published, "order", created_at, updated_at,
+            id, teacher_id, title, description, cover_image_url,
+            price, intro_video_url, intro_video_source_type,
+            is_published, "order", created_at, updated_at,
             lessons(count)
           ''')
           .inFilter('teacher_id', teacherIds)
@@ -285,15 +326,9 @@ class StudentCoursesRepo {
             .inFilter('id', subjectIds);
       }
 
-      final usersMap = {
-        for (final u in userRows) u['id'] as String: u,
-      };
-      final teachersMap = {
-        for (final t in teacherRows) t['id'] as String: t,
-      };
-      final subjectsMap = {
-        for (final s in subjectRows) s['id'] as String: s,
-      };
+      final usersMap = {for (final u in userRows) u['id'] as String: u};
+      final teachersMap = {for (final t in teacherRows) t['id'] as String: t};
+      final subjectsMap = {for (final s in subjectRows) s['id'] as String: s};
 
       final result = <Map<String, dynamic>>[];
       for (final course in coursesData) {
@@ -304,8 +339,9 @@ class StudentCoursesRepo {
           ...course,
           'teacher_name':
               (usersMap[teacherId]?['full_name'] as String?) ?? 'مدرس',
-          'subject_name':
-              subjectId != null ? (subjectsMap[subjectId]?['name_ar'] as String?) ?? '' : '',
+          'subject_name': subjectId != null
+              ? (subjectsMap[subjectId]?['name_ar'] as String?) ?? ''
+              : '',
           'subject_id': subjectId,
           'stage': teacher['stage'],
         });
@@ -323,7 +359,9 @@ class StudentCoursesRepo {
       final data = await _client
           .from('courses')
           .select('''
-            id, teacher_id, title, description, cover_image_url, is_published, "order", created_at, updated_at,
+            id, teacher_id, title, description, cover_image_url,
+            price, intro_video_url, intro_video_source_type,
+            is_published, "order", created_at, updated_at,
             teachers(id, subject_id, bio,
               users(id, full_name, avatar_url),
               subjects(id, name_ar)
@@ -333,6 +371,75 @@ class StudentCoursesRepo {
           .eq('id', courseId)
           .eq('is_published', true)
           .maybeSingle();
+      return ApiResult.success(data);
+    } catch (e) {
+      return ApiErrorHandler.handleException(e);
+    }
+  }
+
+  /// Checks if a student is subscribed to a course or teacher.
+  Future<ApiResult<bool>> checkIsSubscribed({
+    required String studentId,
+    String? courseId,
+    String? teacherId,
+  }) async {
+    try {
+      if (studentId.isEmpty) return const ApiResult.success(false);
+
+      String? targetTeacherId = teacherId;
+      if ((targetTeacherId == null || targetTeacherId.isEmpty) &&
+          courseId != null &&
+          courseId.isNotEmpty) {
+        final courseRes = await _client
+            .from('courses')
+            .select('teacher_id')
+            .eq('id', courseId)
+            .maybeSingle();
+        targetTeacherId = courseRes?['teacher_id'] as String?;
+      }
+
+      if (targetTeacherId == null || targetTeacherId.isEmpty) {
+        return const ApiResult.success(false);
+      }
+
+      final subRes = await _client
+          .from('subscriptions')
+          .select('id, expires_at')
+          .eq('student_id', studentId)
+          .eq('teacher_id', targetTeacherId)
+          .eq('status', 'active')
+          .maybeSingle();
+
+      if (subRes == null) return const ApiResult.success(false);
+
+      final expiresAtStr = subRes['expires_at'] as String?;
+      if (expiresAtStr != null) {
+        final expiresAt = DateTime.tryParse(expiresAtStr);
+        if (expiresAt != null && expiresAt.isBefore(DateTime.now())) {
+          return const ApiResult.success(false);
+        }
+      }
+
+      return const ApiResult.success(true);
+    } catch (e) {
+      return ApiErrorHandler.handleException(e);
+    }
+  }
+
+  Future<ApiResult<Map<String, dynamic>>> getTeacherProfile(
+    String teacherId,
+  ) async {
+    try {
+      final data = await _client
+          .from('teachers')
+          .select('''
+            id, stage, bio, approval_status, created_at,
+            teaching_system, governorate, teaching_mode, stages, baccalaureate_tracks,
+            users!inner(id, full_name, avatar_url, phone),
+            subjects(id, name_ar)
+          ''')
+          .eq('id', teacherId)
+          .single();
       return ApiResult.success(data);
     } catch (e) {
       return ApiErrorHandler.handleException(e);

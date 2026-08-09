@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -36,18 +37,7 @@ class _StudentMyCoursesListScreenState
     Color(0xFF7C3AED),
   ];
 
-  final List<Map<String, dynamic>> _completedCourses = [
-    {
-      'subject': 'الكيمياء العضوية',
-      'title': 'تفاعلات المركبات العضوية والهيدروكربونات',
-      'progress': 1.0,
-      'completedCount': 100,
-      'totalCount': 100,
-      'rating': '4.9',
-      'enrolledCount': '15200 طالب',
-      'color': const Color(0xFF0FA37F),
-    },
-  ];
+  final List<Map<String, dynamic>> _completedCourses = [];
 
   @override
   void initState() {
@@ -204,6 +194,8 @@ class _StudentMyCoursesListScreenState
                         final title = course['title'] as String? ?? '';
                         final teacherName =
                             course['teacher_name'] as String? ?? '';
+                        final coverUrl =
+                            course['cover_image_url'] as String? ?? '';
                         final teacherLine =
                             teacherName.startsWith('أ.')
                                 ? teacherName
@@ -231,10 +223,11 @@ class _StudentMyCoursesListScreenState
                             },
                             child: Row(
                               children: [
-                                // Subject index tab
+                                // Course cover box
                                 Container(
                                   width: 72.r,
                                   height: 72.r,
+                                  clipBehavior: Clip.antiAlias,
                                   decoration: BoxDecoration(
                                     color: color.withAlpha(18),
                                     borderRadius: BorderRadius.circular(10.r),
@@ -243,16 +236,14 @@ class _StudentMyCoursesListScreenState
                                       width: 1.2,
                                     ),
                                   ),
-                                  child: Center(
-                                    child: Text(
-                                      subject.isNotEmpty ? subject[0] : '؟',
-                                      style: GoogleFonts.cairo(
-                                        fontSize: 22.sp,
-                                        fontWeight: FontWeight.w900,
-                                        color: color,
-                                      ),
-                                    ),
-                                  ),
+                                  child: coverUrl.isNotEmpty
+                                      ? CachedNetworkImage(
+                                          imageUrl: coverUrl,
+                                          fit: BoxFit.cover,
+                                          placeholder: (_, __) => _coverPlaceholder(color, subject),
+                                          errorWidget: (_, __, ___) => _coverPlaceholder(color, subject),
+                                        )
+                                      : _coverPlaceholder(color, subject),
                                 ),
 
                                 SizedBox(width: 14.w),
@@ -372,6 +363,19 @@ class _StudentMyCoursesListScreenState
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _coverPlaceholder(Color color, String subject) {
+    return Center(
+      child: Text(
+        subject.isNotEmpty ? subject[0] : '؟',
+        style: GoogleFonts.cairo(
+          fontSize: 22.sp,
+          fontWeight: FontWeight.w900,
+          color: color,
         ),
       ),
     );

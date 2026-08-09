@@ -14,8 +14,13 @@ import '../../../../core/theme/notebook_theme.dart';
 
 class StudentTransactionsScreen extends StatefulWidget {
   final bool showBackButton;
+  final bool isSelected;
 
-  const StudentTransactionsScreen({super.key, this.showBackButton = false});
+  const StudentTransactionsScreen({
+    super.key,
+    this.showBackButton = false,
+    this.isSelected = false,
+  });
 
   @override
   State<StudentTransactionsScreen> createState() =>
@@ -37,6 +42,14 @@ class _StudentTransactionsScreenState extends State<StudentTransactionsScreen> {
   void initState() {
     super.initState();
     _loadPayments();
+  }
+
+  @override
+  void didUpdateWidget(covariant StudentTransactionsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isSelected && !oldWidget.isSelected) {
+      _loadPayments();
+    }
   }
 
   @override
@@ -142,11 +155,20 @@ class _StudentTransactionsScreenState extends State<StudentTransactionsScreen> {
               );
             }
             if (state.payments.isEmpty) {
-              return const Padding(
-                padding: EdgeInsets.all(24),
-                child: NotebookEmptyNote(
-                  icon: Icons.receipt_long_rounded,
-                  message: 'لا توجد معاملات بعد\nستظهر هنا مدفوعاتك عند اشتراكك في الكورسات',
+              return RefreshIndicator(
+                onRefresh: _loadPayments,
+                color: NotebookColors.green,
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 100.h),
+                      child: const NotebookEmptyNote(
+                        icon: Icons.receipt_long_rounded,
+                        message: 'لا توجد معاملات بعد\nستظهر هنا مدفوعاتك عند اشتراكك في الكورسات',
+                      ),
+                    ),
+                  ],
                 ),
               );
             }
@@ -164,11 +186,24 @@ class _StudentTransactionsScreenState extends State<StudentTransactionsScreen> {
                         payment['subscription_plans']
                             as Map<String, dynamic>? ??
                         {};
+                    final courseMap =
+                        payment['courses']
+                            as Map<String, dynamic>? ??
+                        {};
                     final title =
-                        plan['name'] as String? ?? 'اشتراك';
-                    final gateway =
-                        payment['payment_gateway'] as String? ?? 'دفع إلكتروني';
-                    final amount = _formatAmount(payment['amount']);
+                        plan['name'] as String? ??
+                        courseMap['title'] as String? ??
+                        'اشتراك كورس';
+                    final gatewayRaw = payment['payment_gateway'] as String? ?? 'دفع إلكتروني';
+                    final txnId = payment['gateway_transaction_id'] as String? ?? '';
+                    final gateway = txnId.startsWith('CODE-')
+                        ? 'كود تفعيل من المدرس'
+                        : (gatewayRaw.toLowerCase() == 'fawry'
+                            ? 'فوري للمدفوعات'
+                            : (gatewayRaw.toLowerCase() == 'paymob'
+                                ? 'بطاقة ائتمانية'
+                                : gatewayRaw));
+                    final amount = txnId.startsWith('CODE-') ? 'مجاناً (كود)' : _formatAmount(payment['amount']);
                     final date = _formatDate(payment['created_at'] as String?);
                     final statusStyle = _statusStyle(
                       payment['status'] as String?,

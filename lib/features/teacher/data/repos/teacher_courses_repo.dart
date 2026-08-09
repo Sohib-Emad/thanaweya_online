@@ -28,6 +28,9 @@ class TeacherCoursesRepo {
     required String title,
     String? description,
     String? coverImageUrl,
+    double? price,
+    String? introVideoUrl,
+    String? introVideoSourceType,
     bool isPublished = false,
   }) async {
     try {
@@ -38,6 +41,9 @@ class TeacherCoursesRepo {
             'title': title,
             'description': description,
             'cover_image_url': coverImageUrl,
+            'price': price,
+            'intro_video_url': introVideoUrl,
+            'intro_video_source_type': introVideoSourceType ?? 'youtube',
             'is_published': isPublished,
           })
           .select()
@@ -53,6 +59,11 @@ class TeacherCoursesRepo {
     required String title,
     String? description,
     String? coverImageUrl,
+    double? price,
+    String? introVideoUrl,
+    String? introVideoSourceType,
+    bool? clearPrice,
+    bool? clearIntroVideo,
     bool? isPublished,
   }) async {
     try {
@@ -61,6 +72,20 @@ class TeacherCoursesRepo {
         'description': description,
       };
       if (coverImageUrl != null) updates['cover_image_url'] = coverImageUrl;
+      if (clearPrice == true) {
+        updates['price'] = null;
+      } else if (price != null) {
+        updates['price'] = price;
+      }
+      if (clearIntroVideo == true) {
+        updates['intro_video_url'] = null;
+        updates['intro_video_source_type'] = null;
+      } else if (introVideoUrl != null) {
+        updates['intro_video_url'] = introVideoUrl;
+        if (introVideoSourceType != null) {
+          updates['intro_video_source_type'] = introVideoSourceType;
+        }
+      }
       if (isPublished != null) updates['is_published'] = isPublished;
 
       await _client.from('courses').update(updates).eq('id', courseId);
@@ -153,7 +178,8 @@ class TeacherCoursesRepo {
   }
 
   Future<ApiResult<Map<String, int>>> getCourseLessonCounts(
-      String teacherId) async {
+    String teacherId,
+  ) async {
     try {
       final data = await _client
           .from('lessons')
