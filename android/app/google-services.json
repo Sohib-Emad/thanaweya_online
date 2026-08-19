@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "279596091133",
+    "project_id": "thanaweya-online",
+    "storage_bucket": "thanaweya-online.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:279596091133:android:a6d3931a7f08cbb3766094",
+        "android_client_info": {
+          "package_name": "com.example.thanaweya_online"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAuDHCHbSFODLf6jPQrhUyav6tL0d3j-VQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

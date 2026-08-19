@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import '../../../../core/theme/notebook_theme.dart';
+import '../../../../core/l10n/locale_controller.dart';
+import 'package:thanaweya_online/core/theme/notebook_theme.dart';
+import 'package:thanaweya_online/l10n/l10n.dart';
 
 class StudentLanguageScreen extends StatefulWidget {
   const StudentLanguageScreen({super.key});
@@ -12,61 +14,58 @@ class StudentLanguageScreen extends StatefulWidget {
 }
 
 class _StudentLanguageScreenState extends State<StudentLanguageScreen> {
-  String _selectedLanguage = 'العربية';
-
-  final List<String> _languages = [
-    'العربية',
-    'English',
+  final List<Map<String, String>> _languages = const [
+    {'label': 'العربية', 'code': 'ar'},
+    {'label': 'English', 'code': 'en'},
   ];
 
   @override
   Widget build(BuildContext context) {
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-        backgroundColor: NotebookColors.ground,
-        appBar: NotebookTopBar(
-          title: 'اختر اللغة',
-          subtitle: 'لغة عرض الدفتر',
-        ),
-        body: NotebookPaper(
-          child: ListView(
-            padding: EdgeInsets.fromLTRB(20.w, 18.h, 20.w, 40.h),
-            physics: const BouncingScrollPhysics(),
-            children: [
-              NotebookSectionHeader(title: 'اللغات المتاحة'),
+    final l10n = context.l10n;
+    return Scaffold(
+      backgroundColor: NotebookColors.ground,
+      appBar: NotebookTopBar(
+        title: l10n.chooseLanguage,
+        subtitle: l10n.languageSubtitle,
+      ),
+      body: NotebookPaper(
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(20.w, 18.h, 20.w, 40.h),
+          physics: const BouncingScrollPhysics(),
+          children: [
+            NotebookSectionHeader(title: l10n.availableLanguages),
               SizedBox(height: 12.h),
               ..._languages.map(_buildLanguageItem),
             ],
           ),
         ),
-      ),
     );
   }
 
-  Widget _buildLanguageItem(String lang) {
-    final isSelected = _selectedLanguage == lang;
+  Widget _buildLanguageItem(Map<String, String> lang) {
+    final selected = LocaleController.instance.locale.languageCode == lang['code'];
 
     return Padding(
       padding: EdgeInsets.only(bottom: 10.h),
       child: NotebookCard(
         ruled: true,
         ruledStartY: 24,
-        marginTab: isSelected,
+        marginTab: selected,
         borderRadius: 12,
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
-        onTap: () {
+        onTap: () async {
           HapticFeedback.selectionClick();
-          setState(() => _selectedLanguage = lang);
-          Navigator.pop(context, lang);
+          await LocaleController.instance.setLocale(lang['code']!);
+          if (!mounted) return;
+          Navigator.pop(context, lang['label']);
         },
         child: Row(
           children: [
             Expanded(
               child: Text(
-                lang,
+                lang['label']!,
                 style: NotebookText.body(13.sp)
-                    .copyWith(fontWeight: isSelected ? FontWeight.w900 : null),
+                    .copyWith(fontWeight: selected ? FontWeight.w900 : null),
               ),
             ),
             Container(
@@ -74,15 +73,15 @@ class _StudentLanguageScreenState extends State<StudentLanguageScreen> {
               height: 22.r,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: isSelected ? NotebookColors.green : Colors.transparent,
+                color: selected ? NotebookColors.green : Colors.transparent,
                 border: Border.all(
-                  color: isSelected
+                  color: selected
                       ? NotebookColors.green
                       : NotebookColors.pencil.withAlpha(120),
                   width: 2,
                 ),
               ),
-              child: isSelected
+              child: selected
                   ? Icon(
                       Icons.check_rounded,
                       color: Colors.white,

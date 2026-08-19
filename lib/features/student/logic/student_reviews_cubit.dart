@@ -9,6 +9,13 @@ class StudentReviewsCubit extends Cubit<StudentReviewsState> {
       : _repo = repo,
         super(const StudentReviewsState());
 
+  @override
+  void emit(StudentReviewsState state) {
+    if (!isClosed) {
+      super.emit(state);
+    }
+  }
+
   Future<void> loadReviews(String courseId) async {
     emit(state.copyWith(status: StudentReviewsStatus.loading));
     final result = await _repo.getReviews(courseId);

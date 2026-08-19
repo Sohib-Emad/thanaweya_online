@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import '../../../../core/theme/notebook_theme.dart';
+import 'package:thanaweya_online/l10n/l10n.dart';
+
+import 'package:thanaweya_online/core/theme/notebook_theme.dart';
 
 class StudentTermsScreen extends StatelessWidget {
   const StudentTermsScreen({super.key});
@@ -13,8 +15,8 @@ class StudentTermsScreen extends StatelessWidget {
       child: Scaffold(
         backgroundColor: NotebookColors.ground,
         appBar: NotebookTopBar(
-          title: 'الشروط والأحكام',
-          subtitle: 'قواعد الدفتر والمنصة',
+          title: context.l10n.termsTitle,
+          subtitle: context.l10n.termsSubtitle,
         ),
         body: NotebookPaper(
           child: SingleChildScrollView(
@@ -23,28 +25,29 @@ class StudentTermsScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                NotebookSectionHeader(title: 'شروط الحضور والالتحاق'),
+                NotebookSectionHeader(
+                    title: context.l10n.attendanceTermsTitle),
                 SizedBox(height: 12.h),
                 NotebookCard(
                   ruled: true,
                   ruledStartY: 20,
                   borderRadius: 12,
                   child: Text(
-                    'تلتزم منصة الثانوية أونلاين بتقديم أفضل المحتويات المعتمدة والدروس التعليمية عالية الجودة. يتعهد الطالب بالحضور والمتابعة المستمرة للحصص والامتحانات المقررة. يمنع منعا باتا مشاركة الحسابات الشخصية أو إعادة بيع المحتوى التعليمي بدون إذن كتابي مسبق.',
+                    context.l10n.attendanceTermsBody,
                     style: NotebookText.body(13.sp).copyWith(height: 1.6),
                   ),
                 ),
 
                 SizedBox(height: 24.h),
 
-                NotebookSectionHeader(title: 'شروط الاستخدام والخدمة'),
+                NotebookSectionHeader(title: context.l10n.usageTermsTitle),
                 SizedBox(height: 12.h),
                 NotebookCard(
                   ruled: true,
                   ruledStartY: 20,
                   borderRadius: 12,
                   child: Text(
-                    'جميع حقوق الملكية الفكرية والعلامات التجارية والمواد التوضيحية محفوظة لمنصة الثانوية أونلاين والمعلمين المعتمدين. يتم تشفير وسائط الفيديو وحمايتها، وأي محاولة لتسجيل الشاشة أو قرصنة المحتوى تعرض الحساب للحظر النهائي والملاحقة القانونية.',
+                    context.l10n.usageTermsBody,
                     style: NotebookText.body(13.sp).copyWith(height: 1.6),
                   ),
                 ),

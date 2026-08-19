@@ -4,11 +4,14 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'package:thanaweya_online/features/student/data/repos/student_payments_repo.dart';
+import 'package:thanaweya_online/core/theme/student_payments_repo.dart';
 import 'package:thanaweya_online/features/student/logic/student_payments_cubit.dart';
+import 'package:thanaweya_online/l10n/l10n.dart';
 
-import '../../../../core/theme/notebook_theme.dart';
+import 'package:thanaweya_online/core/theme/notebook_theme.dart';
+import 'widgets/widgets.dart';
 
+/// Screen for adding a new payment card.
 class StudentAddCardScreen extends StatefulWidget {
   const StudentAddCardScreen({super.key});
 
@@ -21,7 +24,6 @@ class _StudentAddCardScreenState extends State<StudentAddCardScreen> {
   final _cardNumberController = TextEditingController();
   final _expiryController = TextEditingController();
   final _cvvController = TextEditingController();
-
   final _cubit = StudentPaymentsCubit(repo: StudentPaymentsRepo());
 
   @override
@@ -40,36 +42,25 @@ class _StudentAddCardScreenState extends State<StudentAddCardScreen> {
     return 'Card';
   }
 
-  void _showSnack(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: GoogleFonts.cairo(fontWeight: FontWeight.w700),
-        ),
-        backgroundColor: const Color(0xFFEF4444),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(message,
+          style: GoogleFonts.cairo(fontWeight: FontWeight.w700)),
+      backgroundColor: const Color(0xFFEF4444),
+      behavior: SnackBarBehavior.floating,
+    ));
   }
 
   Future<void> _saveCard() async {
+    final l10n = context.l10n;
     final cardHolder = _cardNameController.text.trim();
     final cardNumber = _cardNumberController.text
         .replaceAll(' ', '')
         .replaceAll('-', '');
-    final expiry = _expiryController.text.trim();
+    if (cardHolder.isEmpty) return _showError(l10n.enterCardHolderName);
+    if (cardNumber.length < 4) return _showError(l10n.enterValidCardNumber);
 
-    if (cardHolder.isEmpty) {
-      _showSnack('يرجى إدخال اسم صاحب البطاقة');
-      return;
-    }
-    if (cardNumber.length < 4) {
-      _showSnack('يرجى إدخال رقم بطاقة صحيح');
-      return;
-    }
-
-    final parts = expiry.split('/');
+    final parts = _expiryController.text.trim().split('/');
     int? expiryMonth;
     int? expiryYear;
     if (parts.length == 2) {
@@ -78,52 +69,44 @@ class _StudentAddCardScreenState extends State<StudentAddCardScreen> {
       if (yy != null) expiryYear = 2000 + yy;
     }
     if (expiryMonth == null || expiryYear == null) {
-      _showSnack('يرجى إدخال تاريخ انتهاء صحيح (MM/YY)');
-      return;
+      return _showError(l10n.enterValidExpiry);
     }
 
     final userId = Supabase.instance.client.auth.currentUser?.id;
-    if (userId == null) {
-      _showSnack('يجب تسجيل الدخول أولاً');
-      return;
-    }
+    if (userId == null) return _showError(l10n.loginRequiredFirst);
 
-    final cardLast4 = cardNumber.substring(cardNumber.length - 4);
     final saved = await _cubit.addPaymentMethod(
       studentId: userId,
       cardHolder: cardHolder,
-      cardLast4: cardLast4,
+      cardLast4: cardNumber.substring(cardNumber.length - 4),
       cardBrand: _detectBrand(cardNumber),
       expiryMonth: expiryMonth,
       expiryYear: expiryYear,
     );
     if (!mounted) return;
     if (saved) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'تمت إضافة البطاقة بنجاح',
-            style: GoogleFonts.cairo(fontWeight: FontWeight.w700),
-          ),
-          backgroundColor: NotebookColors.green,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(context.l10n.cardAddedSuccess,
+            style: GoogleFonts.cairo(fontWeight: FontWeight.w700)),
+        backgroundColor: NotebookColors.green,
+        behavior: SnackBarBehavior.floating,
+      ));
       Navigator.pop(context, true);
     } else {
-      _showSnack('حدث خطأ أثناء إضافة البطاقة، حاول مرة أخرى');
+      _showError(context.l10n.cardAddError);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
         backgroundColor: NotebookColors.ground,
         appBar: NotebookTopBar(
-          title: 'إضافة بطاقة جديدة',
-          subtitle: 'سجّل وسيلة دفع جديدة في دفترك',
+          title: l10n.addCardTitle,
+          subtitle: l10n.addCardSubtitle,
         ),
         body: NotebookPaper(
           child: SingleChildScrollView(
@@ -132,66 +115,18 @@ class _StudentAddCardScreenState extends State<StudentAddCardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                NotebookSectionHeader(title: 'بيانات البطاقة'),
+                NotebookSectionHeader(title: l10n.cardDataSection),
                 SizedBox(height: 12.h),
-
-                NotebookCard(
-                  ruled: true,
-                  ruledStartY: 20,
-                  borderRadius: 12,
-                  padding: EdgeInsets.all(20.r),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildField(
-                        label: 'اسم صاحب البطاقة *',
-                        controller: _cardNameController,
-                        hint: 'أدخل الاسم المطبوع على البطاقة',
-                        onChanged: (val) => setState(() {}),
-                      ),
-                      SizedBox(height: 18.h),
-
-                      _buildField(
-                        label: 'رقم البطاقة *',
-                        controller: _cardNumberController,
-                        hint: '•••• •••• •••• ••••',
-                        keyboardType: TextInputType.number,
-                        onChanged: (val) => setState(() {}),
-                      ),
-                      SizedBox(height: 18.h),
-
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: _buildField(
-                              label: 'تاريخ الانتهاء *',
-                              controller: _expiryController,
-                              hint: 'MM/YY',
-                              keyboardType: TextInputType.datetime,
-                              onChanged: (val) => setState(() {}),
-                            ),
-                          ),
-                          SizedBox(width: 16.w),
-                          Expanded(
-                            child: _buildField(
-                              label: 'رمز الأمان *',
-                              controller: _cvvController,
-                              hint: '•••',
-                              keyboardType: TextInputType.number,
-                              obscureText: true,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                AddCardForm(
+                  cardNameController: _cardNameController,
+                  cardNumberController: _cardNumberController,
+                  expiryController: _expiryController,
+                  cvvController: _cvvController,
+                  onFieldChanged: (_) => setState(() {}),
                 ),
-
                 SizedBox(height: 28.h),
-
                 NotebookPrimaryButton(
-                  label: 'إضافة البطاقة',
+                  label: l10n.addCardButton,
                   icon: Icons.add_rounded,
                   onPressed: () {
                     HapticFeedback.mediumImpact();
@@ -203,42 +138,6 @@ class _StudentAddCardScreenState extends State<StudentAddCardScreen> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildField({
-    required String label,
-    required TextEditingController controller,
-    required String hint,
-    TextInputType keyboardType = TextInputType.text,
-    bool obscureText = false,
-    ValueChanged<String>? onChanged,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: NotebookText.strong(12.sp)),
-        SizedBox(height: 4.h),
-        TextField(
-          controller: controller,
-          keyboardType: keyboardType,
-          obscureText: obscureText,
-          onChanged: onChanged,
-          style: NotebookText.body(13.sp),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: NotebookText.note(12.sp)
-                .copyWith(color: NotebookColors.pencil.withAlpha(180)),
-            border: InputBorder.none,
-            isDense: true,
-            contentPadding: EdgeInsets.symmetric(vertical: 6.h),
-          ),
-        ),
-        Container(
-          height: 1.4,
-          color: NotebookColors.ink.withAlpha(70),
-        ),
-      ],
     );
   }
 }

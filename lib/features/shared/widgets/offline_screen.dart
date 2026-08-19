@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_strings.dart';
 import '../../../core/constants/app_text_styles.dart';
+import '../../../l10n/l10n.dart';
 import 'app_button.dart';
 
 class OfflineScreen extends StatelessWidget {
@@ -35,13 +35,13 @@ class OfflineScreen extends StatelessWidget {
               ),
               SizedBox(height: 28.h),
               Text(
-                AppStrings.offline,
+                context.l10n.offline,
                 style: AppTextStyles.h1,
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: 8.h),
               Text(
-                AppStrings.offlineMessage,
+                context.l10n.offlineMessage,
                 style: AppTextStyles.body2.copyWith(
                   color: AppColors.textSecondary,
                 ),
@@ -49,7 +49,7 @@ class OfflineScreen extends StatelessWidget {
               ),
               SizedBox(height: 32.h),
               AppButton(
-                text: AppStrings.retry,
+                text: context.l10n.retry,
                 onPressed: onRetry,
                 icon: Icons.refresh,
               ),

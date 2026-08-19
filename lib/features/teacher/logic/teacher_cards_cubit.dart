@@ -42,6 +42,13 @@ class TeacherCardsCubit extends Cubit<TeacherCardsState> {
       : _repo = repo,
         super(const TeacherCardsState());
 
+  @override
+  void emit(TeacherCardsState state) {
+    if (!isClosed) {
+      super.emit(state);
+    }
+  }
+
   Future<void> loadCodes(String teacherId) async {
     emit(state.copyWith(status: TeacherCardsStatus.loading));
     final result = await _repo.getActivationCodes(teacherId);

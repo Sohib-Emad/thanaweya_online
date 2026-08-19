@@ -42,6 +42,9 @@ class ApiErrorHandler {
   }
 
   static String _mapPostgrestError(String message) {
+    if (message.contains('PGRST301') || message.contains('JWT') || message.contains('wrong key type')) {
+      return 'رمز المصادقة غير صالح، يرجى إعادة تسجيل الدخول';
+    }
     if (message.contains('duplicate key')) {
       return 'البيانات موجودة مسبقاً';
     }
@@ -58,6 +61,9 @@ class ApiErrorHandler {
   }
 
   static String _mapAuthError(String message) {
+    if (message.contains('email_address_invalid') || (message.contains('invalid') && message.contains('Email'))) {
+      return 'البريد الإلكتروني غير صالح أو مرفوض من خادم المصادقة. تحقق من صيغة الإيميل وإعدادات Supabase';
+    }
     if (message.contains('Invalid login credentials')) {
       return 'بيانات الدخول غير صحيحة';
     }

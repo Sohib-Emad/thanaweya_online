@@ -4,45 +4,33 @@ import 'package:thanaweya_online/core/network/api_error_handler.dart';
 import 'package:thanaweya_online/core/network/api_result.dart';
 import 'package:thanaweya_online/features/shared/models/exam_model.dart';
 import 'package:thanaweya_online/features/shared/models/question_model.dart';
+import 'package:thanaweya_online/features/student/data/repos/student_exams_listing_repo.dart';
 
+/// Facade that delegates exam listing to [StudentExamsListingRepo].
 class StudentExamsRepo {
+  final StudentExamsListingRepo listing = StudentExamsListingRepo();
+
   final SupabaseClient _client = Supabase.instance.client;
 
-  Future<ApiResult<List<Map<String, dynamic>>>> getAvailableExams(
-      String studentId) async {
+  /// The student's own attempts for one exam, newest first.
+  Future<ApiResult<List<Map<String, dynamic>>>> getExamAttempts({
+    required String examId,
+    required String studentId,
+  }) async {
     try {
-      // 1. Get the student's active subscriptions to teachers
-      final subRes = await _client
-          .from('subscriptions')
-          .select('teacher_id')
+      final data = await _client
+          .from('exam_submissions')
+          .select('id, score, total_points, submitted_at')
+          .eq('exam_id', examId)
           .eq('student_id', studentId)
-          .eq('status', 'active');
-
-      if (subRes.isEmpty) {
-        return const ApiResult.success([]);
-      }
-
-      final teacherIds = subRes.map((e) => e['teacher_id'] as String).toList();
-
-      // 2. Fetch exams for those teachers
-      final now = DateTime.now().toUtc().toIso8601String();
-      final data = await _client.from('exams').select('''
-            id, title, duration_minutes, start_at, end_at, max_score, is_published, created_at,
-            teachers!inner(id, subject_id,
-              users!inner(id, full_name)
-            ),
-            questions(count)
-          ''')
-          .eq('is_published', true)
-          .inFilter('teacher_id', teacherIds)
-          .lte('start_at', now)
-          .gte('end_at', now);
+          .order('submitted_at', ascending: true);
       return ApiResult.success(data);
     } catch (e) {
       return ApiErrorHandler.handleException(e);
     }
   }
 
+  /// Fetches a single exam by id.
   Future<ApiResult<ExamModel>> getExam(String examId) async {
     try {
       final data = await _client
@@ -56,8 +44,8 @@ class StudentExamsRepo {
     }
   }
 
-  Future<ApiResult<List<QuestionModel>>> getExamQuestions(
-      String examId) async {
+  /// Fetches questions for an exam ordered by "order".
+  Future<ApiResult<List<QuestionModel>>> getExamQuestions(String examId) async {
     try {
       final data = await _client
           .from('questions')
@@ -72,6 +60,7 @@ class StudentExamsRepo {
     }
   }
 
+  /// Submits an exam attempt.
   Future<ApiResult<void>> submitExam({
     required String examId,
     required String studentId,
@@ -94,8 +83,10 @@ class StudentExamsRepo {
     }
   }
 
+  /// All submissions for this student across all exams.
   Future<ApiResult<List<Map<String, dynamic>>>> getStudentSubmissions(
-      String studentId) async {
+    String studentId,
+  ) async {
     try {
       final data = await _client.from('exam_submissions').select('''
             id, score, total_points, started_at, submitted_at, answers,

@@ -3,7 +3,14 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'lesson_model.freezed.dart';
 part 'lesson_model.g.dart';
 
-enum VideoSourceType { youtube, upload }
+enum VideoSourceType {
+  @JsonValue('youtube')
+  youtube,
+  @JsonValue('dailymotion')
+  dailymotion,
+  @JsonValue('upload')
+  upload,
+}
 
 @freezed
 class LessonModel with _$LessonModel {

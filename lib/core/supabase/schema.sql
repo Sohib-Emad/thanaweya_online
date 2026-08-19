@@ -78,7 +78,7 @@ END $$;
 -- ============================================================
 
 -- Users (extends auth.users)
-CREATE TABLE public.users (
+CREATE TABLE IF NOT EXISTS public.users (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT UNIQUE NOT NULL,
   full_name TEXT NOT NULL,
@@ -90,7 +90,7 @@ CREATE TABLE public.users (
 );
 
 -- Subjects
-CREATE TABLE public.subjects (
+CREATE TABLE IF NOT EXISTS public.subjects (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name_ar TEXT NOT NULL,
   name_en TEXT NOT NULL,
@@ -101,7 +101,7 @@ CREATE TABLE public.subjects (
 );
 
 -- Subscription Plans
-CREATE TABLE public.subscription_plans (
+CREATE TABLE IF NOT EXISTS public.subscription_plans (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   billing_period billing_period NOT NULL,
@@ -116,7 +116,7 @@ CREATE TABLE public.subscription_plans (
 );
 
 -- Teachers
-CREATE TABLE public.teachers (
+CREATE TABLE IF NOT EXISTS public.teachers (
   id UUID PRIMARY KEY REFERENCES public.users(id) ON DELETE CASCADE,
   subject_id UUID NOT NULL REFERENCES public.subjects(id),
   stage teacher_stage NOT NULL,
@@ -133,7 +133,7 @@ CREATE TABLE public.teachers (
 );
 
 -- Students
-CREATE TABLE public.students (
+CREATE TABLE IF NOT EXISTS public.students (
   id UUID PRIMARY KEY REFERENCES public.users(id) ON DELETE CASCADE,
   grade_level student_grade NOT NULL,
   parent_phone TEXT NOT NULL,
@@ -141,7 +141,7 @@ CREATE TABLE public.students (
 );
 
 -- Courses
-CREATE TABLE public.courses (
+CREATE TABLE IF NOT EXISTS public.courses (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   teacher_id UUID NOT NULL REFERENCES public.teachers(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
@@ -157,7 +157,7 @@ CREATE TABLE public.courses (
 );
 
 -- Lessons
-CREATE TABLE public.lessons (
+CREATE TABLE IF NOT EXISTS public.lessons (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   course_id UUID NOT NULL REFERENCES public.courses(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
@@ -173,7 +173,7 @@ CREATE TABLE public.lessons (
 );
 
 -- Exams
-CREATE TABLE public.exams (
+CREATE TABLE IF NOT EXISTS public.exams (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   teacher_id UUID NOT NULL REFERENCES public.teachers(id) ON DELETE CASCADE,
   course_id UUID REFERENCES public.courses(id) ON DELETE SET NULL,
@@ -187,7 +187,7 @@ CREATE TABLE public.exams (
 );
 
 -- Questions
-CREATE TABLE public.questions (
+CREATE TABLE IF NOT EXISTS public.questions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   exam_id UUID NOT NULL REFERENCES public.exams(id) ON DELETE CASCADE,
   question_type question_type NOT NULL DEFAULT 'mcq',
@@ -200,10 +200,11 @@ CREATE TABLE public.questions (
 );
 
 -- Subscriptions
-CREATE TABLE public.subscriptions (
+CREATE TABLE IF NOT EXISTS public.subscriptions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
   teacher_id UUID NOT NULL REFERENCES public.teachers(id) ON DELETE CASCADE,
+  activation_code_id UUID,
   status subscription_status NOT NULL DEFAULT 'active',
   starts_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   expires_at TIMESTAMPTZ,
@@ -211,8 +212,24 @@ CREATE TABLE public.subscriptions (
   UNIQUE(student_id, teacher_id)
 );
 
+-- Keep existing databases in sync (column may already exist)
+ALTER TABLE public.subscriptions
+  ADD COLUMN IF NOT EXISTS activation_code_id UUID;
+
+-- Activation Codes (one-time redeemable codes)
+CREATE TABLE IF NOT EXISTS public.activation_codes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  teacher_id UUID NOT NULL REFERENCES public.teachers(id) ON DELETE CASCADE,
+  course_id UUID REFERENCES public.courses(id) ON DELETE SET NULL,
+  code TEXT UNIQUE NOT NULL,
+  is_used BOOLEAN NOT NULL DEFAULT false,
+  used_by UUID REFERENCES public.students(id),
+  used_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- Payments
-CREATE TABLE public.payments (
+CREATE TABLE IF NOT EXISTS public.payments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   payer_id UUID NOT NULL REFERENCES public.users(id),
   payer_type payer_type NOT NULL,
@@ -226,7 +243,7 @@ CREATE TABLE public.payments (
 );
 
 -- Lesson Progress
-CREATE TABLE public.lesson_progress (
+CREATE TABLE IF NOT EXISTS public.lesson_progress (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
   lesson_id UUID NOT NULL REFERENCES public.lessons(id) ON DELETE CASCADE,
@@ -237,7 +254,7 @@ CREATE TABLE public.lesson_progress (
 );
 
 -- Exam Submissions
-CREATE TABLE public.exam_submissions (
+CREATE TABLE IF NOT EXISTS public.exam_submissions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   exam_id UUID NOT NULL REFERENCES public.exams(id) ON DELETE CASCADE,
   student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
@@ -249,7 +266,7 @@ CREATE TABLE public.exam_submissions (
 );
 
 -- Comments
-CREATE TABLE public.comments (
+CREATE TABLE IF NOT EXISTS public.comments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   lesson_id UUID NOT NULL REFERENCES public.lessons(id) ON DELETE CASCADE,
   author_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
@@ -258,7 +275,7 @@ CREATE TABLE public.comments (
 );
 
 -- Bookmarks
-CREATE TABLE public.bookmarks (
+CREATE TABLE IF NOT EXISTS public.bookmarks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
   course_id UUID NOT NULL REFERENCES public.courses(id) ON DELETE CASCADE,
@@ -267,7 +284,7 @@ CREATE TABLE public.bookmarks (
 );
 
 -- Course Reviews
-CREATE TABLE public.course_reviews (
+CREATE TABLE IF NOT EXISTS public.course_reviews (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   course_id UUID NOT NULL REFERENCES public.courses(id) ON DELETE CASCADE,
   student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
@@ -279,7 +296,7 @@ CREATE TABLE public.course_reviews (
 );
 
 -- Payment Methods (cards)
-CREATE TABLE public.payment_methods (
+CREATE TABLE IF NOT EXISTS public.payment_methods (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
   card_holder TEXT NOT NULL,
@@ -295,39 +312,39 @@ CREATE TABLE public.payment_methods (
 -- 3. INDEXES
 -- ============================================================
 
-CREATE INDEX idx_users_email ON public.users(email);
-CREATE INDEX idx_users_role ON public.users(role);
+CREATE INDEX IF NOT EXISTS idx_users_email ON public.users(email);
+CREATE INDEX IF NOT EXISTS idx_users_role ON public.users(role);
 
-CREATE INDEX idx_teachers_approval ON public.teachers(approval_status);
-CREATE INDEX idx_teachers_subject ON public.teachers(subject_id);
+CREATE INDEX IF NOT EXISTS idx_teachers_approval ON public.teachers(approval_status);
+CREATE INDEX IF NOT EXISTS idx_teachers_subject ON public.teachers(subject_id);
 
-CREATE INDEX idx_courses_teacher ON public.courses(teacher_id);
-CREATE INDEX idx_courses_published ON public.courses(is_published);
+CREATE INDEX IF NOT EXISTS idx_courses_teacher ON public.courses(teacher_id);
+CREATE INDEX IF NOT EXISTS idx_courses_published ON public.courses(is_published);
 
-CREATE INDEX idx_lessons_course ON public.lessons(course_id);
-CREATE INDEX idx_lessons_order ON public.lessons(course_id, "order");
+CREATE INDEX IF NOT EXISTS idx_lessons_course ON public.lessons(course_id);
+CREATE INDEX IF NOT EXISTS idx_lessons_order ON public.lessons(course_id, "order");
 
-CREATE INDEX idx_exams_teacher ON public.exams(teacher_id);
-CREATE INDEX idx_exams_course ON public.exams(course_id);
-CREATE INDEX idx_exams_dates ON public.exams(start_at, end_at);
+CREATE INDEX IF NOT EXISTS idx_exams_teacher ON public.exams(teacher_id);
+CREATE INDEX IF NOT EXISTS idx_exams_course ON public.exams(course_id);
+CREATE INDEX IF NOT EXISTS idx_exams_dates ON public.exams(start_at, end_at);
 
-CREATE INDEX idx_questions_exam ON public.questions(exam_id);
+CREATE INDEX IF NOT EXISTS idx_questions_exam ON public.questions(exam_id);
 
-CREATE INDEX idx_subscriptions_student ON public.subscriptions(student_id);
-CREATE INDEX idx_subscriptions_teacher ON public.subscriptions(teacher_id);
-CREATE INDEX idx_subscriptions_status ON public.subscriptions(status);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_student ON public.subscriptions(student_id);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_teacher ON public.subscriptions(teacher_id);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON public.subscriptions(status);
 
-CREATE INDEX idx_payments_payer ON public.payments(payer_id);
-CREATE INDEX idx_payments_status ON public.payments(status);
+CREATE INDEX IF NOT EXISTS idx_payments_payer ON public.payments(payer_id);
+CREATE INDEX IF NOT EXISTS idx_payments_status ON public.payments(status);
 
-CREATE INDEX idx_lesson_progress_student ON public.lesson_progress(student_id);
-CREATE INDEX idx_lesson_progress_lesson ON public.lesson_progress(lesson_id);
+CREATE INDEX IF NOT EXISTS idx_lesson_progress_student ON public.lesson_progress(student_id);
+CREATE INDEX IF NOT EXISTS idx_lesson_progress_lesson ON public.lesson_progress(lesson_id);
 
-CREATE INDEX idx_exam_submissions_exam ON public.exam_submissions(exam_id);
-CREATE INDEX idx_exam_submissions_student ON public.exam_submissions(student_id);
+CREATE INDEX IF NOT EXISTS idx_exam_submissions_exam ON public.exam_submissions(exam_id);
+CREATE INDEX IF NOT EXISTS idx_exam_submissions_student ON public.exam_submissions(student_id);
 
-CREATE INDEX idx_comments_lesson ON public.comments(lesson_id);
-CREATE INDEX idx_comments_author ON public.comments(author_id);
+CREATE INDEX IF NOT EXISTS idx_comments_lesson ON public.comments(lesson_id);
+CREATE INDEX IF NOT EXISTS idx_comments_author ON public.comments(author_id);
 
 -- ============================================================
 -- 4. FUNCTIONS & TRIGGERS
@@ -342,42 +359,30 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trigger_users_updated_at ON public.users;
 CREATE TRIGGER trigger_users_updated_at
   BEFORE UPDATE ON public.users
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
+DROP TRIGGER IF EXISTS trigger_courses_updated_at ON public.courses;
 CREATE TRIGGER trigger_courses_updated_at
   BEFORE UPDATE ON public.courses
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
+DROP TRIGGER IF EXISTS trigger_lessons_updated_at ON public.lessons;
 CREATE TRIGGER trigger_lessons_updated_at
   BEFORE UPDATE ON public.lessons
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
+DROP TRIGGER IF EXISTS trigger_plans_updated_at ON public.subscription_plans;
 CREATE TRIGGER trigger_plans_updated_at
   BEFORE UPDATE ON public.subscription_plans
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
--- Auto-create user profile on signup
-CREATE OR REPLACE FUNCTION handle_new_user()
-RETURNS TRIGGER AS $$
-BEGIN
-  INSERT INTO public.users (id, email, full_name, phone, role)
-  VALUES (
-    NEW.id,
-    NEW.email,
-    COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
-    COALESCE(NEW.raw_user_meta_data->>'phone', ''),
-    COALESCE(NEW.raw_user_meta_data->>'role', 'student')::user_role
-  );
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION handle_new_user();
-
+-- NOTE: The on_auth_user_created trigger was deliberately REMOVED (see
+-- fix_auth_trigger.sql / fix_complete.sql) because it caused signup errors.
+-- The app creates public.users rows itself from the client (see
+-- _ensureStudentProfileExists) and via the SECURITY DEFINER RPCs below.
 -- Auto-compute exam max_score from questions
 CREATE OR REPLACE FUNCTION compute_exam_max_score()
 RETURNS TRIGGER AS $$
@@ -393,6 +398,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+DROP TRIGGER IF EXISTS trigger_questions_score_update ON public.questions;
 CREATE TRIGGER trigger_questions_score_update
   AFTER INSERT OR UPDATE OR DELETE ON public.questions
   FOR EACH ROW EXECUTE FUNCTION compute_exam_max_score();
@@ -408,6 +414,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trigger_subscription_expiry ON public.subscriptions;
 CREATE TRIGGER trigger_subscription_expiry
   BEFORE UPDATE ON public.subscriptions
   FOR EACH ROW EXECUTE FUNCTION check_subscription_expiry();
@@ -434,25 +441,43 @@ ALTER TABLE public.bookmarks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.course_reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.payment_methods ENABLE ROW LEVEL SECURITY;
 
+-- NOTE: policies created by other migration files (fix_rls_inserts.sql,
+-- migration_exam_attempts_lesson_docs.sql, ...) are deliberately NOT wiped
+-- here — only the policies this file owns are dropped+recreated below.
+-- Each CREATE POLICY is preceded by DROP POLICY IF EXISTS to stay idempotent.
 -- ============================================================
 -- USERS
 -- ============================================================
 
+DROP POLICY IF EXISTS "users_select_own" ON public.users;
 CREATE POLICY "users_select_own" ON public.users
   FOR SELECT USING (id = auth.uid());
 
+DROP POLICY IF EXISTS "users_select_teacher_profiles" ON public.users;
 CREATE POLICY "users_select_teacher_profiles" ON public.users
   FOR SELECT TO anon, authenticated
   USING (id IN (SELECT id FROM public.teachers WHERE approval_status = 'approved'));
 
+DROP POLICY IF EXISTS "teachers_select_subscribed_students" ON public.users;
+CREATE POLICY "teachers_select_subscribed_students" ON public.users
+  FOR SELECT USING (
+    id IN (
+      SELECT student_id FROM public.subscriptions
+      WHERE teacher_id = auth.uid()
+    )
+  );
+
+DROP POLICY IF EXISTS "users_update_own" ON public.users;
 CREATE POLICY "users_update_own" ON public.users
   FOR UPDATE USING (id = auth.uid());
 
+DROP POLICY IF EXISTS "admin_select_all_users" ON public.users;
 CREATE POLICY "admin_select_all_users" ON public.users
   FOR SELECT USING (
     (auth.jwt()->'user_metadata'->>'role') = 'super_admin'
   );
 
+DROP POLICY IF EXISTS "admin_update_all_users" ON public.users;
 CREATE POLICY "admin_update_all_users" ON public.users
   FOR UPDATE USING (
     (auth.jwt()->'user_metadata'->>'role') = 'super_admin'
@@ -469,22 +494,27 @@ GRANT SELECT ON public.user_profiles TO anon, authenticated;
 -- TEACHERS
 -- ============================================================
 
+DROP POLICY IF EXISTS "teachers_select_own" ON public.teachers;
 CREATE POLICY "teachers_select_own" ON public.teachers
   FOR SELECT USING (id = auth.uid());
 
+DROP POLICY IF EXISTS "teachers_update_own" ON public.teachers;
 CREATE POLICY "teachers_update_own" ON public.teachers
   FOR UPDATE USING (id = auth.uid());
 
+DROP POLICY IF EXISTS "admin_select_all_teachers" ON public.teachers;
 CREATE POLICY "admin_select_all_teachers" ON public.teachers
   FOR SELECT USING (
     (auth.jwt()->'user_metadata'->>'role') = 'super_admin'
   );
 
+DROP POLICY IF EXISTS "admin_manage_teachers" ON public.teachers;
 CREATE POLICY "admin_manage_teachers" ON public.teachers
   FOR ALL USING (
     (auth.jwt()->'user_metadata'->>'role') = 'super_admin'
   );
 
+DROP POLICY IF EXISTS "public_select_approved_teachers" ON public.teachers;
 CREATE POLICY "public_select_approved_teachers" ON public.teachers
   FOR SELECT USING (approval_status = 'approved');
 
@@ -492,17 +522,21 @@ CREATE POLICY "public_select_approved_teachers" ON public.teachers
 -- STUDENTS
 -- ============================================================
 
+DROP POLICY IF EXISTS "students_select_own" ON public.students;
 CREATE POLICY "students_select_own" ON public.students
   FOR SELECT USING (id = auth.uid());
 
+DROP POLICY IF EXISTS "students_update_own" ON public.students;
 CREATE POLICY "students_update_own" ON public.students
   FOR UPDATE USING (id = auth.uid());
 
+DROP POLICY IF EXISTS "admin_select_all_students" ON public.students;
 CREATE POLICY "admin_select_all_students" ON public.students
   FOR SELECT USING (
     (auth.jwt()->'user_metadata'->>'role') = 'super_admin'
   );
 
+DROP POLICY IF EXISTS "teachers_select_subscribed_students" ON public.students;
 CREATE POLICY "teachers_select_subscribed_students" ON public.students
   FOR SELECT USING (
     id IN (
@@ -515,12 +549,15 @@ CREATE POLICY "teachers_select_subscribed_students" ON public.students
 -- SUBJECTS
 -- ============================================================
 
+DROP POLICY IF EXISTS "subjects_select_active" ON public.subjects;
 CREATE POLICY "subjects_select_active" ON public.subjects
   FOR SELECT USING (is_active = true);
 
+DROP POLICY IF EXISTS "subjects_select_all" ON public.subjects;
 CREATE POLICY "subjects_select_all" ON public.subjects
   FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "admin_manage_subjects" ON public.subjects;
 CREATE POLICY "admin_manage_subjects" ON public.subjects
   FOR ALL USING (
     (auth.jwt()->'user_metadata'->>'role') = 'super_admin'
@@ -530,9 +567,11 @@ CREATE POLICY "admin_manage_subjects" ON public.subjects
 -- COURSES
 -- ============================================================
 
+DROP POLICY IF EXISTS "teachers_manage_own_courses" ON public.courses;
 CREATE POLICY "teachers_manage_own_courses" ON public.courses
   FOR ALL USING (teacher_id = auth.uid());
 
+DROP POLICY IF EXISTS "students_view_subscribed_courses" ON public.courses;
 CREATE POLICY "students_view_subscribed_courses" ON public.courses
   FOR SELECT USING (
     is_published = true AND (
@@ -543,9 +582,11 @@ CREATE POLICY "students_view_subscribed_courses" ON public.courses
     )
   );
 
+DROP POLICY IF EXISTS "students_view_free_preview_courses" ON public.courses;
 CREATE POLICY "students_view_free_preview_courses" ON public.courses
   FOR SELECT USING (is_published = true);
 
+DROP POLICY IF EXISTS "admin_select_all_courses" ON public.courses;
 CREATE POLICY "admin_select_all_courses" ON public.courses
   FOR SELECT USING (
     (auth.jwt()->'user_metadata'->>'role') = 'super_admin'
@@ -555,6 +596,7 @@ CREATE POLICY "admin_select_all_courses" ON public.courses
 -- LESSONS
 -- ============================================================
 
+DROP POLICY IF EXISTS "teachers_manage_own_lessons" ON public.lessons;
 CREATE POLICY "teachers_manage_own_lessons" ON public.lessons
   FOR ALL USING (
     course_id IN (
@@ -562,6 +604,7 @@ CREATE POLICY "teachers_manage_own_lessons" ON public.lessons
     )
   );
 
+DROP POLICY IF EXISTS "students_view_subscribed_lessons" ON public.lessons;
 CREATE POLICY "students_view_subscribed_lessons" ON public.lessons
   FOR SELECT USING (
     is_free_preview = true OR
@@ -572,6 +615,7 @@ CREATE POLICY "students_view_subscribed_lessons" ON public.lessons
     )
   );
 
+DROP POLICY IF EXISTS "admin_select_all_lessons" ON public.lessons;
 CREATE POLICY "admin_select_all_lessons" ON public.lessons
   FOR SELECT USING (
     (auth.jwt()->'user_metadata'->>'role') = 'super_admin'
@@ -581,9 +625,11 @@ CREATE POLICY "admin_select_all_lessons" ON public.lessons
 -- EXAMS
 -- ============================================================
 
+DROP POLICY IF EXISTS "teachers_manage_own_exams" ON public.exams;
 CREATE POLICY "teachers_manage_own_exams" ON public.exams
   FOR ALL USING (teacher_id = auth.uid());
 
+DROP POLICY IF EXISTS "students_view_available_exams" ON public.exams;
 CREATE POLICY "students_view_available_exams" ON public.exams
   FOR SELECT USING (
     is_published = true AND
@@ -594,6 +640,7 @@ CREATE POLICY "students_view_available_exams" ON public.exams
     )
   );
 
+DROP POLICY IF EXISTS "admin_select_all_exams" ON public.exams;
 CREATE POLICY "admin_select_all_exams" ON public.exams
   FOR SELECT USING (
     (auth.jwt()->'user_metadata'->>'role') = 'super_admin'
@@ -603,6 +650,7 @@ CREATE POLICY "admin_select_all_exams" ON public.exams
 -- QUESTIONS
 -- ============================================================
 
+DROP POLICY IF EXISTS "teachers_manage_own_questions" ON public.questions;
 CREATE POLICY "teachers_manage_own_questions" ON public.questions
   FOR ALL USING (
     exam_id IN (
@@ -610,6 +658,7 @@ CREATE POLICY "teachers_manage_own_questions" ON public.questions
     )
   );
 
+DROP POLICY IF EXISTS "students_view_exam_questions" ON public.questions;
 CREATE POLICY "students_view_exam_questions" ON public.questions
   FOR SELECT USING (
     exam_id IN (
@@ -626,12 +675,15 @@ CREATE POLICY "students_view_exam_questions" ON public.questions
 -- SUBSCRIPTIONS
 -- ============================================================
 
+DROP POLICY IF EXISTS "students_view_own_subscriptions" ON public.subscriptions;
 CREATE POLICY "students_view_own_subscriptions" ON public.subscriptions
   FOR SELECT USING (student_id = auth.uid());
 
+DROP POLICY IF EXISTS "teachers_view_own_subscriptions" ON public.subscriptions;
 CREATE POLICY "teachers_view_own_subscriptions" ON public.subscriptions
   FOR SELECT USING (teacher_id = auth.uid());
 
+DROP POLICY IF EXISTS "admin_manage_subscriptions" ON public.subscriptions;
 CREATE POLICY "admin_manage_subscriptions" ON public.subscriptions
   FOR ALL USING (
     (auth.jwt()->'user_metadata'->>'role') = 'super_admin'
@@ -641,12 +693,15 @@ CREATE POLICY "admin_manage_subscriptions" ON public.subscriptions
 -- SUBSCRIPTION PLANS
 -- ============================================================
 
+DROP POLICY IF EXISTS "plans_select_active" ON public.subscription_plans;
 CREATE POLICY "plans_select_active" ON public.subscription_plans
   FOR SELECT USING (is_active = true);
 
+DROP POLICY IF EXISTS "plans_select_all" ON public.subscription_plans;
 CREATE POLICY "plans_select_all" ON public.subscription_plans
   FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "admin_manage_plans" ON public.subscription_plans;
 CREATE POLICY "admin_manage_plans" ON public.subscription_plans
   FOR ALL USING (
     (auth.jwt()->'user_metadata'->>'role') = 'super_admin'
@@ -656,12 +711,15 @@ CREATE POLICY "admin_manage_plans" ON public.subscription_plans
 -- PAYMENTS
 -- ============================================================
 
+DROP POLICY IF EXISTS "users_view_own_payments" ON public.payments;
 CREATE POLICY "users_view_own_payments" ON public.payments
   FOR SELECT USING (payer_id = auth.uid());
 
+DROP POLICY IF EXISTS "users_insert_own_payments" ON public.payments;
 CREATE POLICY "users_insert_own_payments" ON public.payments
   FOR INSERT WITH CHECK (payer_id = auth.uid());
 
+DROP POLICY IF EXISTS "admin_manage_payments" ON public.payments;
 CREATE POLICY "admin_manage_payments" ON public.payments
   FOR ALL USING (
     (auth.jwt()->'user_metadata'->>'role') = 'super_admin'
@@ -728,7 +786,12 @@ BEGIN
     expires_at = EXCLUDED.expires_at,
     activation_code_id = EXCLUDED.activation_code_id;
 
-  RETURN jsonb_build_object('ok', true, 'teacher_id', v_code.teacher_id);
+  RETURN jsonb_build_object(
+    'ok', true,
+    'teacher_id', v_code.teacher_id,
+    'course_id', v_code.course_id,
+    'course_price', (SELECT price FROM public.courses WHERE id = v_code.course_id)
+  );
 END;
 $$;
 
@@ -793,9 +856,11 @@ GRANT EXECUTE ON FUNCTION public.create_subscription_with_payment(UUID, NUMERIC,
 -- LESSON PROGRESS
 -- ============================================================
 
+DROP POLICY IF EXISTS "students_manage_own_progress" ON public.lesson_progress;
 CREATE POLICY "students_manage_own_progress" ON public.lesson_progress
   FOR ALL USING (student_id = auth.uid());
 
+DROP POLICY IF EXISTS "teachers_view_student_progress" ON public.lesson_progress;
 CREATE POLICY "teachers_view_student_progress" ON public.lesson_progress
   FOR SELECT USING (
     lesson_id IN (
@@ -809,9 +874,11 @@ CREATE POLICY "teachers_view_student_progress" ON public.lesson_progress
 -- EXAM SUBMISSIONS
 -- ============================================================
 
+DROP POLICY IF EXISTS "students_manage_own_submissions" ON public.exam_submissions;
 CREATE POLICY "students_manage_own_submissions" ON public.exam_submissions
   FOR ALL USING (student_id = auth.uid());
 
+DROP POLICY IF EXISTS "teachers_view_exam_submissions" ON public.exam_submissions;
 CREATE POLICY "teachers_view_exam_submissions" ON public.exam_submissions
   FOR SELECT USING (
     exam_id IN (
@@ -819,6 +886,7 @@ CREATE POLICY "teachers_view_exam_submissions" ON public.exam_submissions
     )
   );
 
+DROP POLICY IF EXISTS "admin_select_all_submissions" ON public.exam_submissions;
 CREATE POLICY "admin_select_all_submissions" ON public.exam_submissions
   FOR SELECT USING (
     (auth.jwt()->'user_metadata'->>'role') = 'super_admin'
@@ -828,15 +896,19 @@ CREATE POLICY "admin_select_all_submissions" ON public.exam_submissions
 -- COMMENTS
 -- ============================================================
 
+DROP POLICY IF EXISTS "comments_select_all" ON public.comments;
 CREATE POLICY "comments_select_all" ON public.comments
   FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "comments_insert_own" ON public.comments;
 CREATE POLICY "comments_insert_own" ON public.comments
   FOR INSERT WITH CHECK (author_id = auth.uid());
 
+DROP POLICY IF EXISTS "comments_update_own" ON public.comments;
 CREATE POLICY "comments_update_own" ON public.comments
   FOR UPDATE USING (author_id = auth.uid());
 
+DROP POLICY IF EXISTS "comments_delete_own" ON public.comments;
 CREATE POLICY "comments_delete_own" ON public.comments
   FOR DELETE USING (author_id = auth.uid());
 
@@ -844,12 +916,15 @@ CREATE POLICY "comments_delete_own" ON public.comments
 -- BOOKMARKS
 -- ============================================================
 
+DROP POLICY IF EXISTS "bookmarks_select_own" ON public.bookmarks;
 CREATE POLICY "bookmarks_select_own" ON public.bookmarks
   FOR SELECT USING (student_id = auth.uid());
 
+DROP POLICY IF EXISTS "bookmarks_insert_own" ON public.bookmarks;
 CREATE POLICY "bookmarks_insert_own" ON public.bookmarks
   FOR INSERT WITH CHECK (student_id = auth.uid());
 
+DROP POLICY IF EXISTS "bookmarks_delete_own" ON public.bookmarks;
 CREATE POLICY "bookmarks_delete_own" ON public.bookmarks
   FOR DELETE USING (student_id = auth.uid());
 
@@ -857,15 +932,19 @@ CREATE POLICY "bookmarks_delete_own" ON public.bookmarks
 -- COURSE REVIEWS
 -- ============================================================
 
+DROP POLICY IF EXISTS "course_reviews_select_all" ON public.course_reviews;
 CREATE POLICY "course_reviews_select_all" ON public.course_reviews
   FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "course_reviews_insert_own" ON public.course_reviews;
 CREATE POLICY "course_reviews_insert_own" ON public.course_reviews
   FOR INSERT WITH CHECK (student_id = auth.uid());
 
+DROP POLICY IF EXISTS "course_reviews_update_own" ON public.course_reviews;
 CREATE POLICY "course_reviews_update_own" ON public.course_reviews
   FOR UPDATE USING (student_id = auth.uid());
 
+DROP POLICY IF EXISTS "course_reviews_delete_own" ON public.course_reviews;
 CREATE POLICY "course_reviews_delete_own" ON public.course_reviews
   FOR DELETE USING (student_id = auth.uid());
 
@@ -873,15 +952,19 @@ CREATE POLICY "course_reviews_delete_own" ON public.course_reviews
 -- PAYMENT METHODS
 -- ============================================================
 
+DROP POLICY IF EXISTS "payment_methods_select_own" ON public.payment_methods;
 CREATE POLICY "payment_methods_select_own" ON public.payment_methods
   FOR SELECT USING (student_id = auth.uid());
 
+DROP POLICY IF EXISTS "payment_methods_insert_own" ON public.payment_methods;
 CREATE POLICY "payment_methods_insert_own" ON public.payment_methods
   FOR INSERT WITH CHECK (student_id = auth.uid());
 
+DROP POLICY IF EXISTS "payment_methods_update_own" ON public.payment_methods;
 CREATE POLICY "payment_methods_update_own" ON public.payment_methods
   FOR UPDATE USING (student_id = auth.uid());
 
+DROP POLICY IF EXISTS "payment_methods_delete_own" ON public.payment_methods;
 CREATE POLICY "payment_methods_delete_own" ON public.payment_methods
   FOR DELETE USING (student_id = auth.uid());
 
@@ -889,8 +972,9 @@ CREATE POLICY "payment_methods_delete_own" ON public.payment_methods
 -- 6. SEED DATA (Optional)
 -- ============================================================
 
--- Default subjects
-INSERT INTO public.subjects (name_ar, name_en, icon_name, display_order) VALUES
+-- Default subjects (only if table is empty)
+INSERT INTO public.subjects (name_ar, name_en, icon_name, display_order)
+SELECT * FROM (VALUES
   ('رياضيات', 'Mathematics', 'calculate', 1),
   ('فيزياء', 'Physics', 'science', 2),
   ('كيمياء', 'Chemistry', 'science_outlined', 3),
@@ -900,10 +984,15 @@ INSERT INTO public.subjects (name_ar, name_en, icon_name, display_order) VALUES
   ('لغة فرنسية', 'French', 'translate', 7),
   ('تاريخ', 'History', 'history_edu', 8),
   ('جغرافيا', 'Geography', 'public', 9),
-  ('فلسفة', 'Philosophy', 'psychology', 10);
+  ('فلسفة', 'Philosophy', 'psychology', 10)
+) AS v(name_ar, name_en, icon_name, display_order)
+WHERE NOT EXISTS (SELECT 1 FROM public.subjects LIMIT 1);
 
--- Default subscription plans
-INSERT INTO public.subscription_plans (name, billing_period, price, display_order) VALUES
-  ('الباقة الشهرية', 'monthly', 99.99, 1),
-  ('باقة الفصل', 'term', 249.99, 2),
-  ('باقة السنة', 'yearly', 599.99, 3);
+-- Default subscription plans (only if table is empty)
+INSERT INTO public.subscription_plans (name, billing_period, price, display_order)
+SELECT * FROM (VALUES
+  ('الباقة الشهرية', 'monthly'::billing_period, 99.99, 1),
+  ('باقة الفصل', 'term'::billing_period, 249.99, 2),
+  ('باقة السنة', 'yearly'::billing_period, 599.99, 3)
+) AS v(name, billing_period, price, display_order)
+WHERE NOT EXISTS (SELECT 1 FROM public.subscription_plans LIMIT 1);

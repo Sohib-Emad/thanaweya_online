@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_text_styles.dart';
+import 'package:thanaweya_online/core/constants/app_colors.dart';
+import 'package:thanaweya_online/core/constants/app_text_styles.dart';
+import 'package:thanaweya_online/features/shared/widgets/pressable.dart';
 
+/// Reusable animated button with primary, outlined, and secondary variants.
 class AppButton extends StatefulWidget {
   final String text;
   final VoidCallback? onPressed;
@@ -59,126 +61,76 @@ class _AppButtonState extends State<AppButton>
 
   @override
   Widget build(BuildContext context) {
-    if (widget.isSecondary) {
-      return _Pressable(
-        controller: _controller,
-        onPressed: widget.isLoading ? null : widget.onPressed,
-        child: ScaleTransition(
-          scale: _scaleAnimation,
-          child: Container(
-            height: widget.height ?? 52.h,
-            padding: widget.padding ?? EdgeInsets.symmetric(horizontal: 24.w),
-            decoration: BoxDecoration(
-              color: widget.backgroundColor ?? AppColors.background,
-              borderRadius: BorderRadius.circular(12.r),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: Center(
-              child: Text(
-                widget.text,
-                style: AppTextStyles.button.copyWith(color: AppColors.textPrimary),
-              ),
-            ),
-          ),
-        ),
-      );
-    }
+    final effectiveOnPressed = widget.isLoading ? null : widget.onPressed;
 
-    if (widget.isOutlined) {
-      return _Pressable(
-        controller: _controller,
-        onPressed: widget.isLoading ? null : widget.onPressed,
-        child: ScaleTransition(
-          scale: _scaleAnimation,
-          child: Container(
-            height: widget.height ?? 52.h,
-            padding: widget.padding ?? EdgeInsets.symmetric(horizontal: 24.w),
-            decoration: BoxDecoration(
-              color: Colors.transparent,
-              borderRadius: BorderRadius.circular(12.r),
-              border: Border.all(
-                color: widget.backgroundColor ?? AppColors.studentPrimary,
-                width: 1.5,
-              ),
-            ),
-            child: Center(
-              child: Text(
-                widget.text,
-                style: AppTextStyles.button
-                    .copyWith(color: widget.backgroundColor ?? AppColors.studentPrimary),
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    return _Pressable(
+    return Pressable(
       controller: _controller,
-      onPressed: widget.isLoading ? null : widget.onPressed,
+      onPressed: effectiveOnPressed,
       child: ScaleTransition(
         scale: _scaleAnimation,
         child: Container(
           height: widget.height ?? 52.h,
           padding: widget.padding ?? EdgeInsets.symmetric(horizontal: 24.w),
-          decoration: BoxDecoration(
-            color: widget.backgroundColor ?? AppColors.studentPrimary,
-            borderRadius: BorderRadius.circular(12.r),
-          ),
-          child: Center(
-            child: widget.isLoading
-                ? SizedBox(
-                    height: 20.r,
-                    width: 20.r,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: widget.textColor ?? AppColors.textOnPrimary,
-                    ),
-                  )
-                : Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (widget.icon != null) ...[
-                        Icon(widget.icon, size: 18.r, color: AppColors.textOnPrimary),
-                        SizedBox(width: 8.w),
-                      ],
-                      Text(
-                        widget.text,
-                        style: AppTextStyles.button
-                            .copyWith(color: widget.textColor ?? AppColors.textOnPrimary),
-                      ),
-                    ],
-                  ),
-          ),
+          decoration: _decoration(),
+          child: Center(child: _buildChild()),
         ),
       ),
     );
   }
-}
 
-class _Pressable extends StatelessWidget {
-  final AnimationController controller;
-  final VoidCallback? onPressed;
-  final Widget child;
+  BoxDecoration _decoration() {
+    if (widget.isSecondary) {
+      return BoxDecoration(
+        color: widget.backgroundColor ?? AppColors.background,
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: AppColors.border),
+      );
+    }
+    if (widget.isOutlined) {
+      return BoxDecoration(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(
+          color: widget.backgroundColor ?? AppColors.studentPrimary,
+          width: 1.5,
+        ),
+      );
+    }
+    return BoxDecoration(
+      color: widget.backgroundColor ?? AppColors.studentPrimary,
+      borderRadius: BorderRadius.circular(12.r),
+    );
+  }
 
-  const _Pressable({
-    required this.controller,
-    required this.onPressed,
-    required this.child,
-  });
+  Widget _buildChild() {
+    if (widget.isLoading) {
+      return SizedBox(
+        height: 20.r,
+        width: 20.r,
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          color: widget.textColor ?? AppColors.textOnPrimary,
+        ),
+      );
+    }
 
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: onPressed != null ? (_) => controller.forward() : null,
-      onTapUp: onPressed != null
-          ? (_) {
-              controller.reverse();
-              onPressed?.call();
-            }
-          : null,
-      onTapCancel: onPressed != null ? () => controller.reverse() : null,
-      child: child,
+    final labelColor = widget.isSecondary
+        ? AppColors.textPrimary
+        : (widget.textColor ?? AppColors.textOnPrimary);
+
+    if (widget.isSecondary || widget.isOutlined) {
+      return Text(widget.text, style: AppTextStyles.button.copyWith(color: labelColor));
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (widget.icon != null) ...[
+          Icon(widget.icon, size: 18.r, color: AppColors.textOnPrimary),
+          SizedBox(width: 8.w),
+        ],
+        Text(widget.text, style: AppTextStyles.button.copyWith(color: labelColor)),
+      ],
     );
   }
 }

@@ -9,6 +9,13 @@ class StudentBookmarksCubit extends Cubit<StudentBookmarksState> {
       : _repo = repo,
         super(const StudentBookmarksState());
 
+  @override
+  void emit(StudentBookmarksState state) {
+    if (!isClosed) {
+      super.emit(state);
+    }
+  }
+
   Future<void> loadBookmarks(String studentId) async {
     emit(state.copyWith(status: StudentBookmarksStatus.loading));
     final result = await _repo.getBookmarks(studentId);

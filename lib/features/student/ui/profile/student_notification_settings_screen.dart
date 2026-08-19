@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import '../../../../core/theme/notebook_theme.dart';
+import 'package:thanaweya_online/core/theme/notebook_theme.dart';
+import 'package:thanaweya_online/l10n/l10n.dart';
 
 class StudentNotificationSettingsScreen extends StatefulWidget {
   const StudentNotificationSettingsScreen({super.key});
@@ -15,27 +16,51 @@ class StudentNotificationSettingsScreen extends StatefulWidget {
 class _StudentNotificationSettingsScreenState
     extends State<StudentNotificationSettingsScreen> {
   final Map<String, bool> _settings = {
-    'العروض الخاصة': true,
-    'الأصوات والتنبيهات': true,
-    'الاهتزاز': false,
-    'الإشعارات العامة': true,
-    'الخصومات والعروض الترويجية': false,
-    'معاملات وسائل الدفع': true,
-    'تحديثات التطبيق': true,
-    'الخدمات الجديدة': false,
-    'النصائح والإرشادات': false,
+    'special_offers': true,
+    'sounds': true,
+    'vibration': false,
+    'general': true,
+    'promotions': false,
+    'payment': true,
+    'app_updates': true,
+    'new_services': false,
+    'tips': false,
   };
+
+  String _label(AppLocalizations l10n, String key) {
+    switch (key) {
+      case 'special_offers':
+        return l10n.notifSpecialOffers;
+      case 'sounds':
+        return l10n.notifSounds;
+      case 'vibration':
+        return l10n.notifVibration;
+      case 'general':
+        return l10n.notifGeneral;
+      case 'promotions':
+        return l10n.notifPromotions;
+      case 'payment':
+        return l10n.notifPayment;
+      case 'app_updates':
+        return l10n.notifAppUpdates;
+      case 'new_services':
+        return l10n.notifNewServices;
+      case 'tips':
+        return l10n.notifTips;
+      default:
+        return key;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-        backgroundColor: NotebookColors.ground,
-        appBar: NotebookTopBar(
-          title: 'التنبيهات والإشعارات',
-          subtitle: 'تحكم في تنبيهات دفترك',
-        ),
+    final l10n = context.l10n;
+    return Scaffold(
+      backgroundColor: NotebookColors.ground,
+      appBar: NotebookTopBar(
+        title: l10n.notificationsTitle,
+        subtitle: l10n.notificationsSubtitle,
+      ),
         body: NotebookPaper(
           child: ListView(
             padding: EdgeInsets.fromLTRB(20.w, 18.h, 20.w, 40.h),
@@ -54,7 +79,7 @@ class _StudentNotificationSettingsScreenState
                       activeTrackColor: NotebookColors.green,
                       contentPadding: EdgeInsets.symmetric(horizontal: 16.w),
                       title: Text(
-                        key,
+                        _label(l10n, key),
                         style: NotebookText.body(13.sp),
                       ),
                       onChanged: (val) {
@@ -68,7 +93,6 @@ class _StudentNotificationSettingsScreenState
             ],
           ),
         ),
-      ),
     );
   }
 }

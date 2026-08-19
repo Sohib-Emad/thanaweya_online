@@ -29,6 +29,42 @@ class TeacherExamResultsCubit extends Cubit<TeacherExamResultsState> {
       )),
     );
   }
+
+  /// Re-opens the exam for one student (deletes their attempts).
+  Future<bool> resetStudentAttempts({
+    required String examId,
+    required String studentId,
+  }) async {
+    final result = await _repo.resetStudentAttempts(
+      examId: examId,
+      studentId: studentId,
+    );
+    return result.when(
+      success: (_) {
+        loadSubmissions(examId);
+        return true;
+      },
+      failure: (message, _) {
+        emit(state.copyWith(errorMessage: message));
+        return false;
+      },
+    );
+  }
+
+  /// Re-opens the exam for every student (deletes all submissions).
+  Future<bool> resetAllAttempts(String examId) async {
+    final result = await _repo.resetAllAttempts(examId);
+    return result.when(
+      success: (_) {
+        loadSubmissions(examId);
+        return true;
+      },
+      failure: (message, _) {
+        emit(state.copyWith(errorMessage: message));
+        return false;
+      },
+    );
+  }
 }
 
 enum TeacherExamResultsStatus { initial, loading, loaded, error }

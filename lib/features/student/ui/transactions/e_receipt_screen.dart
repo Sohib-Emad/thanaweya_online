@@ -3,14 +3,16 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'package:thanaweya_online/core/theme/notebook_theme.dart';
+import 'package:thanaweya_online/l10n/l10n.dart';
+import 'widgets/receipt_menu_button.dart';
+import 'widgets/receipt_status_badge.dart';
+import '../courses/widgets/receipt_barcode.dart';
+import '../courses/widgets/receipt_info_row.dart';
 
 class EReceiptScreen extends StatelessWidget {
   final Map<String, dynamic>? transactionData;
 
-  const EReceiptScreen({
-    super.key,
-    this.transactionData,
-  });
+  const EReceiptScreen({super.key, this.transactionData});
 
   @override
   Widget build(BuildContext context) {
@@ -27,98 +29,19 @@ class EReceiptScreen extends StatelessWidget {
       child: Scaffold(
         backgroundColor: NotebookColors.ground,
         appBar: NotebookTopBar(
-          title: 'إيصال الدفع الإلكتروني',
-          subtitle: 'نسخة من الإيصال على صفحة دفترك',
+          title: context.l10n.receiptTitle,
+          subtitle: context.l10n.receiptSubtitle,
           actions: [
-            PopupMenuButton<String>(
-              icon: Container(
-                width: 36.r,
-                height: 36.r,
-                decoration: BoxDecoration(
-                  color: NotebookColors.surfaceBright,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: NotebookColors.ink.withAlpha(50),
-                    width: 1.2,
-                  ),
+            ReceiptMenuButton(onSelected: (value) {
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text(
+                  '${context.l10n.actionExecuted}$value',
+                  style: NotebookText.strong(13.sp, color: Colors.white),
                 ),
-                child: Icon(
-                  Icons.more_horiz_rounded,
-                  color: NotebookColors.ink,
-                  size: 20.r,
-                ),
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16.r),
-              ),
-              elevation: 6,
-              onSelected: (value) {
-                HapticFeedback.mediumImpact();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'تم تنفيذ الأمر: $value',
-                      style: NotebookText.strong(13.sp, color: Colors.white),
-                    ),
-                    backgroundColor: NotebookColors.green,
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-              },
-              itemBuilder: (context) => [
-                PopupMenuItem(
-                  value: 'مشاركة الإيصال',
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'مشاركة',
-                        style: NotebookText.strong(13.sp),
-                      ),
-                      Icon(
-                        Icons.send_rounded,
-                        size: 18.r,
-                        color: NotebookColors.green,
-                      ),
-                    ],
-                  ),
-                ),
-                PopupMenuItem(
-                  value: 'تحميل PDF',
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'تحميل',
-                        style: NotebookText.strong(13.sp),
-                      ),
-                      Icon(
-                        Icons.download_rounded,
-                        size: 18.r,
-                        color: NotebookColors.green,
-                      ),
-                    ],
-                  ),
-                ),
-                PopupMenuItem(
-                  value: 'طباعة الإيصال',
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'طباعة',
-                        style: NotebookText.strong(13.sp),
-                      ),
-                      Icon(
-                        Icons.print_rounded,
-                        size: 18.r,
-                        color: NotebookColors.pencil,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+                backgroundColor: NotebookColors.green,
+                behavior: SnackBarBehavior.floating,
+              ));
+            }),
           ],
         ),
         body: NotebookPaper(
@@ -127,176 +50,7 @@ class EReceiptScreen extends StatelessWidget {
             physics: const BouncingScrollPhysics(),
             child: Column(
               children: [
-                // Ruled Receipt Page Card
-                NotebookCard(
-                  ruled: true,
-                  ruledStartY: 96,
-                  marginTab: true,
-                  padding: EdgeInsets.all(20.r),
-                  child: Column(
-                    children: [
-                      // Verified Check Illustration
-                      Container(
-                        width: 72.r,
-                        height: 72.r,
-                        decoration: BoxDecoration(
-                          color: NotebookColors.green.withAlpha(20),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: NotebookColors.green.withAlpha(80),
-                            width: 1.4,
-                          ),
-                        ),
-                        child: Center(
-                          child: Icon(
-                            Icons.check_circle_rounded,
-                            color: NotebookColors.green,
-                            size: 44.r,
-                          ),
-                        ),
-                      ),
-
-                      SizedBox(height: 20.h),
-
-                      // Barcode graphic
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(
-                          32,
-                          (index) => Container(
-                            margin: EdgeInsets.symmetric(
-                              horizontal: (index % 4 == 0) ? 2.w : 1.w,
-                            ),
-                            width: (index % 3 == 0)
-                                ? 3.w
-                                : (index % 2 == 0)
-                                    ? 2.w
-                                    : 1.w,
-                            height: 48.h,
-                            color: NotebookColors.ink,
-                          ),
-                        ),
-                      ),
-
-                      SizedBox(height: 8.h),
-
-                      // Barcode Numbers (real transaction id)
-                      Text(
-                        transactionId,
-                        style: NotebookText.body(12.sp)
-                            .copyWith(letterSpacing: 2),
-                      ),
-
-                      SizedBox(height: 20.h),
-                      Container(
-                        height: 1,
-                        color: NotebookColors.ink.withAlpha(35),
-                      ),
-                      SizedBox(height: 16.h),
-
-                      // Receipt Info Table
-                      _buildReceiptRow('اسم الطالب', studentName),
-                      SizedBox(height: 14.h),
-                      _buildReceiptRow('البريد الإلكتروني', email),
-                      SizedBox(height: 14.h),
-                      _buildReceiptRow('اسم الكورس', title),
-                      SizedBox(height: 14.h),
-                      _buildReceiptRow('التصنيف', category),
-                      SizedBox(height: 14.h),
-
-                      // Transaction ID with copy button
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'رقم المعاملة',
-                            style: NotebookText.note(12.sp),
-                          ),
-                          Row(
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  transactionId,
-                                  style: NotebookText.strong(13.sp),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              SizedBox(width: 6.w),
-                              GestureDetector(
-                                onTap: () {
-                                  Clipboard.setData(
-                                    ClipboardData(text: transactionId),
-                                  );
-                                  HapticFeedback.lightImpact();
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        'تم نسخ رقم المعاملة',
-                                        style: NotebookText.strong(
-                                          13.sp,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      duration: const Duration(seconds: 1),
-                                      backgroundColor: NotebookColors.green,
-                                      behavior: SnackBarBehavior.floating,
-                                    ),
-                                  );
-                                },
-                                child: Icon(
-                                  Icons.copy_rounded,
-                                  color: NotebookColors.green,
-                                  size: 16.r,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 14.h),
-                      _buildReceiptRow(
-                        'المبلغ المدفوع',
-                        price,
-                        isBoldPrice: true,
-                      ),
-                      SizedBox(height: 14.h),
-                      _buildReceiptRow('تاريخ المعاملة', date),
-                      SizedBox(height: 14.h),
-
-                      // Status Row
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'حالة الدفع',
-                            style: NotebookText.note(12.sp),
-                          ),
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 12.w,
-                              vertical: 3.h,
-                            ),
-                            decoration: BoxDecoration(
-                              color: NotebookColors.green.withAlpha(24),
-                              borderRadius: BorderRadius.circular(10.r),
-                              border: Border.all(
-                                color: NotebookColors.green.withAlpha(90),
-                              ),
-                            ),
-                            child: Text(
-                              'مدفوع',
-                              style: NotebookText.strong(
-                                11.sp,
-                                color: NotebookColors.green,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
+                _buildReceiptCard(context, studentName, email, title, category, transactionId, price, date),
               ],
             ),
           ),
@@ -305,24 +59,73 @@ class EReceiptScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildReceiptRow(
-    String label,
-    String value, {
-    bool isBoldPrice = false,
-  }) {
+  Widget _buildReceiptCard(
+    BuildContext context, String studentName, String email,
+    String title, String category, String transactionId,
+    String price, String date,
+  ) {
+    return NotebookCard(
+      ruled: true,
+      ruledStartY: 96,
+      marginTab: true,
+      padding: EdgeInsets.all(20.r),
+      child: Column(
+        children: [
+          ReceiptBarcode(transactionId: transactionId),
+          SizedBox(height: 20.h),
+          Container(height: 1, color: NotebookColors.ink.withAlpha(35)),
+          SizedBox(height: 16.h),
+          ReceiptInfoRow(label: context.l10n.studentNameLabel, value: studentName),
+          SizedBox(height: 14.h),
+          ReceiptInfoRow(label: context.l10n.emailLabel, value: email),
+          SizedBox(height: 14.h),
+          ReceiptInfoRow(label: context.l10n.courseNameLabel, value: title),
+          SizedBox(height: 14.h),
+          ReceiptInfoRow(label: context.l10n.categoryLabel, value: category),
+          SizedBox(height: 14.h),
+          _buildTransactionIdRow(context, transactionId),
+          SizedBox(height: 14.h),
+          ReceiptInfoRow(label: context.l10n.amountPaidLabel, value: price, isHighlighted: true),
+          SizedBox(height: 14.h),
+          ReceiptInfoRow(label: context.l10n.transactionDateLabel, value: date),
+          SizedBox(height: 14.h),
+          ReceiptStatusBadge(label: context.l10n.paidStatus),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTransactionIdRow(BuildContext context, String transactionId) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: NotebookText.note(12.sp)),
+        Text(context.l10n.transactionNumberLabel, style: NotebookText.note(12.sp)),
         Flexible(
-          child: Text(
-            value,
-            textAlign: TextAlign.left,
-            style: isBoldPrice
-                ? NotebookText.heading(15.sp, color: NotebookColors.green)
-                : NotebookText.strong(12.sp),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          child: Row(
+            children: [
+              Flexible(
+                child: Text(
+                  transactionId,
+                  style: NotebookText.strong(13.sp),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              SizedBox(width: 6.w),
+              GestureDetector(
+                onTap: () {
+                  Clipboard.setData(ClipboardData(text: transactionId));
+                  HapticFeedback.lightImpact();
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text(context.l10n.transactionIdCopied, style: NotebookText.strong(13.sp, color: Colors.white)),
+                    duration: const Duration(seconds: 1),
+                    backgroundColor: NotebookColors.green,
+                    behavior: SnackBarBehavior.floating,
+                  ));
+                },
+                child: Icon(Icons.copy_rounded, color: NotebookColors.green, size: 16.r),
+              ),
+            ],
           ),
         ),
       ],

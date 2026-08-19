@@ -9,10 +9,11 @@ class AdminTeachersRepo {
   Future<ApiResult<List<Map<String, dynamic>>>> getPendingTeachers() async {
     try {
       final data = await _client.from('teachers').select('''
-            id, stage, bio, approval_status, created_at,
+            id, stage, bio, approval_status, avatar_url, id_card_front_url, id_card_back_url, teacher_proof_url,
+            payment_receipt_url, selected_plan, payment_method, subscription_amount, created_at,
             users!inner(id, full_name, email, phone),
-            subjects!inner(id, name_ar)
-          ''').eq('approval_status', 'pending').order('created_at');
+            subjects(id, name_ar)
+          ''').eq('approval_status', 'pending').order('created_at', ascending: false);
       return ApiResult.success(data);
     } catch (e) {
       return ApiErrorHandler.handleException(e);
@@ -22,9 +23,10 @@ class AdminTeachersRepo {
   Future<ApiResult<List<Map<String, dynamic>>>> getAllTeachers() async {
     try {
       final data = await _client.from('teachers').select('''
-            id, stage, bio, approval_status, rejection_reason, created_at,
+            id, stage, bio, approval_status, avatar_url, id_card_front_url, id_card_back_url, teacher_proof_url,
+            payment_receipt_url, selected_plan, payment_method, subscription_amount, rejection_reason, created_at,
             users!inner(id, full_name, email, phone),
-            subjects!inner(id, name_ar)
+            subjects(id, name_ar)
           ''').order('created_at', ascending: false);
       return ApiResult.success(data);
     } catch (e) {

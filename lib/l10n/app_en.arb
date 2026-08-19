@@ -1,0 +1,712 @@
+{
+  "@@locale": "en",
+  "appName": "Thanaweya Online",
+  "loading": "Loading...",
+  "error": "Something went wrong",
+  "retry": "Retry",
+  "cancel": "Cancel",
+  "save": "Save",
+  "delete": "Delete",
+  "edit": "Edit",
+  "add": "Add",
+  "confirm": "Confirm",
+  "back": "Back",
+  "next": "Next",
+  "done": "Done",
+  "search": "Search",
+  "noData": "No data",
+  "offline": "No internet connection",
+  "offlineMessage": "Check your internet connection and try again",
+  "fieldRequired": "This field is required",
+  "invalidEmail": "Invalid email address",
+  "invalidPhone": "Invalid phone number",
+  "passwordTooShort": "Password is too short",
+  "passwordMismatch": "Passwords do not match",
+  "invalidOtp": "Invalid code",
+  "home": "Home",
+  "settings": "Settings",
+  "logout": "Logout",
+  "profile": "Profile",
+  "language": "Language",
+  "notifications": "Notifications",
+  "register": "Sign Up",
+  "login": "Log In",
+  "email": "Email",
+  "password": "Password",
+  "fullName": "Full Name",
+  "phone": "Phone",
+  "parentPhone": "Parent Phone",
+  "gradeLevel": "Grade Level",
+  "firstStage": "First Year Secondary",
+  "secondStage": "Second Year Secondary",
+  "thirdStage": "Third Year Secondary",
+  "studentRegistration": "Student Registration",
+  "signUpSubtitle": "Enter your details to start your student notebook",
+  "fullNameHint": "Enter your full name...",
+  "gradeLevelHint": "Select your grade level...",
+  "creatingAccount": "Creating account...",
+  "chooseFromGallery": "Choose from gallery",
+  "chooseFromGallerySubtitle": "Pick a clear image saved on your device",
+  "takePhoto": "Take a new photo",
+  "takePhotoSubtitle": "Use your phone camera for an instant photo",
+  "chooseProfilePicture": "Choose a profile picture",
+  "selectSubjects": "Select Subjects",
+  "selectSubjectsSubtitle": "Choose the subjects you will study this year",
+  "generalSystem": "General",
+  "baccalaureateSystem": "Baccalaureate System",
+  "loadSubjectsError": "An error occurred while loading subjects",
+  "noSubjectsAvailable": "No subjects available",
+  "nextWithCount": "Next ({count})",
+  "@nextWithCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "trackMedicine": "Medicine & Life Sciences Track",
+  "trackMedicineDesc": "Qualifies for: Medicine, Pharmacy, Dentistry, Physiotherapy, and Nursing.",
+  "trackEngineering": "Engineering & Computer Science Track",
+  "trackEngineeringDesc": "Qualifies for: Engineering, Computer Science, and Biotechnology.",
+  "trackBusiness": "Business & Economics Track",
+  "trackBusinessDesc": "Qualifies for: Commerce, Economics & Political Science, Media, and Law.",
+  "trackArts": "Arts & Humanities Track",
+  "trackArtsDesc": "Qualifies for: Arts, Languages, Fine Arts, and Dar Al Uloom.",
+  "selectTeachers": "Select Teachers",
+  "selectTeachersSubtitle": "Choose the teachers you want to follow",
+  "noTeachersAvailable": "No teachers available",
+  "settingsSubtitle": "App and profile settings",
+  "studentNotebook": "Student Notebook",
+  "welcomeBack": "Welcome back, {name} 👋",
+  "@welcomeBack": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "whatToLearnToday": "What would you like to learn today?",
+  "searchPlaceholder": "Search for a subject, course, or teacher...",
+  "discountStamp": "25% OFF",
+  "todaysOffer": "Today's special offer!",
+  "todaysOfferMessage": "Subscribe now and get a discount on any course for a limited time",
+  "popularCourses": "Popular Courses",
+  "all": "All",
+  "filteredCourses": "Filtered: {count} course(s)",
+  "@filteredCourses": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "clear": "Clear",
+  "noCoursesMatch": "No courses match your filters — try another subject",
+  "topTeachers": "Top Teachers",
+  "continueCourse": "Continue Course",
+  "myCoursesTab": "My Courses",
+  "transactionsTab": "Transactions",
+  "examsTab": "Exams",
+  "profileTab": "Profile",
+  "myCoursesTitle": "My Educational Courses",
+  "myCoursesSubtitle": "Your courses on notebook pages",
+  "searchInCoursesHint": "Search your courses...",
+  "completedTab": "Completed",
+  "ongoingTab": "Ongoing",
+  "noCoursesMatching": "No matching courses — try adjusting the filters",
+  "noCompletedCourses": "No completed courses yet",
+  "videoLesson": "Lesson Video",
+  "videoOfSubject": "{subject} Video",
+  "@videoOfSubject": {
+    "placeholders": {
+      "subject": {
+        "type": "String"
+      }
+    }
+  },
+  "lessonCount": "{count} lessons",
+  "@lessonCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "aboutTab": "About",
+  "curriculumTab": "Curriculum",
+  "subscribedLabel": "You are subscribed to this course ✓",
+  "subscribeWithPrice": "Subscribe & activate code — {price}",
+  "@subscribeWithPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "activateCode": "Activate subscription code",
+  "teacherNotFound": "Could not identify the teacher, please try again",
+  "courseIntroFallback": "This course explains the subject curriculum step by step with problem solutions and comprehensive reviews to help you prepare for the exam.",
+  "showLess": "Show less",
+  "readMore": "Read more...",
+  "instructor": "Instructor",
+  "teacherRole": "Teacher",
+  "whatYouGetTitle": "What you'll learn and get in this course?",
+  "whatYouGet1": "Full access to all course lessons",
+  "whatYouGet2": "Watch on mobile, tablet, and computer",
+  "whatYouGet3": "Summaries and notes for revision",
+  "whatYouGet4": "Quizzes and practice exams",
+  "whatYouGet5": "Track your progress lesson by lesson",
+  "studentReviewsTitle": "Student Reviews",
+  "viewAll": "View All",
+  "reviewsAvailableNote": "Student ratings are available on the course page",
+  "lockedLessonTitle": "Lesson Locked",
+  "lockedLessonMessage": "Sorry, the curriculum is for viewing only. To watch \"{title}\" you must pay, subscribe, and activate the code first.",
+  "@lockedLessonMessage": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "payAndActivate": "Pay & activate code",
+  "lessonAvailable": "Lesson available",
+  "requiresSubscription": "Requires subscription & payment 🔒",
+  "lessonDurationLocked": "{duration} · requires subscription & payment 🔒",
+  "@lessonDurationLocked": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "noIntroVideo": "No intro video",
+  "courseSectionTitle": "Course Lessons",
+  "sectionLabel": "Section {number}",
+  "@sectionLabel": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "curriculumTitle": "Course Curriculum",
+  "curriculumSubtitle": "Your lessons on notebook pages",
+  "searchLessonHint": "Search for a lesson or content...",
+  "noLessonsYet": "No lessons in this course yet",
+  "restartCourse": "Restart Course",
+  "continueLearning": "Continue Learning",
+  "lessonGeneric": "Lesson",
+  "filterResults": "Filter Results",
+  "filterSubtitle": "Choose a subject or stage from the notebook pages",
+  "reset": "Reset",
+  "studySubjects": "Subjects",
+  "noSubjectsNow": "No subjects available right now",
+  "studyStage": "Study Stage",
+  "showAllCourses": "Show All Courses",
+  "applyFilter": "Apply Filter ({count})",
+  "@applyFilter": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "watchingLesson": "Watching Lesson",
+  "lessonHandout": "Lesson Handout",
+  "noHandoutYet": "No handout attached to this lesson yet",
+  "tapToOpen": "Tap to open the file",
+  "lessonExam": "Lesson Exam",
+  "noLessonExam": "No exam assigned to this lesson",
+  "attemptsExhausted": "Attempts exhausted",
+  "examMeta": "{duration} min · Attempts {used}/{max}",
+  "@examMeta": {
+    "placeholders": {
+      "duration": {
+        "type": "int"
+      },
+      "used": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "contentLockedTitle": "Content Locked",
+  "lockedContentMessage": "This session is available only to subscribed students. Please activate a subscription code or subscribe for full video access.",
+  "videoViewsExhaustedTitle": "Video views exhausted",
+  "videoViewsExhaustedMessage": "You have used up the allowed number of views for this video. Contact your teacher to reopen it.",
+  "ok": "OK",
+  "couldNotOpenFile": "Could not open the file",
+  "videoLockedForSubscribers": "This video is locked for subscribers only",
+  "videoLockedSubMessage": "Subscribe to the course and activate the subscription code to watch all videos",
+  "viewsExhaustedOverlay": "This video's views are exhausted",
+  "viewsCountMessage": "{viewCount} of {maxViews} views used · Contact your teacher to reopen it",
+  "@viewsCountMessage": {
+    "placeholders": {
+      "viewCount": {
+        "type": "int"
+      },
+      "maxViews": {
+        "type": "int"
+      }
+    }
+  },
+  "teacherPageFallback": "Teacher Page",
+  "teacherPageSubtitle": "Teacher profile, contact info, and centers",
+  "verifiedTeacher": "Verified teacher on Thanaweya Online",
+  "whatsappMessage": "Hello Mr./Ms. {teacherName}, I would like to ask about your lessons and educational centers from the Thanaweya Online app.",
+  "@whatsappMessage": {
+    "placeholders": {
+      "teacherName": {
+        "type": "String"
+      }
+    }
+  },
+  "whatsappOpenFailed": "Could not open WhatsApp, please make sure the app is installed",
+  "quickContact": "Quick Contact",
+  "quickContactMessage": "You can contact the teacher directly to ask about centers, schedules, or any other study details.",
+  "contactOnWhatsapp": "Contact via WhatsApp",
+  "bioLabel": "About",
+  "noBio": "No bio is available for this teacher yet.",
+  "teachingPlaceTitle": "Teaching Location & Method",
+  "teachingMethod": "Teaching Method",
+  "centerLocation": "Center Location",
+  "locatedInGovernorate": "Located in centers in {governorate} governorate",
+  "@locatedInGovernorate": {
+    "placeholders": {
+      "governorate": {
+        "type": "String"
+      }
+    }
+  },
+  "academicTitle": "Grades & Systems",
+  "subjectField": "Subject",
+  "gradeField": "Grades",
+  "systemField": "System",
+  "notSpecified": "Not specified",
+  "generalSecondary": "General Secondary",
+  "azhariSecondary": "Al-Azhar Secondary",
+  "stemSchools": "STEM Schools",
+  "modeOnline": "Online (through the platform only)",
+  "modeCenter": "In-person at the center only",
+  "modeBoth": "Online and through educational centers",
+  "modeOnlineShort": "Online",
+  "teacherInfoLoadError": "Could not load teacher info",
+  "bookmarksTitle": "My Bookmarks",
+  "bookmarksSubtitle": "Courses you saved for review",
+  "loadBookmarksError": "An error occurred loading your bookmarks",
+  "noBookmarks": "No bookmarks yet\nTap the save icon to add courses here",
+  "remove": "Remove",
+  "reviewsSubtitle": "Real reviews on notebook pages",
+  "basedOnReviews": "Based on {count} student review(s)",
+  "@basedOnReviews": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "excellent": "Excellent",
+  "veryGood": "Very Good",
+  "average": "Average",
+  "noReviewsYet": "No reviews yet — be the first to review this course",
+  "addYourReview": "Add Your Review",
+  "writeReviewTitle": "Write a Review",
+  "writeReviewSubtitle": "Write your opinion in your own hand",
+  "reviewHelpsOthers": "Your review helps classmates choose the right course",
+  "yourRatingQuestion": "What's your rating for this course?",
+  "detailedReviewTitle": "Write your detailed review",
+  "reviewHint": "What was your experience with this course and teacher? Share your opinion to help other students...",
+  "submitReview": "Submit Review",
+  "mustLoginFirst": "You must log in first",
+  "reviewSubmitted": "Your review was submitted successfully",
+  "reviewSubmitError": "An error occurred while submitting your review, please try again",
+  "examProgressTitle": "Progress & Exams",
+  "examProgressSubtitle": "Test what you've studied on your notebook pages",
+  "loadExamsError": "An error occurred loading exams",
+  "noExamsAvailable": "No exams available right now\nYour exams will appear here when teachers add them",
+  "examAttemptsExhaustedTitle": "Exam attempts exhausted",
+  "examAttemptsExhaustedMessage": "You have used up the allowed attempts for this exam ({max} attempts). You can view your results or contact the teacher to reopen the exam.",
+  "@examAttemptsExhaustedMessage": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "viewResults": "View Results",
+  "examDurationLabel": "Exam duration: {duration} minutes",
+  "@examDurationLabel": {
+    "placeholders": {
+      "duration": {
+        "type": "int"
+      }
+    }
+  },
+  "attemptsCount": "Attempts: {used}/{max}",
+  "@attemptsCount": {
+    "placeholders": {
+      "used": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "resultsLabel": "Results",
+  "lockedLabel": "Locked",
+  "enterExam": "Enter Exam",
+  "anotherAttempt": "Another Attempt",
+  "comprehensiveExam": "Comprehensive Exam",
+  "durationMinutes": "{min} minutes",
+  "@durationMinutes": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      }
+    }
+  },
+  "totalMarks": "{marks} marks",
+  "@totalMarks": {
+    "placeholders": {
+      "marks": {
+        "type": "String"
+      }
+    }
+  },
+  "examInstructionsTitle": "Exam Instructions & Rules",
+  "examInstructionsSubtitle": "Read the rules before starting",
+  "responsibleTeacher": "Responsible teacher: {name}",
+  "@responsibleTeacher": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "durationStat": "Duration",
+  "questionCountStat": "Questions",
+  "totalScoreStat": "Total Score",
+  "examRulesTitle": "Exam Rules & Regulations",
+  "strictRulesNote": "Strict rules, reading is mandatory before starting",
+  "ruleTimingTitle": "Precise timing",
+  "ruleTimingDesc": "The timer starts as soon as you enter the exam, and answers are submitted automatically when time runs out.",
+  "ruleNoExitTitle": "No leaving the screen (auto-submit)",
+  "ruleNoExitDesc": "If you leave the app, minimize the screen, or switch to another app, the exam will be submitted immediately and graded only on what you answered!",
+  "ruleConnectionTitle": "Keep a stable connection",
+  "ruleConnectionDesc": "Make sure your phone is charged and your internet connection is stable before starting.",
+  "attemptsFinished": "Allowed attempts exhausted",
+  "remainingAttempts": "Remaining attempts: {remaining} of {max}",
+  "@remainingAttempts": {
+    "placeholders": {
+      "remaining": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "attemptsFinishedMessage": "You can contact the teacher to reopen the exam, or view your results",
+  "retakeMessage": "You can retake the exam up to {max} attempts to get the best result",
+  "@retakeMessage": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "startExamNow": "Start Exam Now",
+  "confirmStartTitle": "Confirm Start",
+  "confirmStartMessage": "Once you press \"Start\", the timer begins and cannot be stopped, and leaving the screen is blocked otherwise your answers will be submitted immediately. Are you ready?",
+  "loadQuestionsError": "Could not load exam questions",
+  "backLabel": "Back",
+  "monitoringBanner": "Security monitoring: leaving or minimizing the screen causes auto-submission!",
+  "questionOf": "Question {questionNumber} of {total}",
+  "@questionOf": {
+    "placeholders": {
+      "questionNumber": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "noOptionsAvailable": "No answers available for this question",
+  "previousQuestion": "Previous",
+  "nextQuestion": "Next Question",
+  "submitExamLabel": "Submit Exam",
+  "writeAnswerHere": "Write your answer here",
+  "writeAnswerHint": "Write your detailed answer...",
+  "savedChars": "Saved: {count} characters",
+  "@savedChars": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "exitBlockedTitle": "Leaving the exam is blocked",
+  "exitBlockedMessage": "Leaving the exam screen now will immediately submit all your current answers and calculate the final grade. Do you want to submit and exit?",
+  "cancelAndContinue": "Cancel and continue",
+  "submitNow": "Submit Now",
+  "examResultTitle": "Exam Result",
+  "gradedSaved": "Graded and saved",
+  "gradedSuccess": "Graded successfully",
+  "autoSubmitWarning": "Note: The exam was submitted automatically because you left the screen or minimized the app during the assessment.",
+  "timeoutSubmitNote": "The exam was submitted automatically when the allotted time ran out.",
+  "resultStamp": "Result",
+  "percentage": "Percentage: {percent}%",
+  "@percentage": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "examPassed": "Congratulations, you passed the exam",
+  "examFailed": "You did not reach the required percentage",
+  "attemptInfoExhausted": "This is attempt {attempt} of {max} — you have used all attempts for this exam. You can review your results anytime.",
+  "@attemptInfoExhausted": {
+    "placeholders": {
+      "attempt": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "attemptInfoRemaining": "This is attempt {attempt} of {max} — you have {remaining} attempts left.",
+  "@attemptInfoRemaining": {
+    "placeholders": {
+      "attempt": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      },
+      "remaining": {
+        "type": "int"
+      }
+    }
+  },
+  "viewAllResults": "View All Results",
+  "backToExams": "Back to Exams List",
+  "examResultsTitle": "Exam Results",
+  "loadResultsError": "An error occurred loading results",
+  "noAttemptsYet": "You haven't taken any attempts in this exam yet",
+  "attemptsCountLabel": "Number of attempts: {total}",
+  "@attemptsCountLabel": {
+    "placeholders": {
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "attemptNumber": "Attempt #{index}",
+  "@attemptNumber": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "passedPercent": "{percent}% Passed",
+  "@passedPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "gradeHistoryTitle": "Grade History",
+  "gradeHistorySubtitle": "Your exam results on notebook pages",
+  "loadGradesError": "An error occurred loading grades",
+  "noGradesYet": "No grades yet\nTake an exam to see your result here",
+  "chooseLanguage": "Choose Language",
+  "languageSubtitle": "Notebook display language",
+  "availableLanguages": "Available Languages",
+  "profileSubtitle": "Your data and settings",
+  "editProfile": "Edit Profile",
+  "notificationSettings": "Notification Settings",
+  "changePassword": "Change Password",
+  "appLanguage": "App Language",
+  "termsAndPolicies": "Terms & Policies",
+  "supportCenter": "Support & Help Center",
+  "supportCenterMessage": "Help & technical support center",
+  "inviteFriends": "Invite Friends",
+  "inviteLink": "Join Thanaweya Online: https://thanaweya.online/invite",
+  "inviteCopied": "Invite link copied successfully",
+  "logoutConfirmMessage": "Are you sure you want to log out of your account?",
+  "editProfileSubtitle": "Your data on notebook pages",
+  "basicData": "Basic Info",
+  "nickName": "Nickname",
+  "dateOfBirth": "Date of Birth",
+  "accountType": "Account Type",
+  "studentLabel": "Student",
+  "gender": "Gender",
+  "updateData": "Update Data",
+  "updateDataError": "An error occurred while updating your data",
+  "changePasswordSubtitle": "Enter your current password first",
+  "passwordSecurityNote": "To keep your account secure, enter your current password then choose a strong new one.",
+  "currentPassword": "Current Password",
+  "enterCurrentPassword": "Enter your current password",
+  "newPassword": "New Password",
+  "enterNewPassword": "Enter your new password",
+  "passwordMinLength": "Password must be at least 6 characters",
+  "confirmNewPassword": "Confirm New Password",
+  "reenterNewPassword": "Re-enter your new password",
+  "changingPassword": "Changing...",
+  "passwordChangedSuccess": "Password changed successfully",
+  "changePasswordError": "An error occurred while changing the password",
+  "notificationsTitle": "Notifications & Alerts",
+  "notificationsSubtitle": "Control your notebook alerts",
+  "notifSpecialOffers": "Special Offers",
+  "notifSounds": "Sounds & Alerts",
+  "notifVibration": "Vibration",
+  "notifGeneral": "General Notifications",
+  "notifPromotions": "Discounts & Promotions",
+  "notifPayment": "Payment Transactions",
+  "notifAppUpdates": "App Updates",
+  "notifNewServices": "New Services",
+  "notifTips": "Tips & Guidance",
+  "commentsTitle": "Comments",
+  "commentsSubtitle": "Student notes on the lesson",
+  "noCommentsYet": "No comments yet\nBe the first to comment on the lesson",
+  "commentHint": "Write a comment...",
+  "userGeneric": "User",
+  "certificateTitle": "Completion Certificate",
+  "certificateSubtitle": "Your honor page in the notebook",
+  "courseCompleted": "Course Completed Successfully",
+  "certWitness": "Thanaweya Online certifies that the student",
+  "certCompleted": "has successfully completed all requirements and tests of the educational course:",
+  "issueDateLabel": "Issue date: {date}",
+  "@issueDateLabel": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "studentSignature": "Student Signature",
+  "platformManager": "Platform Manager",
+  "platformName": "Thanaweya Online",
+  "downloadCertificate": "Download Certificate",
+  "certificateDownloaded": "Certificate downloaded successfully as PDF",
+  "enterActivationCodeFirst": "Enter the activation code first",
+  "congratulations": "Congratulations",
+  "subscriptionActivated": "Your subscription was activated successfully.\nYou can now start studying the lectures",
+  "watchLecturesNow": "Watch Lectures Now",
+  "backToHome": "Back to Home",
+  "subscribeToCourse": "Subscribe to Course",
+  "freeCourse": "Free Course",
+  "courseSubscription": "Course Subscription",
+  "activationCodeHint": "Enter the activation code you received from your teacher",
+  "activationCode": "Activation Code",
+  "codeExample": "Example: TH-8921-X90",
+  "codeNote": "Once confirmed, your subscription will be activated immediately for all of the teacher's courses",
+  "activateSubscriptionSubtitle": "Enter the activation code to start studying the course",
+  "codeTab": "Activation Code",
+  "electronicPaymentTab": "Electronic Payment",
+  "activatingCode": "Activating code...",
+  "processingPayment": "Processing payment...",
+  "activateAndSubscribe": "Activate Code & Subscribe Now",
+  "confirmPayment": "Confirm Payment & Subscribe Now",
+  "paySecurely": "Pay securely and easily via direct electronic payment",
+  "paymentMethod": "Payment Method",
+  "visaMastercard": "Visa / Mastercard",
+  "fawryPayments": "Fawry Payments",
+  "cardData": "Card Details",
+  "cardHolderName": "Cardholder Name",
+  "cardHolderExample": "Example: Ahmed Mohamed Ali",
+  "cardNumber": "Card Number",
+  "expiryDate": "Expiry Date",
+  "cvvCode": "Security Code (CVV)",
+  "payViaFawry": "Pay via Fawry",
+  "fawryNote": "A temporary Fawry payment code will be issued to complete the payment at any Fawry outlet.",
+  "fillCardData": "Please fill in all card details",
+  "paymentFailed": "Could not complete the electronic payment, please try again",
+  "transactionsTitle": "Financial Transactions",
+  "transactionsSubtitle": "Payments and subscriptions record",
+  "transactionsLoadError": "An error occurred while loading transactions",
+  "transactionsEmpty": "No transactions yet\nYour payments will appear here when you subscribe to courses",
+  "courseSubscriptionFallback": "Course subscription",
+  "electronicPayment": "Electronic payment",
+  "teacherActivationCode": "Teacher activation code",
+  "fawryGateway": "Fawry payments",
+  "creditCardGateway": "Credit card",
+  "freeViaCode": "Free (code)",
+  "statusPending": "Pending",
+  "statusFailed": "Failed",
+  "statusPaid": "Paid",
+  "receiptTitle": "Electronic Payment Receipt",
+  "receiptSubtitle": "A copy of the receipt on your notebook page",
+  "shareReceipt": "Share receipt",
+  "shareAction": "Share",
+  "downloadPdf": "Download PDF",
+  "downloadAction": "Download",
+  "printReceipt": "Print receipt",
+  "printAction": "Print",
+  "actionExecuted": "Action executed: ",
+  "studentNameLabel": "Student Name",
+  "emailLabel": "Email",
+  "courseNameLabel": "Course Name",
+  "categoryLabel": "Category",
+  "transactionNumberLabel": "Transaction Number",
+  "transactionIdCopied": "Transaction number copied",
+  "amountPaidLabel": "Amount Paid",
+  "transactionDateLabel": "Transaction Date",
+  "paymentStatusLabel": "Payment Status",
+  "paidStatus": "Paid",
+  "egpCurrency": "EGP",
+  "addCardTitle": "Add New Card",
+  "addCardSubtitle": "Register a new payment method in your notebook",
+  "cardDataSection": "Card Details",
+  "cardHolderNameRequired": "Cardholder Name *",
+  "cardHolderHint": "Enter the name printed on the card",
+  "cardNumberRequired": "Card Number *",
+  "cardNumberHint": "•••• •••• •••• ••••",
+  "expiryDateRequired": "Expiry Date *",
+  "cvvRequired": "Security Code *",
+  "cvvHint": "•••",
+  "addCardButton": "Add Card",
+  "enterCardHolderName": "Please enter the cardholder name",
+  "enterValidCardNumber": "Please enter a valid card number",
+  "enterValidExpiry": "Please enter a valid expiry date (MM/YY)",
+  "loginRequiredFirst": "You must log in first",
+  "cardAddedSuccess": "Card added successfully",
+  "cardAddError": "An error occurred while adding the card, please try again",
+  "defaultCardFallback": "Bank card",
+  "paymentOptionsTitle": "Payment Methods Options",
+  "paymentOptionsSubtitle": "Your saved cards in the notebook",
+  "noSavedCards": "No saved cards yet",
+  "defaultCardLabel": "Default",
+  "connectedCardLabel": "Connected",
+  "addNewCardButton": "Add New Card",
+  "courseLessonsTitle": "Course Lessons",
+  "courseLessonsSubtitle": "Watch the sessions and continue your progress",
+  "noLessonsYet": "No lessons in this course yet",
+  "lessonNumber": "Lesson ",
+  "startFirstLesson": "Start First Lesson",
+  "lessonLockedTitle": "Lesson Locked",
+  "lessonLockedMessage": "Sorry, the curriculum is available for viewing only. To watch the video \"{lessonTitle}\" you must pay, subscribe and activate the code first.",
+  "@lessonLockedMessage": {
+    "placeholders": {
+      "lessonTitle": {
+        "type": "String"
+      }
+    }
+  },
+  "cancel": "Cancel",
+  "payAndActivateCode": "Pay & Activate Code",
+  "termsTitle": "Terms & Conditions",
+  "termsSubtitle": "Notebook and platform rules",
+  "attendanceTermsTitle": "Attendance & Enrollment Terms",
+  "attendanceTermsBody": "Thanaweya Online platform is committed to providing the best approved content and high-quality educational lessons. The student undertakes to attend and continuously follow up on scheduled sessions and exams. Sharing personal accounts or reselling educational content without prior written permission is strictly prohibited.",
+  "usageTermsTitle": "Usage & Service Terms",
+  "usageTermsBody": "All intellectual property rights, trademarks and illustrative materials are reserved to Thanaweya Online platform and certified teachers. Video media is encrypted and protected, and any attempt to record the screen or hack the content subjects the account to permanent ban and legal prosecution."
+}

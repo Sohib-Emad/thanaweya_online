@@ -10,6 +10,13 @@ class StudentCommentsCubit extends Cubit<StudentCommentsState> {
       : _repo = repo,
         super(const StudentCommentsState());
 
+  @override
+  void emit(StudentCommentsState state) {
+    if (!isClosed) {
+      super.emit(state);
+    }
+  }
+
   Future<void> loadComments(String lessonId) async {
     emit(state.copyWith(status: StudentCommentsStatus.loading));
     final result = await _repo.getComments(lessonId);

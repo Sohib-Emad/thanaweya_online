@@ -33,10 +33,13 @@ DO $$ BEGIN
   END IF;
 END $$;
 
--- 2.5 Ensure video_source type exists (for intro_video_source_type)
+-- 2.5 Ensure video source columns allow any source (TEXT) seamlessly
 DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'video_source') THEN
-    CREATE TYPE video_source AS ENUM ('youtube', 'upload');
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'courses' AND column_name = 'intro_video_source_type') THEN
+    ALTER TABLE public.courses ALTER COLUMN intro_video_source_type TYPE text USING intro_video_source_type::text;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'lessons' AND column_name = 'video_source_type') THEN
+    ALTER TABLE public.lessons ALTER COLUMN video_source_type TYPE text USING video_source_type::text;
   END IF;
 END $$;
 
@@ -44,7 +47,7 @@ END $$;
 ALTER TABLE public.courses
   ADD COLUMN IF NOT EXISTS price NUMERIC(10,2),
   ADD COLUMN IF NOT EXISTS intro_video_url TEXT,
-  ADD COLUMN IF NOT EXISTS intro_video_source_type video_source NOT NULL DEFAULT 'youtube';
+  ADD COLUMN IF NOT EXISTS intro_video_source_type TEXT NOT NULL DEFAULT 'youtube';
 
 -- 2.7 Ensure payments tracks the purchased course (idempotent)
 ALTER TABLE public.payments
@@ -83,7 +86,8 @@ BEGIN
   -- Lock the code row so two students can't redeem it at once
   SELECT * INTO v_code
   FROM public.activation_codes
-  WHERE code = p_code
+  WHERE UPPER(TRIM(code)) = UPPER(TRIM(p_code))
+     OR REPLACE(REPLACE(UPPER(code), '-', ''), ' ', '') = REPLACE(REPLACE(UPPER(p_code), '-', ''), ' ', '')
   FOR UPDATE;
 
   IF NOT FOUND THEN
@@ -98,20 +102,26 @@ BEGIN
   SET is_used = true, used_by = auth.uid(), used_at = NOW()
   WHERE id = v_code.id;
 
-  -- Create / renew the student's subscription to the code's teacher
+  -- Create / renew the student's subscription to the code's teacher and course
   INSERT INTO public.subscriptions (
-    student_id, teacher_id, activation_code_id, status, starts_at, expires_at
+    student_id, teacher_id, course_id, activation_code_id, status, starts_at, expires_at
   )
   VALUES (
-    auth.uid(), v_code.teacher_id, v_code.id, 'active', NOW(), NOW() + INTERVAL '1 year'
+    auth.uid(), v_code.teacher_id, v_code.course_id, v_code.id, 'active', NOW(), NOW() + INTERVAL '1 year'
   )
   ON CONFLICT (student_id, teacher_id)
   DO UPDATE SET
     status = 'active',
+    course_id = COALESCE(EXCLUDED.course_id, subscriptions.course_id),
     expires_at = EXCLUDED.expires_at,
     activation_code_id = EXCLUDED.activation_code_id;
 
-  RETURN jsonb_build_object('ok', true, 'teacher_id', v_code.teacher_id);
+  RETURN jsonb_build_object(
+    'ok', true,
+    'teacher_id', v_code.teacher_id,
+    'course_id', v_code.course_id,
+    'course_price', (SELECT price FROM public.courses WHERE id = v_code.course_id)
+  );
 END;
 $$;
 
@@ -307,12 +317,15 @@ CREATE TABLE IF NOT EXISTS public.payments (
   payer_id UUID NOT NULL REFERENCES public.users(id),
   payer_type TEXT NOT NULL,
   plan_id UUID REFERENCES public.subscription_plans(id),
+  course_id UUID REFERENCES public.courses(id) ON DELETE SET NULL,
   amount NUMERIC(10,2) NOT NULL,
   payment_gateway TEXT NOT NULL,
   gateway_transaction_id TEXT,
   status TEXT NOT NULL DEFAULT 'pending',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE public.payments ADD COLUMN IF NOT EXISTS course_id UUID REFERENCES public.courses(id) ON DELETE SET NULL;
 
 CREATE TABLE IF NOT EXISTS public.lesson_progress (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -404,9 +417,19 @@ ALTER TABLE public.payment_methods ENABLE ROW LEVEL SECURITY;
 -- 7. USERS policies
 CREATE POLICY "users_select_own" ON public.users FOR SELECT USING (id = auth.uid());
 CREATE POLICY "users_select_teacher_profiles" ON public.users FOR SELECT TO anon, authenticated USING (id IN (SELECT id FROM public.teachers WHERE approval_status = 'approved'));
+CREATE POLICY "teachers_select_subscribed_students" ON public.users FOR SELECT USING (
+  id IN (SELECT student_id FROM public.subscriptions WHERE teacher_id = auth.uid())
+);
 CREATE POLICY "users_insert_own" ON public.users FOR INSERT WITH CHECK (id = auth.uid());
 CREATE POLICY "users_update_own" ON public.users FOR UPDATE USING (id = auth.uid());
 CREATE POLICY "admin_all_users" ON public.users FOR ALL USING ((auth.jwt()->'user_metadata'->>'role') = 'super_admin');
+
+-- 7.1 Safe name lookup view (id, full_name, avatar_url only — no email/phone)
+CREATE OR REPLACE VIEW public.user_profiles AS
+SELECT id, full_name, avatar_url
+FROM public.users;
+
+GRANT SELECT ON public.user_profiles TO anon, authenticated;
 
 -- 8. TEACHERS policies
 CREATE POLICY "teachers_select_own" ON public.teachers FOR SELECT USING (id = auth.uid());
@@ -419,6 +442,9 @@ CREATE POLICY "public_select_approved_teachers" ON public.teachers FOR SELECT US
 CREATE POLICY "students_select_own" ON public.students FOR SELECT USING (id = auth.uid());
 CREATE POLICY "students_insert_own" ON public.students FOR INSERT WITH CHECK (id = auth.uid());
 CREATE POLICY "students_update_own" ON public.students FOR UPDATE USING (id = auth.uid());
+CREATE POLICY "teachers_select_subscribed_students" ON public.students FOR SELECT USING (
+  id IN (SELECT student_id FROM public.subscriptions WHERE teacher_id = auth.uid())
+);
 CREATE POLICY "admin_all_students" ON public.students FOR ALL USING ((auth.jwt()->'user_metadata'->>'role') = 'super_admin');
 
 -- 10. SUBJECTS policies (public read)

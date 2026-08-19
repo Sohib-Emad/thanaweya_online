@@ -1,0 +1,147 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'package:thanaweya_online/core/theme/teacher_desk_theme.dart';
+import 'package:thanaweya_online/features/teacher/data/repos/teacher_courses_repo.dart';
+import 'package:thanaweya_online/features/teacher/ui/exams/widgets/publish_exam_action.dart';
+import 'package:thanaweya_online/features/teacher/ui/exams/widgets/widgets.dart';
+
+/// Three-step wizard for creating or editing an exam.
+class ExamBuilderWizard extends StatefulWidget {
+  const ExamBuilderWizard({super.key, this.initialCourseId, this.examId});
+  final String? initialCourseId, examId;
+
+  @override
+  State<ExamBuilderWizard> createState() => _ExamBuilderWizardState();
+}
+
+class _ExamBuilderWizardState extends State<ExamBuilderWizard> {
+  int _step = 0;
+  bool _saving = false;
+  final _title = TextEditingController();
+  final _desc = TextEditingController();
+  final _time = TextEditingController(text: '45');
+  String? _courseId;
+  List<Map<String, dynamic>> _courses = [];
+  final _questions = <Map<String, dynamic>>[{
+    'type': 'mcq',
+    'question': 'ما هو الناتج الصحيح للمعادلة في الفصل الأول؟',
+    'options': ['الخيار الأول (أ)', 'الخيار الثاني (ب)', 'الخيار الثالث (ج)', 'الخيار الرابع (د)'],
+    'correct_answers': ['0'],
+    'points': 5,
+    'image_file': null,
+  }];
+
+  @override
+  void initState() { super.initState(); _courseId = widget.initialCourseId; _loadCourses(); }
+
+  Future<void> _loadCourses() async {
+    final uid = Supabase.instance.client.auth.currentUser?.id;
+    if (uid == null) return;
+    final res = await TeacherCoursesRepo().getCourses(uid);
+    res.when(
+      success: (courses) {
+        if (!mounted) return;
+        setState(() {
+          _courses = courses.map((c) => {'id': c.id, 'title': c.title}).toList();
+          _courseId ??= _courses.firstOrNull?['id'] as String?;
+        });
+      },
+      failure: (_, _) {},
+    );
+  }
+
+  @override
+  void dispose() { _title.dispose(); _desc.dispose(); _time.dispose(); super.dispose(); }
+
+  String _courseTitle() {
+    for (final c in _courses) { if (c['id'] == _courseId) return (c['title'] as String?) ?? 'كورس عام'; }
+    return 'كورس عام';
+  }
+
+  void _next() {
+    if (_step == 0 && _title.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('يرجى إدخال اسم الامتحان')));
+      return;
+    }
+    if (_step < 2) { HapticFeedback.selectionClick(); setState(() => _step++); }
+  }
+
+  void _prev() { if (_step > 0) { HapticFeedback.selectionClick(); setState(() => _step--); } }
+
+  Future<void> _publish() async {
+    final uid = Supabase.instance.client.auth.currentUser?.id;
+    if (uid == null) return;
+    setState(() => _saving = true);
+    try {
+      final ok = await publishExam(
+        context: context, userId: uid, title: _title.text.trim(),
+        durationText: _time.text.trim(), courseId: _courseId, questions: _questions,
+      );
+      if (ok && mounted) Navigator.pop(context, true);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Widget _stepView() {
+    switch (_step) {
+      case 0:
+        return StepBasicInfo(
+          titleController: _title, descriptionController: _desc,
+          timeLimitController: _time, selectedCourseId: _courseId,
+          teacherCourses: _courses,
+          onCourseChanged: (v) => setState(() => _courseId = v),
+        );
+      case 1:
+        return StepQuestionsBuilder(
+          questions: _questions,
+          onAddQuestion: () => StepQuestionsBuilder.showAddQuestionSheet(
+              context, onAdded: (q) => setState(() => _questions.add(q))),
+          onRemoveQuestion: (i) => setState(() => _questions.removeAt(i)),
+        );
+      case 2:
+        return StepReviewPublish(
+          title: _title.text, description: _desc.text,
+          courseTitle: _courseTitle(), duration: _time.text,
+          questionCount: _questions.length,
+          totalScore: _questions.fold<int>(0, (s, q) => s + ((q['points'] as int?) ?? 5)),
+        );
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        backgroundColor: DeskColors.ground,
+        appBar: DeskTopBar(
+          title: widget.examId != null ? 'تعديل الامتحان' : 'إنشاء امتحان جديد',
+          subtitle: 'معالج الـ 3 خطوات (خطوة ${_step + 1} من 3)',
+          automaticallyImplyBack: true,
+        ),
+        body: DeskSurface(
+          child: Column(children: [
+            StepProgressBar(currentStep: _step),
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: EdgeInsets.all(18.r),
+                child: _stepView(),
+              ),
+            ),
+            WizardBottomNav(
+              currentStep: _step, isSaving: _saving,
+              onPrev: _prev, onNext: _next, onPublish: _publish,
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+}

@@ -1,9 +1,10 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:thanaweya_online/features/shared/models/exam_model.dart';
-import 'package:thanaweya_online/features/shared/models/question_model.dart';
 import 'package:thanaweya_online/features/teacher/data/repos/teacher_exams_repo.dart';
+export 'package:thanaweya_online/features/teacher/logic/teacher_exams_state.dart';
+import 'package:thanaweya_online/features/teacher/logic/teacher_exams_state.dart';
 
+/// Handles exam listing, creation, and updates for teachers.
 class TeacherExamsCubit extends Cubit<TeacherExamsState> {
   final TeacherExamsRepo _repo;
 
@@ -22,12 +23,10 @@ class TeacherExamsCubit extends Cubit<TeacherExamsState> {
     final result = await _repo.getExams(teacherId);
     result.when(
       success: (exams) => emit(state.copyWith(
-        status: TeacherExamsStatus.loaded,
-        exams: exams,
+        status: TeacherExamsStatus.loaded, exams: exams,
       )),
       failure: (message, _) => emit(state.copyWith(
-        status: TeacherExamsStatus.error,
-        errorMessage: message,
+        status: TeacherExamsStatus.error, errorMessage: message,
       )),
     );
   }
@@ -39,26 +38,22 @@ class TeacherExamsCubit extends Cubit<TeacherExamsState> {
     required DateTime startAt,
     required DateTime endAt,
     String? courseId,
+    String? lessonId,
   }) async {
     emit(state.copyWith(status: TeacherExamsStatus.loading));
     final result = await _repo.createExam(
-      teacherId: teacherId,
-      title: title,
+      teacherId: teacherId, title: title,
       durationMinutes: durationMinutes,
-      startAt: startAt,
-      endAt: endAt,
-      courseId: courseId,
+      startAt: startAt, endAt: endAt,
+      courseId: courseId, lessonId: lessonId,
     );
     result.when(
-      success: (exam) {
-        emit(state.copyWith(
-          status: TeacherExamsStatus.loaded,
-          exams: [exam, ...state.exams],
-        ));
-      },
+      success: (exam) => emit(state.copyWith(
+        status: TeacherExamsStatus.loaded,
+        exams: [exam, ...state.exams],
+      )),
       failure: (message, _) => emit(state.copyWith(
-        status: TeacherExamsStatus.error,
-        errorMessage: message,
+        status: TeacherExamsStatus.error, errorMessage: message,
       )),
     );
   }
@@ -66,14 +61,10 @@ class TeacherExamsCubit extends Cubit<TeacherExamsState> {
   Future<void> publishExam(String examId) async {
     final result = await _repo.publishExam(examId);
     result.when(
-      success: (_) {
-        emit(state.copyWith(
-          exams: state.exams.map((e) {
-            if (e.id == examId) return e.copyWith(isPublished: true);
-            return e;
-          }).toList(),
-        ));
-      },
+      success: (_) => emit(state.copyWith(
+        exams: state.exams.map((e) =>
+            e.id == examId ? e.copyWith(isPublished: true) : e).toList(),
+      )),
       failure: (message, _) => emit(state.copyWith(errorMessage: message)),
     );
   }
@@ -81,14 +72,10 @@ class TeacherExamsCubit extends Cubit<TeacherExamsState> {
   Future<void> setExamPublished(String examId, bool isPublished) async {
     final result = await _repo.setExamPublished(examId, isPublished);
     result.when(
-      success: (_) {
-        emit(state.copyWith(
-          exams: state.exams.map((e) {
-            if (e.id == examId) return e.copyWith(isPublished: isPublished);
-            return e;
-          }).toList(),
-        ));
-      },
+      success: (_) => emit(state.copyWith(
+        exams: state.exams.map((e) =>
+            e.id == examId ? e.copyWith(isPublished: isPublished) : e).toList(),
+      )),
       failure: (message, _) => emit(state.copyWith(errorMessage: message)),
     );
   }
@@ -100,68 +87,52 @@ class TeacherExamsCubit extends Cubit<TeacherExamsState> {
     required DateTime startAt,
     required DateTime endAt,
     String? courseId,
+    String? lessonId,
+    bool? clearLesson,
     bool? isPublished,
   }) async {
     final result = await _repo.updateExam(
-      examId: examId,
-      title: title,
+      examId: examId, title: title,
       durationMinutes: durationMinutes,
-      startAt: startAt,
-      endAt: endAt,
-      courseId: courseId,
-      isPublished: isPublished,
+      startAt: startAt, endAt: endAt,
+      courseId: courseId, lessonId: lessonId,
+      clearLesson: clearLesson, isPublished: isPublished,
     );
     result.when(
-      success: (_) {
-        emit(state.copyWith(
-          exams: state.exams.map((e) {
-            if (e.id != examId) return e;
-            return e.copyWith(
-              title: title,
-              durationMinutes: durationMinutes,
-              startAt: startAt,
-              endAt: endAt,
-              courseId: courseId ?? e.courseId,
-              isPublished: isPublished ?? e.isPublished,
-            );
-          }).toList(),
-        ));
-      },
+      success: (_) => emit(state.copyWith(
+        exams: state.exams.map((e) {
+          if (e.id != examId) return e;
+          return e.copyWith(
+            title: title, durationMinutes: durationMinutes,
+            startAt: startAt, endAt: endAt,
+            courseId: courseId ?? e.courseId,
+            isPublished: isPublished ?? e.isPublished,
+          );
+        }).toList(),
+      )),
       failure: (message, _) => emit(state.copyWith(errorMessage: message)),
-    );
-  }
-
-  Future<void> loadExamQuestionStats(String teacherId) async {
-    final result = await _repo.getExamQuestionStats(teacherId);
-    result.when(
-      success: (stats) => emit(state.copyWith(examQuestionStats: stats)),
-      failure: (_, _) {},
     );
   }
 
   Future<void> deleteExam(String examId) async {
     final result = await _repo.deleteExam(examId);
     result.when(
-      success: (_) {
-        emit(state.copyWith(
-          exams: state.exams.where((e) => e.id != examId).toList(),
-        ));
-      },
+      success: (_) => emit(state.copyWith(
+        exams: state.exams.where((e) => e.id != examId).toList(),
+      )),
       failure: (message, _) => emit(state.copyWith(errorMessage: message)),
     );
   }
 
   Future<void> loadQuestions(String examId) async {
-    emit(state.copyWith(questionsStatus: TeacherExamsStatus.loading));
-    final result = await _repo.getQuestions(examId);
+    emit(state.copyWith(status: TeacherExamsStatus.loading));
+    final result = await _repo.questions.getQuestions(examId);
     result.when(
       success: (questions) => emit(state.copyWith(
-        questionsStatus: TeacherExamsStatus.loaded,
-        questions: questions,
+        status: TeacherExamsStatus.loaded, questions: questions,
       )),
       failure: (message, _) => emit(state.copyWith(
-        questionsStatus: TeacherExamsStatus.error,
-        errorMessage: message,
+        status: TeacherExamsStatus.error, errorMessage: message,
       )),
     );
   }
@@ -174,77 +145,42 @@ class TeacherExamsCubit extends Cubit<TeacherExamsState> {
     String? correctAnswer,
     required int points,
   }) async {
-    emit(state.copyWith(questionsStatus: TeacherExamsStatus.loading));
-    final result = await _repo.addQuestion(
-      examId: examId,
-      questionType: questionType,
-      text: text,
-      options: options,
-      correctAnswer: correctAnswer,
-      points: points,
+    emit(state.copyWith(status: TeacherExamsStatus.loading));
+    final result = await _repo.questions.addQuestion(
+      examId: examId, questionType: questionType, text: text,
+      options: options, correctAnswer: correctAnswer, points: points,
     );
     result.when(
-      success: (question) {
-        emit(state.copyWith(
-          questionsStatus: TeacherExamsStatus.loaded,
-          questions: [...state.questions, question],
-        ));
-      },
+      success: (question) => emit(state.copyWith(
+        status: TeacherExamsStatus.loaded,
+        questions: [question, ...state.questions],
+      )),
       failure: (message, _) => emit(state.copyWith(
-        questionsStatus: TeacherExamsStatus.error,
-        errorMessage: message,
+        status: TeacherExamsStatus.error, errorMessage: message,
       )),
     );
   }
 
   Future<void> deleteQuestion(String questionId) async {
-    final result = await _repo.deleteQuestion(questionId);
+    final result = await _repo.questions.deleteQuestion(questionId);
     result.when(
-      success: (_) {
-        emit(state.copyWith(
-          questions:
-              state.questions.where((q) => q.id != questionId).toList(),
-        ));
-      },
+      success: (_) => emit(state.copyWith(
+        questions: state.questions.where((q) => q.id != questionId).toList(),
+      )),
       failure: (message, _) => emit(state.copyWith(errorMessage: message)),
     );
   }
-}
 
-enum TeacherExamsStatus { initial, loading, loaded, error }
-
-class TeacherExamsState {
-  final TeacherExamsStatus status;
-  final List<ExamModel> exams;
-  final TeacherExamsStatus questionsStatus;
-  final List<QuestionModel> questions;
-  final Map<String, Map<String, int>> examQuestionStats;
-  final String? errorMessage;
-
-  const TeacherExamsState({
-    this.status = TeacherExamsStatus.initial,
-    this.exams = const [],
-    this.questionsStatus = TeacherExamsStatus.initial,
-    this.questions = const [],
-    this.examQuestionStats = const {},
-    this.errorMessage,
-  });
-
-  TeacherExamsState copyWith({
-    TeacherExamsStatus? status,
-    List<ExamModel>? exams,
-    TeacherExamsStatus? questionsStatus,
-    List<QuestionModel>? questions,
-    Map<String, Map<String, int>>? examQuestionStats,
-    String? errorMessage,
-  }) {
-    return TeacherExamsState(
-      status: status ?? this.status,
-      exams: exams ?? this.exams,
-      questionsStatus: questionsStatus ?? this.questionsStatus,
-      questions: questions ?? this.questions,
-      examQuestionStats: examQuestionStats ?? this.examQuestionStats,
-      errorMessage: errorMessage,
+  Future<void> loadExamQuestionStats(String examId) async {
+    emit(state.copyWith(status: TeacherExamsStatus.loading));
+    final result = await _repo.questions.getExamQuestionStats(examId);
+    result.when(
+      success: (stats) => emit(state.copyWith(
+        status: TeacherExamsStatus.loaded, questionStats: stats,
+      )),
+      failure: (message, _) => emit(state.copyWith(
+        status: TeacherExamsStatus.error, errorMessage: message,
+      )),
     );
   }
 }

@@ -1,0 +1,7 @@
+# Supabase configuration file (minimal — used by the Supabase CLI)
+# https://supabase.com/docs/guides/cli/config
+
+project_id = "thanaweya-online"
+
+[functions.notify-user]
+verify_jwt = true

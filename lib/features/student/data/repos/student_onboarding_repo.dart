@@ -102,11 +102,20 @@ class StudentOnboardingRepo {
     required String userId,
     required String fullName,
     required String phone,
+    String? avatarUrl,
   }) async {
     try {
+      final updates = <String, dynamic>{
+        'full_name': fullName,
+        'phone': phone,
+      };
+      if (avatarUrl != null && avatarUrl.isNotEmpty) {
+        updates['avatar_url'] = avatarUrl;
+      }
+
       await _client
           .from('users')
-          .update({'full_name': fullName, 'phone': phone})
+          .update(updates)
           .eq('id', userId);
       return const ApiResult.success(null);
     } catch (e) {

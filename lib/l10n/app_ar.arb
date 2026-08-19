@@ -1,0 +1,712 @@
+{
+  "@@locale": "ar",
+  "appName": "ثانوية أونلاين",
+  "loading": "جاري التحميل...",
+  "error": "حدث خطأ",
+  "retry": "إعادة المحاولة",
+  "cancel": "إلغاء",
+  "save": "حفظ",
+  "delete": "حذف",
+  "edit": "تعديل",
+  "add": "إضافة",
+  "confirm": "تأكيد",
+  "back": "رجوع",
+  "next": "التالي",
+  "done": "تم",
+  "search": "بحث",
+  "noData": "لا توجد بيانات",
+  "offline": "لا يوجد اتصال بالإنترنت",
+  "offlineMessage": "تحقق من اتصالك بالإنترنت وأعد المحاولة",
+  "fieldRequired": "هذا الحقل مطلوب",
+  "invalidEmail": "البريد الإلكتروني غير صحيح",
+  "invalidPhone": "رقم الهاتف غير صحيح",
+  "passwordTooShort": "كلمة المرور قصيرة جداً",
+  "passwordMismatch": "كلمتا المرور غير متطابقتين",
+  "invalidOtp": "الرمز غير صحيح",
+  "home": "الرئيسية",
+  "settings": "الإعدادات",
+  "logout": "تسجيل الخروج",
+  "profile": "الملف الشخصي",
+  "language": "اللغة",
+  "notifications": "الإشعارات",
+  "register": "إنشاء حساب",
+  "login": "تسجيل الدخول",
+  "email": "البريد الإلكتروني",
+  "password": "كلمة المرور",
+  "fullName": "الاسم الكامل",
+  "phone": "رقم الهاتف",
+  "parentPhone": "هاتف ولي الأمر",
+  "gradeLevel": "المستوى الدراسي",
+  "firstStage": "الصف الأول الثانوي",
+  "secondStage": "الصف الثاني الثانوي",
+  "thirdStage": "الصف الثالث الثانوي",
+  "studentRegistration": "تسجيل الطالب",
+  "signUpSubtitle": "سجّل بياناتك لبدء دفتر الطالب",
+  "fullNameHint": "أدخل الاسم الكامل...",
+  "gradeLevelHint": "اختر المستوى الدراسي...",
+  "creatingAccount": "جاري إنشاء الحساب...",
+  "chooseFromGallery": "اختيار من معرض الصور",
+  "chooseFromGallerySubtitle": "اختر صورة واضحة محفوظة على جهازك",
+  "takePhoto": "التقاط صورة جديدة بالكاميرا",
+  "takePhotoSubtitle": "استخدم كاميرا الهاتف لتصوير شخصية فورية",
+  "chooseProfilePicture": "اختيار صورة البروفايل",
+  "selectSubjects": "اختر المواد",
+  "selectSubjectsSubtitle": "اختر المواد التي ستدرسها هذا العام",
+  "generalSystem": "عامة",
+  "baccalaureateSystem": "نظام البكالوريا",
+  "loadSubjectsError": "حدث خطأ أثناء تحميل المواد",
+  "noSubjectsAvailable": "لا توجد مواد متاحة",
+  "nextWithCount": "التالي ({count})",
+  "@nextWithCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "trackMedicine": "مسار الطب وعلوم الحياة",
+  "trackMedicineDesc": "يؤهل لكليات: الطب البشري، الصيدلة، الأسنان، العلاج الطبيعي، والتمريض.",
+  "trackEngineering": "مسار الهندسة وعلوم الحاسب",
+  "trackEngineeringDesc": "يؤهل لكليات: الهندسة، الحاسبات والمعلومات، والتكنولوجيا الحيوية.",
+  "trackBusiness": "مسار الأعمال والاقتصاد",
+  "trackBusinessDesc": "يؤهل لكليات: التجارة، الاقتصاد والعلوم السياسية، الإعلام، والحقوق.",
+  "trackArts": "مسار الآداب والفنون",
+  "trackArtsDesc": "يؤهل لكليات: الآداب، الألسن، الفنون الجميلة، ودار العلوم.",
+  "selectTeachers": "اختر المعلمين",
+  "selectTeachersSubtitle": "اختر المدرسين الذين تريد متابعتهم",
+  "noTeachersAvailable": "لا يوجد معلمون متاحون",
+  "settingsSubtitle": "إعدادات التطبيق والملف الشخصي",
+  "studentNotebook": "دفتر الطالب",
+  "welcomeBack": "مرحباً بك، {name} 👋",
+  "@welcomeBack": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "whatToLearnToday": "ما الذي تريد تعلمه اليوم؟",
+  "searchPlaceholder": "ابحث عن مادة أو دورة أو مدرس...",
+  "discountStamp": "خصم 25%",
+  "todaysOffer": "عرض اليوم الخاص!",
+  "todaysOfferMessage": "اشترك الآن واحصل على خصم على أي كورس لمدة محدودة",
+  "popularCourses": "الكورسات الشائعة",
+  "all": "الكل",
+  "filteredCourses": "تم التصفية: {count} دورة",
+  "@filteredCourses": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "clear": "مسح",
+  "noCoursesMatch": "لا توجد كورسات مطابقة للتصفية — جرّب مادة أخرى",
+  "topTeachers": "أفضل المدرسين",
+  "continueCourse": "متابعة الكورس",
+  "myCoursesTab": "كورساتي",
+  "transactionsTab": "المعاملات",
+  "examsTab": "الامتحانات",
+  "profileTab": "الملف",
+  "myCoursesTitle": "دوراتي التعليمية",
+  "myCoursesSubtitle": "كورساتك على صفحات الدفتر",
+  "searchInCoursesHint": "ابحث في دوراتك...",
+  "completedTab": "المكتملة",
+  "ongoingTab": "مستمر",
+  "noCoursesMatching": "لا توجد دورات مطابقة — جرّب تعديل الفلاتر",
+  "noCompletedCourses": "لا توجد دورات مكتملة بعد",
+  "videoLesson": "فيديو الدرس",
+  "videoOfSubject": "فيديو {subject}",
+  "@videoOfSubject": {
+    "placeholders": {
+      "subject": {
+        "type": "String"
+      }
+    }
+  },
+  "lessonCount": "{count} درس",
+  "@lessonCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "aboutTab": "عن الكورس",
+  "curriculumTab": "المنهج",
+  "subscribedLabel": "أنت مشترك في هذا الكورس ✓",
+  "subscribeWithPrice": "اشترك وتفعيل الكود — {price}",
+  "@subscribeWithPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "activateCode": "تفعيل كود الاشتراك",
+  "teacherNotFound": "تعذر تحديد المدرس، حاول مرة أخرى",
+  "courseIntroFallback": "يشرح هذا الكورس منهج المادة خطوة بخطوة مع حلول المسائل ومراجعات شاملة تساعدك على الاستعداد للامتحان.",
+  "showLess": "عرض أقل",
+  "readMore": "اقرأ المزيد...",
+  "instructor": "المحاضر",
+  "teacherRole": "مدرس",
+  "whatYouGetTitle": "ماذا ستتعلم وتأخذ في الكورس؟",
+  "whatYouGet1": "الوصول لدروس الكورس كاملة",
+  "whatYouGet2": "مشاهدة على الموبايل والتابلت والكمبيوتر",
+  "whatYouGet3": "ملخصات ومذكرات للمراجعة",
+  "whatYouGet4": "كويزات وامتحانات تجريبية",
+  "whatYouGet5": "متابعة تقدمك درساً بدرس",
+  "studentReviewsTitle": "آراء الطلاب",
+  "viewAll": "عرض الكل",
+  "reviewsAvailableNote": "تقييمات الطلاب متاحة في صفحة الكورس",
+  "lockedLessonTitle": "الدرس مغلق",
+  "lockedLessonMessage": "عفواً، المنهج متاح للاطلاع فقط. لمشاهدة فيديو \"{title}\" يجب الدفع والاشتراك وتفعيل الكود أولاً.",
+  "@lockedLessonMessage": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "payAndActivate": "الدفع وتفعيل الكود",
+  "lessonAvailable": "درس متاح",
+  "requiresSubscription": "يتطلب الاشتراك والدفع 🔒",
+  "lessonDurationLocked": "{duration} · يتطلب الاشتراك والدفع 🔒",
+  "@lessonDurationLocked": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "noIntroVideo": "لا يوجد فيديو تعريفي",
+  "courseSectionTitle": "دروس الكورس",
+  "sectionLabel": "القسم {number}",
+  "@sectionLabel": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "curriculumTitle": "منهج الكورس",
+  "curriculumSubtitle": "دروسك على صفحات الدفتر",
+  "searchLessonHint": "ابحث عن درس أو محتوى...",
+  "noLessonsYet": "لا توجد دروس في هذا الكورس بعد",
+  "restartCourse": "إعادة بدء الكورس",
+  "continueLearning": "متابعة التعلم",
+  "lessonGeneric": "درس",
+  "filterResults": "تصفية النتائج",
+  "filterSubtitle": "حدد مادة أو مرحلة من صفحات الدفتر",
+  "reset": "إعادة ضبط",
+  "studySubjects": "المواد الدراسية",
+  "noSubjectsNow": "لا توجد مواد متاحة حالياً",
+  "studyStage": "المرحلة الدراسية",
+  "showAllCourses": "عرض كل الدورات",
+  "applyFilter": "تطبيق الفلترة ({count})",
+  "@applyFilter": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "watchingLesson": "مشاهدة الدرس",
+  "lessonHandout": "ملزمة الدرس",
+  "noHandoutYet": "لا توجد ملزمة مرفقة بهذا الدرس بعد",
+  "tapToOpen": "اضغط لفتح الملف",
+  "lessonExam": "امتحان الدرس",
+  "noLessonExam": "لا يوجد امتحان مخصص لهذا الدرس",
+  "attemptsExhausted": "انتهت المحاولات",
+  "examMeta": "{duration} دقيقة · المحاولات {used}/{max}",
+  "@examMeta": {
+    "placeholders": {
+      "duration": {
+        "type": "int"
+      },
+      "used": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "contentLockedTitle": "المحتوى مغلق",
+  "lockedContentMessage": "هذه الحصة متاحة فقط للطلاب المشتركين. يرجى تفعيل كود الاشتراك أو الاشتراك للوصول الكامل للفيديوهات.",
+  "videoViewsExhaustedTitle": "انتهت مشاهدات الفيديو",
+  "videoViewsExhaustedMessage": "استنفدت عدد مرات مشاهدة هذا الفيديو المسموح بها. تواصل مع المدرس لإعادة فتح الفيديو لك.",
+  "ok": "حسناً",
+  "couldNotOpenFile": "تعذر فتح الملف",
+  "videoLockedForSubscribers": "هذا الفيديو مغلق للمشتركين فقط",
+  "videoLockedSubMessage": "اشترك في الكورس وفعل كود الاشتراك لمشاهدة جميع الفيديوهات",
+  "viewsExhaustedOverlay": "انتهت مشاهدات هذا الفيديو",
+  "viewsCountMessage": "تم استهلاك {viewCount} من {maxViews} مشاهدات · تواصل مع المدرس لإعادة فتحه",
+  "@viewsCountMessage": {
+    "placeholders": {
+      "viewCount": {
+        "type": "int"
+      },
+      "maxViews": {
+        "type": "int"
+      }
+    }
+  },
+  "teacherPageFallback": "صفحة المدرس",
+  "teacherPageSubtitle": "ملف المدرس وبيانات التواصل والسناتر",
+  "verifiedTeacher": "مدرس معتمد على ثانوية أونلاين",
+  "whatsappMessage": "السلام عليكم أ. {teacherName}، أريد الاستفسار عن حصصك وسناترك التعليمية من تطبيق ثانوية أونلاين.",
+  "@whatsappMessage": {
+    "placeholders": {
+      "teacherName": {
+        "type": "String"
+      }
+    }
+  },
+  "whatsappOpenFailed": "تعذر فتح الواتساب، يرجى التحقق من تثبيت التطبيق",
+  "quickContact": "التواصل السريع",
+  "quickContactMessage": "يمكنك التواصل مباشرة مع المعلم للاستفسار عن السناتر، المواعيد، أو أي تفاصيل دراسية أخرى.",
+  "contactOnWhatsapp": "تواصل عبر الواتساب",
+  "bioLabel": "النبذة التعريفية",
+  "noBio": "لا توجد نبذة تعريفية متوفرة حالياً لهذا المعلم.",
+  "teachingPlaceTitle": "مكان وطريقة التدريس",
+  "teachingMethod": "طريقة التدريس",
+  "centerLocation": "مكان السنتر والتدريس",
+  "locatedInGovernorate": "يتواجد في سناتر محافظة {governorate}",
+  "@locatedInGovernorate": {
+    "placeholders": {
+      "governorate": {
+        "type": "String"
+      }
+    }
+  },
+  "academicTitle": "المراحل والأنظمة الدراسية",
+  "subjectField": "المادة الدراسية",
+  "gradeField": "المراحل الدراسية",
+  "systemField": "نظام التدريس",
+  "notSpecified": "غير محدد",
+  "generalSecondary": "ثانوية عامة",
+  "azhariSecondary": "ثانوية أزهرية",
+  "stemSchools": "مدارس المتفوقين (STEM)",
+  "modeOnline": "أونلاين (من خلال المنصة فقط)",
+  "modeCenter": "حضور مباشر في السنتر فقط",
+  "modeBoth": "أونلاين ومن خلال السناتر التعليمية",
+  "modeOnlineShort": "أونلاين",
+  "teacherInfoLoadError": "تعذر تحميل معلومات المدرس",
+  "bookmarksTitle": "محفوظاتي",
+  "bookmarksSubtitle": "كورسات حفظتها للمراجعة",
+  "loadBookmarksError": "حدث خطأ في تحميل المحفوظات",
+  "noBookmarks": "لا توجد محفوظات بعد\nاضغط على أيقونة الحفظ لإضافة الكورسات هنا",
+  "remove": "إزالة",
+  "reviewsSubtitle": "آراء حقيقية على صفحات الدفتر",
+  "basedOnReviews": "بناءً على {count} تقييم من الطلاب",
+  "@basedOnReviews": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "excellent": "ممتاز",
+  "veryGood": "جيد جداً",
+  "average": "متوسط",
+  "noReviewsYet": "لا توجد تقييمات بعد — كن أول من يقيّم هذا الكورس",
+  "addYourReview": "أضف تقييمك",
+  "writeReviewTitle": "كتابة تقييم",
+  "writeReviewSubtitle": "اكتب رأيك بخط يدك",
+  "reviewHelpsOthers": "تقييمك يساعد زملاءك على اختيار الكورس المناسب",
+  "yourRatingQuestion": "ما هو تقييمك للكورس؟",
+  "detailedReviewTitle": "اكتب تقييمك بالتفصيل",
+  "reviewHint": "ما هي تجربتك مع هذا الكورس والمدرس؟ شارك برأيك لمساعدة بقية الطلاب...",
+  "submitReview": "إرسال التقييم",
+  "mustLoginFirst": "يجب تسجيل الدخول أولاً",
+  "reviewSubmitted": "تم إرسال تقييمك بنجاح",
+  "reviewSubmitError": "حدث خطأ أثناء إرسال التقييم، حاول مرة أخرى",
+  "examProgressTitle": "التقدم والامتحانات",
+  "examProgressSubtitle": "اختبر ما درسته على أوراق دفترك",
+  "loadExamsError": "حدث خطأ في تحميل الامتحانات",
+  "noExamsAvailable": "لا توجد امتحانات متاحة حالياً\nستظهر هنا امتحاناتك عندما يضيفها المدرسون",
+  "examAttemptsExhaustedTitle": "انتهت محاولات الامتحان",
+  "examAttemptsExhaustedMessage": "استنفدت المحاولات المسموحة لهذا الامتحان ({max} محاولات). يمكنك الاطلاع على نتائجك أو التواصل مع المدرس لإعادة فتح الامتحان.",
+  "@examAttemptsExhaustedMessage": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "viewResults": "عرض النتائج",
+  "examDurationLabel": "مدة الامتحان: {duration} دقيقة",
+  "@examDurationLabel": {
+    "placeholders": {
+      "duration": {
+        "type": "int"
+      }
+    }
+  },
+  "attemptsCount": "المحاولات: {used}/{max}",
+  "@attemptsCount": {
+    "placeholders": {
+      "used": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "resultsLabel": "النتائج",
+  "lockedLabel": "مقفل",
+  "enterExam": "دخول الامتحان",
+  "anotherAttempt": "محاولة أخرى",
+  "comprehensiveExam": "امتحان شامل",
+  "durationMinutes": "{min} دقيقة",
+  "@durationMinutes": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      }
+    }
+  },
+  "totalMarks": "{marks} درجة",
+  "@totalMarks": {
+    "placeholders": {
+      "marks": {
+        "type": "String"
+      }
+    }
+  },
+  "examInstructionsTitle": "تعليمات وضوابط الامتحان",
+  "examInstructionsSubtitle": "اقرأ القواعد قبل بدء التقييم",
+  "responsibleTeacher": "المدرس المسؤول: {name}",
+  "@responsibleTeacher": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "durationStat": "المدة الزمنية",
+  "questionCountStat": "عدد الأسئلة",
+  "totalScoreStat": "الدرجة الكلية",
+  "examRulesTitle": "قواعد وضوابط الامتحان",
+  "strictRulesNote": "ضوابط حازمة، قراءتها إلزامية قبل البدء",
+  "ruleTimingTitle": "توقيت دقيق محدد",
+  "ruleTimingDesc": "يبدأ التوقيت فور دخول الامتحان، وسيتم تسليم الإجابات تلقائياً فور انتهاء الوقت.",
+  "ruleNoExitTitle": "حظر الخروج من الشاشة (تسليم تلقائي)",
+  "ruleNoExitDesc": "في حالة الخروج من التطبيق، تصغير الشاشة، أو الانتقال لتطبيق آخر، سيتم تسليم الامتحان فوراً وحساب الدرجة على ما تم حله فقط!",
+  "ruleConnectionTitle": "الحفاظ على استقرار الاتصال",
+  "ruleConnectionDesc": "تأكد من شحن الهاتف واستقرار شبكة الإنترنت قبل البدء.",
+  "attemptsFinished": "انتهت المحاولات المسموحة",
+  "remainingAttempts": "المحاولات المتبقية: {remaining} من {max}",
+  "@remainingAttempts": {
+    "placeholders": {
+      "remaining": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "attemptsFinishedMessage": "يمكنك التواصل مع المدرس لإعادة فتح الامتحان، أو الاطلاع على نتائجك",
+  "retakeMessage": "لك كل الحق في إعادة الامتحان حتى {max} محاولات للحصول على أفضل نتيجة",
+  "@retakeMessage": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "startExamNow": "بدء الامتحان الآن",
+  "confirmStartTitle": "تأكيد بدء الامتحان",
+  "confirmStartMessage": "بمجرد الضغط على \"بدء\"، سيبدأ التوقيت ولا يمكن إيقافه، وسيتم حظر مغادرة الشاشة وإلا سيتم تسليم إجاباتك فوراً. هل أنت جاهز؟",
+  "loadQuestionsError": "تعذر تحميل أسئلة الامتحان",
+  "backLabel": "العودة",
+  "monitoringBanner": "مراقبة أمنية: يمنع خروجك أو تصغير الشاشة لعدم التسليم التلقائي!",
+  "questionOf": "سؤال {questionNumber} من {total}",
+  "@questionOf": {
+    "placeholders": {
+      "questionNumber": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "noOptionsAvailable": "لا توجد إجابات متاحة لهذا السؤال",
+  "previousQuestion": "السابق",
+  "nextQuestion": "السؤال التالي",
+  "submitExamLabel": "تسليم الامتحان",
+  "writeAnswerHere": "اكتب إجابتك هنا",
+  "writeAnswerHint": "اكتب الإجابة بالتفصيل...",
+  "savedChars": "المحفوظ: {count} حرف",
+  "@savedChars": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "exitBlockedTitle": "حظر الخروج من الامتحان",
+  "exitBlockedMessage": "مغادرة شاشة الامتحان الآن ستؤدي إلى التسليم الفوري لكافة إجاباتك الحالية واحتساب الدرجة النهائية. هل ترغب بالتسليم والخروج؟",
+  "cancelAndContinue": "إلغاء ومتابعة الحل",
+  "submitNow": "تسليم الآن",
+  "examResultTitle": "نتيجة الامتحان",
+  "gradedSaved": "تم التقييم وحفظ الدرجة",
+  "gradedSuccess": "جرى التقييم بنجاح",
+  "autoSubmitWarning": "تنبيه: تم تسليم الامتحان تلقائياً بسبب مغادرة الشاشة أو تصغير التطبيق أثناء التقييم.",
+  "timeoutSubmitNote": "تم تسليم الامتحان تلقائياً بانتهاء الوقت المخصص للحل.",
+  "resultStamp": "نتيجة",
+  "percentage": "النسبة المئوية: {percent}%",
+  "@percentage": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "examPassed": "مبارك، اجتزت الامتحان بنجاح",
+  "examFailed": "لم تتجاوز النسبة المطلوبة",
+  "attemptInfoExhausted": "هذه المحاولة {attempt} من {max} — انتهت محاولاتك لهذا الامتحان. يمكنك مراجعة نتائجك في أي وقت.",
+  "@attemptInfoExhausted": {
+    "placeholders": {
+      "attempt": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "attemptInfoRemaining": "هذه المحاولة {attempt} من {max} — لديك {remaining} محاولات متبقية.",
+  "@attemptInfoRemaining": {
+    "placeholders": {
+      "attempt": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      },
+      "remaining": {
+        "type": "int"
+      }
+    }
+  },
+  "viewAllResults": "عرض جميع النتائج",
+  "backToExams": "العودة لقائمة الامتحانات",
+  "examResultsTitle": "نتائج الامتحان",
+  "loadResultsError": "حدث خطأ في تحميل النتائج",
+  "noAttemptsYet": "لم تخض أي محاولة في هذا الامتحان بعد",
+  "attemptsCountLabel": "عدد المحاولات: {total}",
+  "@attemptsCountLabel": {
+    "placeholders": {
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "attemptNumber": "المحاولة رقم {index}",
+  "@attemptNumber": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "passedPercent": "{percent}% ناجح",
+  "@passedPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "gradeHistoryTitle": "سجل الدرجات",
+  "gradeHistorySubtitle": "نتائج امتحاناتك على صفحات الدفتر",
+  "loadGradesError": "حدث خطأ في تحميل الدرجات",
+  "noGradesYet": "لا توجد درجات بعد\nقم بحل امتحان لتظهر نتيجتك هنا",
+  "chooseLanguage": "اختر اللغة",
+  "languageSubtitle": "لغة عرض الدفتر",
+  "availableLanguages": "اللغات المتاحة",
+  "profileSubtitle": "بياناتك وإعداداتك",
+  "editProfile": "تعديل الملف الشخصي",
+  "notificationSettings": "إعدادات التنبيهات",
+  "changePassword": "تغيير كلمة المرور",
+  "appLanguage": "لغة التطبيق",
+  "termsAndPolicies": "الشروط والأحكام والسياسات",
+  "supportCenter": "مركز الدعم والمساعدة",
+  "supportCenterMessage": "مركز المساعدة والدعم الفني",
+  "inviteFriends": "دعوة الأصدقاء للمنصة",
+  "inviteLink": "انضم لمنصة الثانوية أونلاين: https://thanaweya.online/invite",
+  "inviteCopied": "تم نسخ رابط الدعوة بنجاح",
+  "logoutConfirmMessage": "هل أنت متأكد أنك تريد تسجيل الخروج من الحساب؟",
+  "editProfileSubtitle": "بياناتك على صفحات الدفتر",
+  "basicData": "البيانات الأساسية",
+  "nickName": "الاسم المستعار",
+  "dateOfBirth": "تاريخ الميلاد",
+  "accountType": "نوع الحساب",
+  "studentLabel": "طالب",
+  "gender": "الجنس",
+  "updateData": "تحديث البيانات",
+  "updateDataError": "حدث خطأ أثناء تحديث البيانات",
+  "changePasswordSubtitle": "أدخل كلمة المرور الحالية أولاً",
+  "passwordSecurityNote": "للحفاظ على أمان حسابك، يجب إدخال كلمة المرور الحالية ثم اختيار كلمة مرور جديدة قوية.",
+  "currentPassword": "كلمة المرور الحالية",
+  "enterCurrentPassword": "أدخل كلمة المرور الحالية",
+  "newPassword": "كلمة المرور الجديدة",
+  "enterNewPassword": "أدخل كلمة المرور الجديدة",
+  "passwordMinLength": "كلمة المرور يجب أن تكون 6 أحرف على الأقل",
+  "confirmNewPassword": "تأكيد كلمة المرور الجديدة",
+  "reenterNewPassword": "أعد إدخال كلمة المرور الجديدة",
+  "changingPassword": "جارٍ التغيير...",
+  "passwordChangedSuccess": "تم تغيير كلمة المرور بنجاح",
+  "changePasswordError": "حدث خطأ أثناء تغيير كلمة المرور",
+  "notificationsTitle": "التنبيهات والإشعارات",
+  "notificationsSubtitle": "تحكم في تنبيهات دفترك",
+  "notifSpecialOffers": "العروض الخاصة",
+  "notifSounds": "الأصوات والتنبيهات",
+  "notifVibration": "الاهتزاز",
+  "notifGeneral": "الإشعارات العامة",
+  "notifPromotions": "الخصومات والعروض الترويجية",
+  "notifPayment": "معاملات وسائل الدفع",
+  "notifAppUpdates": "تحديثات التطبيق",
+  "notifNewServices": "الخدمات الجديدة",
+  "notifTips": "النصائح والإرشادات",
+  "commentsTitle": "التعليقات",
+  "commentsSubtitle": "ملاحظات الطلاب على الدرس",
+  "noCommentsYet": "لا توجد تعليقات بعد\nكن أول من يعلق على الدرس",
+  "commentHint": "اكتب تعليقاً...",
+  "userGeneric": "مستخدم",
+  "certificateTitle": "شهادة إتمام",
+  "certificateSubtitle": "صفحة التكريم في دفترك",
+  "courseCompleted": "إتمام الكورس بنجاح",
+  "certWitness": "تشهد منصة الثانوية أونلاين بأن الطالب",
+  "certCompleted": "قد أتم بنجاح كافة متطلبات واختبارات الكورس التعليمي:",
+  "issueDateLabel": "تاريخ الإصدار: {date}",
+  "@issueDateLabel": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "studentSignature": "توقيع الطالب",
+  "platformManager": "مدير المنصة",
+  "platformName": "منصة الثانوية أونلاين",
+  "downloadCertificate": "تحميل الشهادة",
+  "certificateDownloaded": "تم تحميل الشهادة بنجاح بصيغة PDF",
+  "enterActivationCodeFirst": "أدخل كود التفعيل أولاً",
+  "congratulations": "تهانينا",
+  "subscriptionActivated": "تم تفعيل اشتراكك بنجاح.\nيمكنك الآن البدء في دراسة المحاضرات",
+  "watchLecturesNow": "مشاهدة المحاضرات الآن",
+  "backToHome": "العودة للرئيسية",
+  "subscribeToCourse": "الاشتراك في الكورس",
+  "freeCourse": "كورس مجاني",
+  "courseSubscription": "اشتراك كورس",
+  "activationCodeHint": "أدخل كود التفعيل الذي حصلت عليه من مدرسك",
+  "activationCode": "كود التفعيل",
+  "codeExample": "مثال: TH-8921-X90",
+  "codeNote": "بعد التأكيد سيتم تفعيل اشتراكك فوراً في جميع كورسات المدرس",
+  "activateSubscriptionSubtitle": "أدخل كود التفعيل للبدء في دراسة الكورس",
+  "codeTab": "كود التفعيل",
+  "electronicPaymentTab": "الدفع الإلكتروني",
+  "activatingCode": "جارٍ تفعيل الكود...",
+  "processingPayment": "جارٍ معالجة الدفع...",
+  "activateAndSubscribe": "تفعيل الكود والاشتراك الآن",
+  "confirmPayment": "تأكيد الدفع والاشتراك الآن",
+  "paySecurely": "ادفع بأمان وسهولة عبر الدفع الإلكتروني المباشر",
+  "paymentMethod": "طريقة الدفع",
+  "visaMastercard": "بطاقة فيزا / ماستر كارد",
+  "fawryPayments": "فوري للمدفوعات",
+  "cardData": "بيانات البطاقة",
+  "cardHolderName": "اسم صاحب البطاقة",
+  "cardHolderExample": "مثال: أحمد محمد علي",
+  "cardNumber": "رقم البطاقة",
+  "expiryDate": "تاريخ الانتهاء",
+  "cvvCode": "الرمز السري (CVV)",
+  "payViaFawry": "الدفع عبر فوري",
+  "fawryNote": "سيتم إصدار كود دفع فوري مؤقت لإتمام عملية الدفع في أي منفذ فوري.",
+  "fillCardData": "يرجى ملء جميع بيانات البطاقة",
+  "paymentFailed": "تعذر إتمام الدفع الإلكتروني، حاول مرة أخرى",
+  "transactionsTitle": "المعاملات المالية",
+  "transactionsSubtitle": "سجل المدفوعات والاشتراكات",
+  "transactionsLoadError": "حدث خطأ في تحميل المعاملات",
+  "transactionsEmpty": "لا توجد معاملات بعد\nستظهر هنا مدفوعاتك عند اشتراكك في الكورسات",
+  "courseSubscriptionFallback": "اشتراك كورس",
+  "electronicPayment": "دفع إلكتروني",
+  "teacherActivationCode": "كود تفعيل من المدرس",
+  "fawryGateway": "فوري للمدفوعات",
+  "creditCardGateway": "بطاقة ائتمانية",
+  "freeViaCode": "مجاناً (كود)",
+  "statusPending": "قيد الانتظار",
+  "statusFailed": "فشل",
+  "statusPaid": "مدفوع",
+  "receiptTitle": "إيصال الدفع الإلكتروني",
+  "receiptSubtitle": "نسخة من الإيصال على صفحة دفترك",
+  "shareReceipt": "مشاركة الإيصال",
+  "shareAction": "مشاركة",
+  "downloadPdf": "تحميل PDF",
+  "downloadAction": "تحميل",
+  "printReceipt": "طباعة الإيصال",
+  "printAction": "طباعة",
+  "actionExecuted": "تم تنفيذ الأمر: ",
+  "studentNameLabel": "اسم الطالب",
+  "emailLabel": "البريد الإلكتروني",
+  "courseNameLabel": "اسم الكورس",
+  "categoryLabel": "التصنيف",
+  "transactionNumberLabel": "رقم المعاملة",
+  "transactionIdCopied": "تم نسخ رقم المعاملة",
+  "amountPaidLabel": "المبلغ المدفوع",
+  "transactionDateLabel": "تاريخ المعاملة",
+  "paymentStatusLabel": "حالة الدفع",
+  "paidStatus": "مدفوع",
+  "egpCurrency": "ج.م",
+  "addCardTitle": "إضافة بطاقة جديدة",
+  "addCardSubtitle": "سجّل وسيلة دفع جديدة في دفترك",
+  "cardDataSection": "بيانات البطاقة",
+  "cardHolderNameRequired": "اسم صاحب البطاقة *",
+  "cardHolderHint": "أدخل الاسم المطبوع على البطاقة",
+  "cardNumberRequired": "رقم البطاقة *",
+  "cardNumberHint": "•••• •••• •••• ••••",
+  "expiryDateRequired": "تاريخ الانتهاء *",
+  "cvvRequired": "رمز الأمان *",
+  "cvvHint": "•••",
+  "addCardButton": "إضافة البطاقة",
+  "enterCardHolderName": "يرجى إدخال اسم صاحب البطاقة",
+  "enterValidCardNumber": "يرجى إدخال رقم بطاقة صحيح",
+  "enterValidExpiry": "يرجى إدخال تاريخ انتهاء صحيح (MM/YY)",
+  "loginRequiredFirst": "يجب تسجيل الدخول أولاً",
+  "cardAddedSuccess": "تمت إضافة البطاقة بنجاح",
+  "cardAddError": "حدث خطأ أثناء إضافة البطاقة، حاول مرة أخرى",
+  "defaultCardFallback": "بطاقة مصرفية",
+  "paymentOptionsTitle": "خيارات وسائل الدفع",
+  "paymentOptionsSubtitle": "بطاقاتك المسجلة في الدفتر",
+  "noSavedCards": "لا توجد بطاقات محفوظة بعد",
+  "defaultCardLabel": "الافتراضية",
+  "connectedCardLabel": "متصلة",
+  "addNewCardButton": "إضافة بطاقة جديدة",
+  "courseLessonsTitle": "دروس الكورس",
+  "courseLessonsSubtitle": "شاهد الحصص واكمل تقدمك",
+  "noLessonsYet": "لا توجد دروس في هذا الكورس بعد",
+  "lessonNumber": "الدرس ",
+  "startFirstLesson": "ابدأ الدرس الأول",
+  "lessonLockedTitle": "الدرس مغلق",
+  "lessonLockedMessage": "عفواً، المنهج متاح للاطلاع فقط. لمشاهدة فيديو \"{lessonTitle}\" يجب الدفع والاشتراك وتفعيل الكود أولاً.",
+  "@lessonLockedMessage": {
+    "placeholders": {
+      "lessonTitle": {
+        "type": "String"
+      }
+    }
+  },
+  "cancel": "إلغاء",
+  "payAndActivateCode": "الدفع وتفعيل الكود",
+  "termsTitle": "الشروط والأحكام",
+  "termsSubtitle": "قواعد الدفتر والمنصة",
+  "attendanceTermsTitle": "شروط الحضور والالتحاق",
+  "attendanceTermsBody": "تلتزم منصة الثانوية أونلاين بتقديم أفضل المحتويات المعتمدة والدروس التعليمية عالية الجودة. يتعهد الطالب بالحضور والمتابعة المستمرة للحصص والامتحانات المقررة. يمنع منعا باتا مشاركة الحسابات الشخصية أو إعادة بيع المحتوى التعليمي بدون إذن كتابي مسبق.",
+  "usageTermsTitle": "شروط الاستخدام والخدمة",
+  "usageTermsBody": "جميع حقوق الملكية الفكرية والعلامات التجارية والمواد التوضيحية محفوظة لمنصة الثانوية أونلاين والمعلمين المعتمدين. يتم تشفير وسائط الفيديو وحمايتها، وأي محاولة لتسجيل الشاشة أو قرصنة المحتوى تعرض الحساب للحظر النهائي والملاحقة القانونية."
+}

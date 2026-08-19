@@ -2,16 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'package:thanaweya_online/features/student/data/repos/student_payments_repo.dart';
+import 'package:thanaweya_online/core/theme/student_payments_repo.dart';
 import 'package:thanaweya_online/features/student/logic/student_payments_cubit.dart';
+import 'package:thanaweya_online/l10n/l10n.dart';
 
 import '../../../../core/router/app_router.dart';
-import '../../../../core/theme/notebook_theme.dart';
+import 'package:thanaweya_online/core/theme/notebook_theme.dart';
+import 'widgets/widgets.dart';
 
+/// Screen for viewing and managing saved payment cards.
 class StudentPaymentOptionsScreen extends StatefulWidget {
+  /// Creates a [StudentPaymentOptionsScreen].
   const StudentPaymentOptionsScreen({super.key});
 
   @override
@@ -37,20 +40,19 @@ class _StudentPaymentOptionsScreenState
 
   Future<void> _loadMethods() async {
     final userId = Supabase.instance.client.auth.currentUser?.id;
-    if (userId != null) {
-      _cubit.loadPaymentMethods(userId);
-    }
+    if (userId != null) _cubit.loadPaymentMethods(userId);
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
         backgroundColor: NotebookColors.ground,
         appBar: NotebookTopBar(
-          title: 'خيارات وسائل الدفع',
-          subtitle: 'بطاقاتك المسجلة في الدفتر',
+          title: l10n.paymentOptionsTitle,
+          subtitle: l10n.paymentOptionsSubtitle,
         ),
         body: NotebookPaper(
           child: BlocBuilder<StudentPaymentsCubit, StudentPaymentsState>(
@@ -58,153 +60,65 @@ class _StudentPaymentOptionsScreenState
             builder: (context, state) {
               return Column(
                 children: [
-                  Expanded(
-                    child:
-                        state.methodsStatus ==
-                                StudentPaymentsStatus.loading &&
-                            state.paymentMethods.isEmpty
-                        ? Center(
-                            child: CircularProgressIndicator(
-                              color: NotebookColors.green,
-                            ),
-                          )
-                        : state.paymentMethods.isEmpty
-                        ? Padding(
-                            padding: EdgeInsets.fromLTRB(24.w, 24.h, 24.w, 0),
-                            child: NotebookEmptyNote(
-                              message: 'لا توجد بطاقات محفوظة بعد',
-                            ),
-                          )
-                        : RefreshIndicator(
-                            onRefresh: _loadMethods,
-                            child: ListView.builder(
-                              padding: EdgeInsets.fromLTRB(
-                                20.w,
-                                16.h,
-                                20.w,
-                                20.h,
-                              ),
-                              physics: const BouncingScrollPhysics(),
-                              itemCount: state.paymentMethods.length,
-                              itemBuilder: (context, index) {
-                                final method = state.paymentMethods[index];
-                                final cardHolder =
-                                    method['card_holder'] as String? ??
-                                    'بطاقة مصرفية';
-                                final cardLast4 =
-                                    method['card_last4'] as String? ?? '••••';
-                                final isDefault =
-                                    method['is_default'] as bool? ?? false;
-                                return Padding(
-                                  padding: EdgeInsets.only(bottom: 14.h),
-                                  child: NotebookCard(
-                                    ruled: true,
-                                    ruledStartY: 40,
-                                    marginTab: isDefault,
-                                    borderRadius: 12,
-                                    padding: EdgeInsets.all(16.r),
-                                    child: Row(
-                                      children: [
-                                        Container(
-                                          width: 44.r,
-                                          height: 44.r,
-                                          decoration: BoxDecoration(
-                                            color: NotebookColors.surfaceBright,
-                                            borderRadius:
-                                                BorderRadius.circular(12.r),
-                                            border: Border.all(
-                                              color: NotebookColors.ink
-                                                  .withAlpha(28),
-                                              width: 1,
-                                            ),
-                                          ),
-                                          child: Icon(
-                                            Icons.credit_card_rounded,
-                                            color: NotebookColors.ink,
-                                            size: 24.r,
-                                          ),
-                                        ),
-                                        SizedBox(width: 14.w),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                cardHolder,
-                                                style: NotebookText.strong(
-                                                  13.sp,
-                                                ),
-                                              ),
-                                              Text(
-                                                '•••• •••• •••• $cardLast4',
-                                                style: NotebookText.note(
-                                                  12.sp,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        Container(
-                                          padding: EdgeInsets.symmetric(
-                                            horizontal: 10.w,
-                                            vertical: 4.h,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: isDefault
-                                                ? NotebookColors.green
-                                                : NotebookColors.surfaceBright,
-                                            borderRadius:
-                                                BorderRadius.circular(10.r),
-                                            border: Border.all(
-                                              color: isDefault
-                                                  ? NotebookColors.green
-                                                  : NotebookColors.ink
-                                                      .withAlpha(40),
-                                            ),
-                                          ),
-                                          child: Text(
-                                            isDefault
-                                                ? 'الافتراضية'
-                                                : 'متصلة',
-                                            style: GoogleFonts.cairo(
-                                              fontSize: 10.sp,
-                                              fontWeight: FontWeight.w800,
-                                              color: isDefault
-                                                  ? Colors.white
-                                                  : NotebookColors.pencil,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                  ),
-
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 24.h),
-                    child: NotebookPrimaryButton(
-                      label: 'إضافة بطاقة جديدة',
-                      icon: Icons.add_rounded,
-                      onPressed: () async {
-                        HapticFeedback.mediumImpact();
-                        await Navigator.pushNamed(
-                          context,
-                          AppRouter.studentAddCard,
-                        );
-                        _loadMethods();
-                      },
-                    ),
-                  ),
+                  Expanded(child: _buildBody(context, state)),
+                  _buildAddButton(context),
                 ],
               );
             },
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildBody(BuildContext context, StudentPaymentsState state) {
+    final l10n = context.l10n;
+    if (state.methodsStatus == StudentPaymentsStatus.loading &&
+        state.paymentMethods.isEmpty) {
+      return Center(
+        child: CircularProgressIndicator(color: NotebookColors.green),
+      );
+    }
+    if (state.paymentMethods.isEmpty) {
+      return Padding(
+        padding: EdgeInsets.fromLTRB(24.w, 24.h, 24.w, 0),
+        child: NotebookEmptyNote(message: l10n.noSavedCards),
+      );
+    }
+    return RefreshIndicator(
+      onRefresh: _loadMethods,
+      child: ListView.builder(
+        padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 20.h),
+        physics: const BouncingScrollPhysics(),
+        itemCount: state.paymentMethods.length,
+        itemBuilder: (context, index) {
+          final m = state.paymentMethods[index];
+          return Padding(
+            padding: EdgeInsets.only(bottom: 14.h),
+            child: PaymentCardTile(
+              cardHolder: (m['card_holder'] as String?) ?? l10n.defaultCardFallback,
+              cardLast4: (m['card_last4'] as String?) ?? '••••',
+              isDefault: (m['is_default'] as bool?) ?? false,
+              defaultLabel: l10n.defaultCardLabel,
+              connectedLabel: l10n.connectedCardLabel,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildAddButton(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 24.h),
+      child: NotebookPrimaryButton(
+        label: context.l10n.addNewCardButton,
+        icon: Icons.add_rounded,
+        onPressed: () async {
+          HapticFeedback.mediumImpact();
+          await Navigator.pushNamed(context, AppRouter.studentAddCard);
+          _loadMethods();
+        },
       ),
     );
   }

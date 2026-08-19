@@ -3,68 +3,66 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import 'package:thanaweya_online/core/constants/app_strings.dart';
 import 'package:thanaweya_online/core/router/app_router.dart';
 import 'package:thanaweya_online/core/theme/notebook_theme.dart';
 import 'package:thanaweya_online/features/auth/logic/auth_cubit.dart';
+import 'package:thanaweya_online/l10n/l10n.dart';
 
 class StudentSettingsScreen extends StatelessWidget {
   const StudentSettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-        backgroundColor: NotebookColors.ground,
-        appBar: NotebookTopBar(
-          title: AppStrings.settings,
-          subtitle: 'إعدادات التطبيق والملف الشخصي',
-        ),
-        body: NotebookPaper(
-          child: ListView(
-            padding: EdgeInsets.fromLTRB(20.w, 18.h, 20.w, 40.h),
-            physics: const BouncingScrollPhysics(),
-            children: [
-              NotebookCard(
-                ruled: true,
-                ruledStartY: 24,
-                borderRadius: 12,
-                padding: EdgeInsets.symmetric(vertical: 6.h),
-                child: Column(
-                  children: [
-                    _buildMenuItem(
-                      icon: Icons.person_outline_rounded,
-                      title: 'الملف الشخصي',
-                      onTap: () {},
-                    ),
-                    _buildMenuItem(
-                      icon: Icons.translate_rounded,
-                      title: 'اللغة',
-                      onTap: () {},
-                    ),
-                    _buildMenuItem(
-                      icon: Icons.notifications_outlined,
-                      title: 'الإشعارات',
-                      onTap: () {},
-                    ),
-                    _buildMenuItem(
-                      icon: Icons.logout_rounded,
-                      title: AppStrings.logout,
-                      isDanger: true,
-                      onTap: () {
-                        context.read<AuthCubit>().signOut();
-                        Navigator.pushReplacementNamed(
-                          context,
-                          AppRouter.login,
-                        );
-                      },
-                    ),
-                  ],
-                ),
+    final l10n = context.l10n;
+    return Scaffold(
+      backgroundColor: NotebookColors.ground,
+      appBar: NotebookTopBar(
+        title: l10n.settings,
+        subtitle: l10n.settingsSubtitle,
+      ),
+      body: NotebookPaper(
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(20.w, 18.h, 20.w, 40.h),
+          physics: const BouncingScrollPhysics(),
+          children: [
+            NotebookCard(
+              ruled: true,
+              ruledStartY: 24,
+              borderRadius: 12,
+              padding: EdgeInsets.symmetric(vertical: 6.h),
+              child: Column(
+                children: [
+                  _buildMenuItem(
+                    icon: Icons.person_outline_rounded,
+                    title: l10n.profile,
+                    onTap: () {},
+                  ),
+                  _buildMenuItem(
+                    icon: Icons.translate_rounded,
+                    title: l10n.language,
+                    onTap: () {},
+                  ),
+                  _buildMenuItem(
+                    icon: Icons.notifications_outlined,
+                    title: l10n.notifications,
+                    onTap: () {},
+                  ),
+                  _buildMenuItem(
+                    icon: Icons.logout_rounded,
+                    title: l10n.logout,
+                    isDanger: true,
+                    onTap: () {
+                      context.read<AuthCubit>().signOut();
+                      Navigator.pushReplacementNamed(
+                        context,
+                        AppRouter.login,
+                      );
+                    },
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
