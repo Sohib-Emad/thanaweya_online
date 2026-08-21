@@ -9,9 +9,14 @@ import 'package:thanaweya_online/features/student/logic/student_courses_state.da
 class StudentCoursesCubit extends Cubit<StudentCoursesState> {
   final StudentCoursesRepo _repo;
 
-  StudentCoursesCubit({required StudentCoursesRepo repo})
+  StudentCoursesCubit({required StudentCoursesRepo repo, Map<String, dynamic>? initialCourse})
       : _repo = repo,
-        super(const StudentCoursesState());
+        super(StudentCoursesState(
+          course: initialCourse,
+          courseStatus: initialCourse != null && initialCourse.isNotEmpty
+              ? StudentCoursesStatus.loaded
+              : StudentCoursesStatus.initial,
+        ));
 
   @override
   void emit(StudentCoursesState state) {
@@ -63,22 +68,72 @@ class StudentCoursesCubit extends Cubit<StudentCoursesState> {
     );
   }
 
-  Future<void> loadCourse(String courseId) async {
-    emit(state.copyWith(courseStatus: StudentCoursesStatus.loading, course: null));
-    for (int attempt = 0; attempt < 4; attempt++) {
-      final result = await _repo.getCourse(courseId);
+  Future<void> loadCourse(String courseId, {Map<String, dynamic>? initialData}) async {
+    final cleanId = courseId.trim();
+    if (cleanId.isEmpty) {
+      if (state.course == null) {
+        emit(state.copyWith(courseStatus: StudentCoursesStatus.error, course: null));
+      }
+      return;
+    }
+
+    if (initialData != null && initialData.isNotEmpty) {
+      emit(state.copyWith(
+        courseStatus: StudentCoursesStatus.loaded,
+        course: initialData,
+      ));
+    } else if (state.course == null) {
+      Map<String, dynamic>? cached;
+      for (final c in state.popularCourses) {
+        if (c['id'] == cleanId) {
+          cached = c;
+          break;
+        }
+      }
+      if (cached == null) {
+        for (final c in state.myCourses) {
+          if (c['id'] == cleanId) {
+            cached = c;
+            break;
+          }
+        }
+      }
+      if (cached == null) {
+        for (final c in state.courses) {
+          if (c.id == cleanId) {
+            cached = c.toJson();
+            break;
+          }
+        }
+      }
+
+      if (cached != null && cached.isNotEmpty) {
+        emit(state.copyWith(
+          courseStatus: StudentCoursesStatus.loaded,
+          course: cached,
+        ));
+      } else {
+        emit(state.copyWith(courseStatus: StudentCoursesStatus.loading));
+      }
+    }
+
+    for (int attempt = 0; attempt < 3; attempt++) {
+      final result = await _repo.getCourse(cleanId);
       final data = result.when(success: (c) => c, failure: (_, __) => null);
       if (data != null && data.isNotEmpty) {
         emit(state.copyWith(
-          courseStatus: StudentCoursesStatus.loaded, course: data,
+          courseStatus: StudentCoursesStatus.loaded,
+          course: data,
         ));
         return;
       }
-      if (attempt < 3) {
-        await Future.delayed(Duration(milliseconds: 250 * (attempt + 1)));
+      if (attempt < 2) {
+        await Future.delayed(Duration(milliseconds: 200 * (attempt + 1)));
       }
     }
-    emit(state.copyWith(courseStatus: StudentCoursesStatus.error, course: null));
+    if (state.course == null) {
+      emit(state.copyWith(courseStatus: StudentCoursesStatus.error, course: null));
+    }
   }
 
   Future<void> loadSubjects() async {

@@ -17,13 +17,8 @@ class StudentCoursesMyCoursesEnricher {
       try {
         final rows = await _client
             .from('courses')
-            .select(
-              'id, teacher_id, title, description, cover_image_url, price, '
-              'intro_video_url, intro_video_source_type, is_published, '
-              '"order", created_at, updated_at',
-            )
-            .inFilter('id', courseIdSet.toList())
-            .order('order');
+            .select()
+            .inFilter('id', courseIdSet.toList());
         for (final c in rows) {
           final id = c['id'] as String? ?? '';
           if (id.isNotEmpty && seen.add(id)) coursesData.add(c);

@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:thanaweya_online/core/network/api_error_handler.dart';
@@ -73,18 +74,48 @@ class StudentCoursesRepo {
 
   /// Single course with its teacher + subject info.
   Future<ApiResult<Map<String, dynamic>?>> getCourse(String courseId) async {
+    final cleanId = courseId.trim();
+    if (cleanId.isEmpty) return const ApiResult.success(null);
     try {
-      if (courseId.trim().isEmpty) return const ApiResult.success(null);
-      final courseData = await _client
-          .from('courses')
-          .select(
-            'id, teacher_id, title, description, cover_image_url, price, '
-            'intro_video_url, intro_video_source_type, is_published, '
-            '"order", created_at, updated_at, lessons(count)',
-          )
-          .eq('id', courseId)
-          .maybeSingle();
+      Map<String, dynamic>? courseData;
+      try {
+        courseData = await _client
+            .from('courses')
+            .select()
+            .eq('id', cleanId)
+            .maybeSingle();
+      } catch (e) {
+        debugPrint('[StudentCoursesRepo] getCourse initial select error: $e');
+      }
+
+      if (courseData == null) {
+        try {
+          final list = await _client
+              .from('courses')
+              .select()
+              .eq('id', cleanId)
+              .limit(1);
+          if (list.isNotEmpty) {
+            courseData = Map<String, dynamic>.from(list.first);
+          }
+        } catch (e) {
+          debugPrint('[StudentCoursesRepo] getCourse fallback error: $e');
+        }
+      }
+
+      debugPrint('[StudentCoursesRepo] getCourse("$cleanId") -> courseData: $courseData');
       if (courseData == null) return const ApiResult.success(null);
+
+      // Fetch lesson count safely
+      int lessonCount = 0;
+      try {
+        final lessons = await _client
+            .from('lessons')
+            .select('id')
+            .eq('course_id', cleanId);
+        lessonCount = (lessons as List).length;
+      } catch (_) {}
+
       final teacherId = courseData['teacher_id'] as String?;
       Map<String, dynamic>? teacherRow, userRow, subjectRow;
       if (teacherId != null && teacherId.isNotEmpty) {
@@ -115,6 +146,7 @@ class StudentCoursesRepo {
       }
       return ApiResult.success({
         ...courseData,
+        'lessons': {'count': lessonCount},
         'teachers': {
           ...(teacherRow ?? {}),
           'users': userRow ?? {},

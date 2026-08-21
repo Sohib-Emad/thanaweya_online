@@ -82,7 +82,7 @@ class StudentCoursesState {
       popularCoursesStatus: popularCoursesStatus ?? this.popularCoursesStatus,
       popularCourses: popularCourses ?? this.popularCourses,
       courseStatus: courseStatus ?? this.courseStatus,
-      course: course,
+      course: course ?? this.course,
       coursesStatus: coursesStatus ?? this.coursesStatus,
       courses: courses ?? this.courses,
       teachersStatus: teachersStatus ?? this.teachersStatus,

@@ -12,7 +12,14 @@ import 'package:thanaweya_online/features/student/ui/courses/widgets/widgets.dar
 /// Full course detail screen with cover, meta, about, and curriculum tabs.
 class CourseDetailsScreen extends StatefulWidget {
   final String courseId;
-  const CourseDetailsScreen({super.key, required this.courseId});
+  final Map<String, dynamic>? initialCourse;
+
+  const CourseDetailsScreen({
+    super.key,
+    required this.courseId,
+    this.initialCourse,
+  });
+
   @override
   State<CourseDetailsScreen> createState() => _CourseDetailsScreenState();
 }
@@ -27,10 +34,14 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
   @override
   void initState() {
     super.initState();
-    _coursesCubit = StudentCoursesCubit(repo: StudentCoursesRepo());
+    debugPrint('[CourseDetailsScreen] initState -> courseId: "${widget.courseId}", hasInitialCourse: ${widget.initialCourse != null}');
+    _coursesCubit = StudentCoursesCubit(
+      repo: StudentCoursesRepo(),
+      initialCourse: widget.initialCourse,
+    );
     final userId = Supabase.instance.client.auth.currentUser?.id ??
         Supabase.instance.client.auth.currentSession?.user.id;
-    _coursesCubit.loadCourse(widget.courseId);
+    _coursesCubit.loadCourse(widget.courseId, initialData: widget.initialCourse);
     _coursesCubit.loadCourseLessons(widget.courseId, studentId: userId);
     if (userId != null) _coursesCubit.loadProgress(userId, courseId: widget.courseId);
     _checkSubscription();
@@ -75,7 +86,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
     if (!mounted) return;
     res.when(
       success: (isSub) => setState(() => _isSubscribed = isSub),
-      failure: (_, __) {},
+      failure: (_, _) {},
     );
   }
 
@@ -93,6 +104,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
         }
       },
       builder: (context, state) {
+        debugPrint('[CourseDetailsScreen] build -> courseStatus: ${state.courseStatus}, hasCourse: ${state.course != null && state.course!.isNotEmpty}');
         if (state.course == null || state.course!.isEmpty) {
           if (state.courseStatus == StudentCoursesStatus.error) {
             return CourseErrorView(onRetry: () {

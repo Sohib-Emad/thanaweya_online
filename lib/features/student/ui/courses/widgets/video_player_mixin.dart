@@ -13,8 +13,9 @@ import 'package:thanaweya_online/features/student/ui/courses/widgets/lesson_exam
 
 /// Mixin encapsulating video player and lesson content logic.
 mixin VideoPlayerMixin<T extends StatefulWidget> on State<T> {
-  final StudentCoursesCubit coursesCubit =
-      StudentCoursesCubit(repo: StudentCoursesRepo());
+  final StudentCoursesCubit coursesCubit = StudentCoursesCubit(
+    repo: StudentCoursesRepo(),
+  );
   final _repo = StudentCoursesRepo();
 
   String activeTitle = '';
@@ -83,11 +84,17 @@ mixin VideoPlayerMixin<T extends StatefulWidget> on State<T> {
     videoController = null;
 
     // Step 2: Remove our own listeners synchronously.
-    try { oldYt?.removeListener(_onYoutubeTick); } catch (_) {}
-    try { oldVid?.removeListener(_onVideoTick); } catch (_) {}
+    try {
+      oldYt?.removeListener(_onYoutubeTick);
+    } catch (_) {}
+    try {
+      oldVid?.removeListener(_onVideoTick);
+    } catch (_) {}
 
     void doDispose() {
-      try { oldYt?.dispose(); } catch (_) {}
+      try {
+        oldYt?.dispose();
+      } catch (_) {}
       try {
         oldVid?.pause();
         oldVid?.dispose();
@@ -136,13 +143,15 @@ mixin VideoPlayerMixin<T extends StatefulWidget> on State<T> {
     required String description,
     required VoidCallback onSubscribed,
   }) async {
-    var userId = Supabase.instance.client.auth.currentUser?.id ??
+    var userId =
+        Supabase.instance.client.auth.currentUser?.id ??
         Supabase.instance.client.auth.currentSession?.user.id;
     if (userId == null) {
       for (int i = 0; i < 6; i++) {
         await Future.delayed(Duration(milliseconds: 150 * (i + 1)));
         if (!mounted) return;
-        userId = Supabase.instance.client.auth.currentUser?.id ??
+        userId =
+            Supabase.instance.client.auth.currentUser?.id ??
             Supabase.instance.client.auth.currentSession?.user.id;
         if (userId != null) break;
       }
@@ -165,8 +174,10 @@ mixin VideoPlayerMixin<T extends StatefulWidget> on State<T> {
         cid = l?['course_id'] as String? ?? '';
       } catch (_) {}
     }
-    final res = await _repo.subscription
-        .checkIsSubscribed(studentId: userId, courseId: cid);
+    final res = await _repo.subscription.checkIsSubscribed(
+      studentId: userId,
+      courseId: cid,
+    );
     if (!mounted) return;
     res.when(
       success: (isSub) {
@@ -188,8 +199,10 @@ mixin VideoPlayerMixin<T extends StatefulWidget> on State<T> {
   Future<void> loadLessonContent(String lessonId) async {
     final userId = Supabase.instance.client.auth.currentUser?.id;
     if (userId == null) return;
-    final statusRes = await _repo.lessons.detail
-        .getLessonViewStatus(studentId: userId, lessonId: lessonId);
+    final statusRes = await _repo.lessons.detail.getLessonViewStatus(
+      studentId: userId,
+      lessonId: lessonId,
+    );
     statusRes.when(
       success: (s) {
         if (s != null && mounted) {
@@ -204,17 +217,21 @@ mixin VideoPlayerMixin<T extends StatefulWidget> on State<T> {
     );
     final docsRes = await _repo.lessons.detail.getLessonDocuments(lessonId);
     docsRes.when(
-        success: (d) {
-          if (mounted) setState(() => documents = d);
-        },
-        failure: (_, __) {});
-    final examsRes = await _repo.lessons.detail.examsRepo
-        .getLessonExams(lessonId: lessonId, studentId: userId);
+      success: (d) {
+        if (mounted) setState(() => documents = d);
+      },
+      failure: (_, __) {},
+    );
+    final examsRes = await _repo.lessons.detail.examsRepo.getLessonExams(
+      lessonId: lessonId,
+      studentId: userId,
+    );
     examsRes.when(
-        success: (e) {
-          if (mounted) setState(() => lessonExams = e);
-        },
-        failure: (_, __) {});
+      success: (e) {
+        if (mounted) setState(() => lessonExams = e);
+      },
+      failure: (_, __) {},
+    );
     try {
       final prog = await Supabase.instance.client
           .from('lesson_progress')
@@ -250,9 +267,11 @@ mixin VideoPlayerMixin<T extends StatefulWidget> on State<T> {
     disposePlayerControllers();
     // We're initializing a new player right away, so clear the disposed flag.
     _disposed = false;
-    final dm = sourceType.toLowerCase() == 'dailymotion' ||
+    final dm =
+        sourceType.toLowerCase() == 'dailymotion' ||
         DailymotionUtils.isDailymotionUrl(url);
-    final yt = !dm &&
+    final yt =
+        !dm &&
         (sourceType.toLowerCase() == 'youtube' ||
             url.contains('youtube') ||
             url.contains('youtu.be'));
@@ -263,13 +282,13 @@ mixin VideoPlayerMixin<T extends StatefulWidget> on State<T> {
     totalDuration = Duration.zero;
     _lastSavedSecond = startSec;
     final updater = () => _setActive(
-          title: title,
-          description: description,
-          url: url,
-          lessonId: lessonId,
-          dm: dm,
-          yt: yt,
-        );
+      title: title,
+      description: description,
+      url: url,
+      lessonId: lessonId,
+      dm: dm,
+      yt: yt,
+    );
     notify ? setState(updater) : updater();
 
     if (dm) {
@@ -291,17 +310,19 @@ mixin VideoPlayerMixin<T extends StatefulWidget> on State<T> {
     } else {
       try {
         videoController = VideoPlayerController.networkUrl(Uri.parse(url))
-          ..initialize().then((_) {
-            if (mounted) {
-              if (startSec > 0) {
-                videoController?.seekTo(Duration(seconds: startSec));
-              }
-              setState(() => isUploadLoading = false);
-              videoController?.play();
-            }
-          }).catchError((_) {
-            if (mounted) setState(() => isUploadLoading = false);
-          })
+          ..initialize()
+              .then((_) {
+                if (mounted) {
+                  if (startSec > 0) {
+                    videoController?.seekTo(Duration(seconds: startSec));
+                  }
+                  setState(() => isUploadLoading = false);
+                  videoController?.play();
+                }
+              })
+              .catchError((_) {
+                if (mounted) setState(() => isUploadLoading = false);
+              })
           ..addListener(_onVideoTick);
       } catch (_) {
         setState(() => isUploadLoading = false);
@@ -318,8 +339,10 @@ mixin VideoPlayerMixin<T extends StatefulWidget> on State<T> {
     final userId = Supabase.instance.client.auth.currentUser?.id;
     if (userId == null) return;
     _viewIncrementedFor = lessonId;
-    final res = await _repo.lessons.detail
-        .incrementLessonView(studentId: userId, lessonId: lessonId);
+    final res = await _repo.lessons.detail.incrementLessonView(
+      studentId: userId,
+      lessonId: lessonId,
+    );
     res.when(
       success: (count) {
         if (mounted) {
@@ -339,7 +362,8 @@ mixin VideoPlayerMixin<T extends StatefulWidget> on State<T> {
     if (dur > Duration.zero) totalDuration = dur;
     final posSec = pos.inSeconds, durSec = totalDuration.inSeconds;
     final reached90Percent =
-        durSec > 0 && (posSec >= (durSec * 0.9).round() || posSec >= durSec - 3);
+        durSec > 0 &&
+        (posSec >= (durSec * 0.9).round() || posSec >= durSec - 3);
 
     if (reached90Percent) {
       if (!isCompleted) {
@@ -407,8 +431,11 @@ mixin VideoPlayerMixin<T extends StatefulWidget> on State<T> {
     }
   }
 
-  Future<void> openLesson(LessonModel lesson, String courseId,
-      {VoidCallback? onLocked}) async {
+  Future<void> openLesson(
+    LessonModel lesson,
+    String courseId, {
+    VoidCallback? onLocked,
+  }) async {
     HapticFeedback.lightImpact();
 
     // 1. Check progression lock status (mandatory exam on previous lesson)
@@ -439,7 +466,9 @@ mixin VideoPlayerMixin<T extends StatefulWidget> on State<T> {
 
     final userId = Supabase.instance.client.auth.currentUser?.id;
     final res = await _repo.lessons.detail.getLessonViewStatus(
-        studentId: userId ?? '', lessonId: lesson.id);
+      studentId: userId ?? '',
+      lessonId: lesson.id,
+    );
     var locked = false, vc = 0, mv = 3;
     res.when(
       success: (s) {
@@ -489,10 +518,10 @@ mixin VideoPlayerMixin<T extends StatefulWidget> on State<T> {
     setState(() => isCompleted = next);
     final s = next
         ? (totalDuration.inSeconds > 0
-            ? totalDuration.inSeconds
-            : (currentPosition.inSeconds > 0
-                ? currentPosition.inSeconds
-                : 60))
+              ? totalDuration.inSeconds
+              : (currentPosition.inSeconds > 0
+                    ? currentPosition.inSeconds
+                    : 60))
         : 0;
     await saveProgress(s, next);
   }

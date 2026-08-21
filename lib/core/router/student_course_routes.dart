@@ -88,7 +88,12 @@ class StudentCourseRoutes {
                       (settings.arguments as Map?)?['courseId'])
                     ?.toString() ??
                 '';
-        return CourseDetailsScreen(courseId: id);
+        final initialCourse = settings.arguments is Map<String, dynamic>
+            ? settings.arguments as Map<String, dynamic>
+            : (settings.arguments is Map
+                ? Map<String, dynamic>.from(settings.arguments as Map)
+                : null);
+        return CourseDetailsScreen(courseId: id, initialCourse: initialCourse);
       case studentBookmarks:
         return const MyBookmarksScreen();
       case studentCurriculum:

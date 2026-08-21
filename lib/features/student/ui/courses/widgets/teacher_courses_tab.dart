@@ -98,7 +98,7 @@ class TeacherCoursesTab extends StatelessWidget {
         Navigator.pushNamed(
           context,
           AppRouter.studentCourseDetails,
-          arguments: course.id,
+          arguments: course.toJson(),
         );
       },
       borderRadius: BorderRadius.circular(16.r),

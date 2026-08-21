@@ -14,7 +14,7 @@ class StudentBookmarksRepo {
           .select('''
             id, created_at,
             courses(
-              id, teacher_id, title, description, cover_image_url, is_published, "order", created_at, updated_at,
+              id, teacher_id, title, description, cover_image_url, price, is_published, created_at, updated_at,
               teachers(id, subject_id, users(id, full_name), subjects(id, name_ar))
             )
           ''')

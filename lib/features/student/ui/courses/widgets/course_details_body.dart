@@ -53,14 +53,25 @@ class CourseDetailsBody extends StatelessWidget {
     final teachers = course['teachers'] as Map<String, dynamic>? ?? const {};
     final users = teachers['users'] as Map<String, dynamic>? ?? const {};
     final subjects = teachers['subjects'] as Map<String, dynamic>? ?? const {};
-    final teacherName = users['full_name'] as String? ?? l10n.teacherRole;
-    final teacherAvatarUrl = users['avatar_url'] as String?;
-    final teacherId = teachers['id'] as String? ?? '';
-    final subjectName = subjects['name_ar'] as String? ?? '';
-    final description = course['description'] as String? ?? '';
-    final introVideoUrl = course['intro_video_url'] as String? ?? '';
-    final introSourceType = course['intro_video_source_type'] as String? ?? 'youtube';
-    final coverUrl = course['cover_image_url'] as String? ?? '';
+    final teacherName = (users['full_name'] as String?) ??
+        (course['teacher_name'] as String?) ??
+        (course['teacher'] as String?) ??
+        l10n.teacherRole;
+    final teacherAvatarUrl = (users['avatar_url'] as String?) ??
+        (course['avatar_url'] as String?);
+    final teacherId = (teachers['id'] as String?) ??
+        (course['teacher_id'] as String?) ??
+        '';
+    final subjectName = (subjects['name_ar'] as String?) ??
+        (course['subject_name'] as String?) ??
+        (course['subject'] as String?) ??
+        '';
+    final description = (course['description'] as String?) ?? '';
+    final introVideoUrl = (course['intro_video_url'] as String?) ?? '';
+    final introSourceType = (course['intro_video_source_type'] as String?) ?? 'youtube';
+    final coverUrl = (course['cover_image_url'] as String?) ??
+        (course['cover'] as String?) ??
+        '';
     final totalSecs = state.lessons.fold<int>(0, (s, l) => s + (l.durationSeconds ?? 0));
     final totalDuration = totalSecs > 0 ? Formatters.formatDurationMinutes((totalSecs / 60).ceil()) : '';
     final lessonCount = _lessonCountOf(course['lessons']);

@@ -34,7 +34,9 @@ class CourseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sanitizedSubject = subject.replaceAll(RegExp(r'[^\w\s\u0600-\u06FF]'), '').trim();
+    final sanitizedSubject = subject
+        .replaceAll(RegExp(r'[^\w\s\u0600-\u06FF]'), '')
+        .trim();
     final teacherLine = teacher.startsWith('أ.') ? teacher : 'أ. $teacher';
 
     return NotebookCard(
@@ -43,7 +45,18 @@ class CourseCard extends StatelessWidget {
       marginTab: true,
       onTap: () {
         HapticFeedback.lightImpact();
-        Navigator.pushNamed(context, AppRouter.studentCourseDetails, arguments: id);
+        Navigator.pushNamed(
+          context,
+          AppRouter.studentCourseDetails,
+          arguments: {
+            'id': id,
+            'title': title,
+            'teacher_name': teacher,
+            'subject_name': subject,
+            'cover_image_url': coverUrl ?? '',
+            'price': price,
+          },
+        );
       },
       child: SizedBox(
         width: 180.w,
@@ -72,12 +85,22 @@ class CourseCard extends StatelessWidget {
               children: [
                 if (sanitizedSubject.isNotEmpty)
                   Container(
-                    padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 8.w,
+                      vertical: 3.h,
+                    ),
                     decoration: BoxDecoration(
                       color: NotebookColors.green,
                       borderRadius: BorderRadius.circular(4.r),
                     ),
-                    child: Text(sanitizedSubject, style: GoogleFonts.cairo(fontSize: 10.sp, fontWeight: FontWeight.w800, color: Colors.white)),
+                    child: Text(
+                      sanitizedSubject,
+                      style: GoogleFonts.cairo(
+                        fontSize: 10.sp,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                      ),
+                    ),
                   )
                 else
                   const SizedBox.shrink(),
@@ -87,12 +110,18 @@ class CourseCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: const Color(0xFFF59E0B).withAlpha(20),
                     borderRadius: BorderRadius.circular(6.r),
-                    border: Border.all(color: const Color(0xFFF59E0B).withAlpha(80)),
+                    border: Border.all(
+                      color: const Color(0xFFF59E0B).withAlpha(80),
+                    ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.stars_rounded, size: 11.r, color: const Color(0xFFD97706)),
+                      Icon(
+                        Icons.stars_rounded,
+                        size: 11.r,
+                        color: const Color(0xFFD97706),
+                      ),
                       SizedBox(width: 2.w),
                       Text(
                         '+50 نقطة',
@@ -107,37 +136,65 @@ class CourseCard extends StatelessWidget {
                 ),
                 const Spacer(),
                 GestureDetector(
-                  onTap: () => Navigator.pushNamed(context, AppRouter.studentBookmarks),
-                  child: Icon(Icons.bookmark_border_rounded, size: 16.r, color: NotebookColors.pencil),
+                  onTap: () =>
+                      Navigator.pushNamed(context, AppRouter.studentBookmarks),
+                  child: Icon(
+                    Icons.bookmark_border_rounded,
+                    size: 16.r,
+                    color: NotebookColors.pencil,
+                  ),
                 ),
               ],
             ),
             SizedBox(height: 6.h),
-            Text(teacherLine, style: NotebookText.note(11.sp), maxLines: 1, overflow: TextOverflow.ellipsis),
+            Text(
+              teacherLine,
+              style: NotebookText.note(11.sp),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
             SizedBox(height: 4.h),
-            Text(title, style: NotebookText.heading(13.sp), maxLines: 2, overflow: TextOverflow.ellipsis),
+            Text(
+              title,
+              style: NotebookText.heading(13.sp),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
             SizedBox(height: 5.h),
             Container(width: 44.w, height: 3.h, color: color),
             const Spacer(),
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 if (price != null)
                   Flexible(
                     child: Text(
                       Formatters.formatEgp(price!.toDouble()),
-                      style: NotebookText.strong(11.sp, color: NotebookColors.marginRed),
+                      style: NotebookText.strong(
+                        24.sp,
+                        color: NotebookColors.marginRed,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   )
                 else
-                  Text(context.l10n.continueCourse, style: NotebookText.note(10.sp)),
-                const Spacer(),
+                  Text(
+                    context.l10n.continueCourse,
+                    style: NotebookText.note(14.sp),
+                  ),
                 Container(
-                  width: 26.r,
-                  height: 26.r,
-                  decoration: BoxDecoration(color: NotebookColors.green, shape: BoxShape.circle),
-                  child: Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 15.r),
+                  width: 35.r,
+                  height: 35.r,
+                  decoration: BoxDecoration(
+                    color: NotebookColors.green,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.arrow_forward_rounded,
+                    color: Colors.white,
+                    size: 15.r,
+                  ),
                 ),
               ],
             ),

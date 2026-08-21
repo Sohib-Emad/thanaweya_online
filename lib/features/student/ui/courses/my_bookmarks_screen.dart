@@ -127,7 +127,7 @@ class _MyBookmarksScreenState extends State<MyBookmarksScreen> {
                 coverUrl: course['cover_image_url'] as String? ?? '',
                 onTap: () {
                   HapticFeedback.lightImpact();
-                  Navigator.pushNamed(context, AppRouter.studentCourseDetails, arguments: courseId);
+                  Navigator.pushNamed(context, AppRouter.studentCourseDetails, arguments: course);
                 },
                 onRemoveBookmark: () => _removeBookmark(courseId),
               );

@@ -79,10 +79,10 @@ class _CoverBox extends StatelessWidget {
           ? CachedNetworkImage(
               imageUrl: coverUrl,
               fit: BoxFit.cover,
-              placeholder: (_, __) => Center(
+              placeholder: (_, _) => Center(
                 child: CircularProgressIndicator(color: accent, strokeWidth: 2),
               ),
-              errorWidget: (_, __, ___) => _fallback(),
+              errorWidget: (_, _, _) => _fallback(),
             )
           : _fallback(),
     );

@@ -35,7 +35,7 @@ class NotebookTopBar extends StatelessWidget implements PreferredSizeWidget {
       color: NotebookColors.surface,
       child: Row(
         children: [
-          SizedBox(width: 12.w),
+          SizedBox(width: 4.w),
           if (automaticallyImplyBack && canPop)
             GestureDetector(
               onTap: onBack ?? () => Navigator.of(context).maybePop(),

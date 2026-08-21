@@ -31,28 +31,35 @@ class StudentCoursesPopularRepo {
   Future<List<dynamic>> _fetchPublishedCoursesByTeachers(
     List<String> ids,
   ) async {
-    return _client
-        .from('courses')
-        .select(
-          'id, teacher_id, title, description, cover_image_url, price, '
-          'intro_video_url, intro_video_source_type, is_published, '
-          '"order", created_at, updated_at, lessons(count)',
-        )
-        .inFilter('teacher_id', ids)
-        .eq('is_published', true)
-        .order('order');
+    try {
+      return await _client
+          .from('courses')
+          .select()
+          .inFilter('teacher_id', ids)
+          .eq('is_published', true)
+          .order('order');
+    } catch (_) {
+      return await _client
+          .from('courses')
+          .select()
+          .inFilter('teacher_id', ids)
+          .eq('is_published', true);
+    }
   }
 
   Future<List<dynamic>> _fetchAllPublishedCourses() async {
-    return _client
-        .from('courses')
-        .select(
-          'id, teacher_id, title, description, cover_image_url, price, '
-          'intro_video_url, intro_video_source_type, is_published, '
-          '"order", created_at, updated_at, lessons(count)',
-        )
-        .eq('is_published', true)
-        .order('order');
+    try {
+      return await _client
+          .from('courses')
+          .select()
+          .eq('is_published', true)
+          .order('order');
+    } catch (_) {
+      return await _client
+          .from('courses')
+          .select()
+          .eq('is_published', true);
+    }
   }
 
   Future<ApiResult<List<Map<String, dynamic>>>> _buildPopularCoursesResult(
