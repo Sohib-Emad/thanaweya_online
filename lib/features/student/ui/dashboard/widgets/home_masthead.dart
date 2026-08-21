@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'package:thanaweya_online/core/firebase/notification_storage.dart';
 import 'package:thanaweya_online/core/theme/notebook_theme.dart';
 import 'package:thanaweya_online/l10n/l10n.dart';
 
@@ -141,25 +142,76 @@ class HomeMasthead extends StatelessWidget {
                 ),
                 SizedBox(width: 8.w),
               ],
-              GestureDetector(
-                onTap: onNotificationsTap,
-                child: Container(
-                  width: 40.r,
-                  height: 40.r,
-                  decoration: BoxDecoration(
-                    color: NotebookColors.surfaceBright,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: NotebookColors.marginRed.withAlpha(120),
-                      width: 1.4,
-                    ),
-                  ),
-                  child: Icon(
-                    Icons.notifications_none_rounded,
-                    color: NotebookColors.marginRed,
-                    size: 20.r,
-                  ),
-                ),
+              ValueListenableBuilder<int>(
+                valueListenable: NotificationStorage.unreadCountNotifier,
+                builder: (context, unreadCount, _) {
+                  return Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      GestureDetector(
+                        onTap: onNotificationsTap,
+                        child: Container(
+                          width: 40.r,
+                          height: 40.r,
+                          decoration: BoxDecoration(
+                            color: NotebookColors.surfaceBright,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: NotebookColors.marginRed.withAlpha(120),
+                              width: 1.4,
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.notifications_none_rounded,
+                            color: NotebookColors.marginRed,
+                            size: 20.r,
+                          ),
+                        ),
+                      ),
+                      if (unreadCount > 0)
+                        Positioned(
+                          top: -3,
+                          right: -3,
+                          child: Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: unreadCount > 9 ? 5.w : 0,
+                            ),
+                            constraints: BoxConstraints(
+                              minWidth: 18.r,
+                              minHeight: 18.r,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEF4444),
+                              shape: unreadCount > 9
+                                  ? BoxShape.rectangle
+                                  : BoxShape.circle,
+                              borderRadius: unreadCount > 9
+                                  ? BorderRadius.circular(10.r)
+                                  : null,
+                              border: Border.all(color: Colors.white, width: 1.8),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFFEF4444).withAlpha(120),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              unreadCount > 99 ? '99+' : '$unreadCount',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10.sp,
+                                fontWeight: FontWeight.w900,
+                                height: 1.1,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
               ),
             ],
           ),

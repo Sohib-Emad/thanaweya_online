@@ -9,6 +9,7 @@ import 'package:thanaweya_online/core/constants/app_text_styles.dart';
 import 'package:thanaweya_online/features/admin/data/repos/admin_students_repo.dart';
 import 'package:thanaweya_online/features/admin/logic/admin_students_cubit.dart';
 import 'package:thanaweya_online/features/admin/ui/students/widgets/student_courses_sheet.dart';
+import 'package:thanaweya_online/features/admin/ui/widgets/admin_password_tile.dart';
 
 class AdminStudentsScreen extends StatefulWidget {
   final String? initialTeacherId;
@@ -494,8 +495,43 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                         ),
                     ],
                   ),
-                  SizedBox(height: 12.h),
                 ],
+
+                // Password Row (View, Copy, Edit)
+                AdminPasswordTile(
+                  userId: student['id'] as String? ?? '',
+                  userName: name,
+                  initialPassword: (student['plain_password'] as String?) ??
+                      (user['plain_password'] as String?) ??
+                      '',
+                  onPasswordChanged: (newPass) async {
+                    final res = await AdminStudentsRepo().updateUserPassword(
+                      student['id'] as String? ?? '',
+                      newPass,
+                    );
+                    return res.when(
+                      success: (_) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('تم تحديث كلمة المرور بنجاح ✅'),
+                            backgroundColor: AppColors.success,
+                          ),
+                        );
+                        return true;
+                      },
+                      failure: (err, _) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('خطأ: $err'),
+                            backgroundColor: AppColors.error,
+                          ),
+                        );
+                        return false;
+                      },
+                    );
+                  },
+                ),
+                SizedBox(height: 12.h),
 
                 // Action Bar: Manage Courses & Gift Points
                 Row(

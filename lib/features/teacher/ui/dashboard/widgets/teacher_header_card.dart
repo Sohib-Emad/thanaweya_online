@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'package:thanaweya_online/core/firebase/notification_storage.dart';
 import 'package:thanaweya_online/features/teacher/logic/teacher_profile_cubit.dart';
 
 /// Top header displaying the teacher's greeting, name, code, actions, and avatar on the left.
@@ -98,11 +99,62 @@ class TeacherHeaderCard extends StatelessWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Notifications Icon
-                  _HeaderIconBtn(
-                    icon: Icons.notifications_none_rounded,
-                    onTap: onNotificationsTap,
-                    tooltip: 'الإشعارات',
+                  // Notifications Icon with badge
+                  ValueListenableBuilder<int>(
+                    valueListenable: NotificationStorage.unreadCountNotifier,
+                    builder: (context, unreadCount, _) {
+                      return Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          _HeaderIconBtn(
+                            icon: Icons.notifications_none_rounded,
+                            onTap: onNotificationsTap,
+                            tooltip: 'الإشعارات',
+                          ),
+                          if (unreadCount > 0)
+                            Positioned(
+                              top: -2,
+                              right: -2,
+                              child: Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: unreadCount > 9 ? 4.w : 0,
+                                ),
+                                constraints: BoxConstraints(
+                                  minWidth: 16.r,
+                                  minHeight: 16.r,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEF4444),
+                                  shape: unreadCount > 9
+                                      ? BoxShape.rectangle
+                                      : BoxShape.circle,
+                                  borderRadius: unreadCount > 9
+                                      ? BorderRadius.circular(8.r)
+                                      : null,
+                                  border: Border.all(color: Colors.white, width: 1.5),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFFEF4444).withAlpha(120),
+                                      blurRadius: 5,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  unreadCount > 99 ? '99+' : '$unreadCount',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 9.5.sp,
+                                    fontWeight: FontWeight.w900,
+                                    height: 1.1,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      );
+                    },
                   ),
                   SizedBox(width: 8.w),
 

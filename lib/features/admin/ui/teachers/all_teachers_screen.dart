@@ -9,6 +9,7 @@ import 'package:thanaweya_online/core/constants/app_text_styles.dart';
 import 'package:thanaweya_online/core/router/app_router.dart';
 import 'package:thanaweya_online/features/admin/data/repos/admin_teachers_repo.dart';
 import 'package:thanaweya_online/features/admin/logic/admin_teachers_cubit.dart';
+import 'package:thanaweya_online/features/admin/ui/widgets/admin_password_tile.dart';
 
 class AllTeachersScreen extends StatefulWidget {
   const AllTeachersScreen({super.key});
@@ -88,7 +89,7 @@ class _AllTeachersScreenState extends State<AllTeachersScreen> {
                 physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
                 padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 14.h),
                 itemCount: state.allTeachers.length,
-                separatorBuilder: (_, __) => SizedBox(height: 12.h),
+                separatorBuilder: (_, _) => SizedBox(height: 12.h),
                 itemBuilder: (context, index) {
                   final teacher = state.allTeachers[index];
                   final teacherId = teacher['id'] as String? ?? '';
@@ -223,6 +224,41 @@ class _AllTeachersScreenState extends State<AllTeachersScreen> {
                             ],
                           ),
                         ],
+
+                        // Password Row (View, Copy, Edit)
+                        AdminPasswordTile(
+                          userId: teacher['id'] as String? ?? '',
+                          userName: name,
+                          initialPassword: (teacher['plain_password'] as String?) ??
+                              (users['plain_password'] as String?) ??
+                              '',
+                          onPasswordChanged: (newPass) async {
+                            final res = await AdminTeachersRepo().updateUserPassword(
+                              teacher['id'] as String? ?? '',
+                              newPass,
+                            );
+                            return res.when(
+                              success: (_) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('تم تحديث كلمة المرور بنجاح ✅'),
+                                    backgroundColor: AppColors.success,
+                                  ),
+                                );
+                                return true;
+                              },
+                              failure: (err, _) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('خطأ: $err'),
+                                    backgroundColor: AppColors.error,
+                                  ),
+                                );
+                                return false;
+                              },
+                            );
+                          },
+                        ),
 
                         SizedBox(height: 12.h),
                         const Divider(height: 1),

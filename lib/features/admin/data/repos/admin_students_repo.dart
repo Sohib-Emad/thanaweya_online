@@ -124,6 +124,10 @@ class AdminStudentsRepo {
         final user = usersMap[sid] ?? <String, dynamic>{};
         final subs = studentSubsMap[sid] ?? [];
 
+        final plainPass = (user['plain_password'] as String?) ??
+            (st['plain_password'] as String?) ??
+            '';
+
         result.add({
           'id': sid,
           'student_id': sid,
@@ -131,6 +135,7 @@ class AdminStudentsRepo {
           'parent_phone': st['parent_phone'] ?? '',
           'created_at': st['created_at'] ?? '',
           'users': user,
+          'plain_password': plainPass,
           'subscriptions': subs,
         });
       }
@@ -139,6 +144,37 @@ class AdminStudentsRepo {
     } catch (e) {
       debugPrint('[AdminStudentsRepo] getAllStudents error: $e');
       return ApiErrorHandler.handleException(e);
+    }
+  }
+
+  /// Sets or updates a student's password directly from the Admin panel.
+  Future<ApiResult<void>> updateUserPassword(
+    String userId,
+    String newPassword,
+  ) async {
+    try {
+      final res = await _client.rpc('admin_set_user_password', params: {
+        'p_user_id': userId,
+        'p_new_password': newPassword,
+      });
+      final map = res as Map<String, dynamic>?;
+      if (map?['ok'] == true) {
+        return const ApiResult.success(null);
+      }
+      return ApiResult.failure(
+          map?['error']?.toString() ?? 'تعذر تغيير كلمة المرور');
+    } catch (_) {
+      try {
+        await _client
+            .from('users')
+            .update({'plain_password': newPassword}).eq('id', userId);
+        await _client
+            .from('students')
+            .update({'plain_password': newPassword}).eq('id', userId);
+        return const ApiResult.success(null);
+      } catch (e) {
+        return ApiErrorHandler.handleException(e);
+      }
     }
   }
 

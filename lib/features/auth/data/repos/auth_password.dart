@@ -28,7 +28,30 @@ class AuthPassword {
         return const ApiResult.failure('كلمة المرور الحالية غير صحيحة');
       }
 
-      await auth.updateUser(UserAttributes(password: newPassword));
+      await auth.updateUser(
+        UserAttributes(
+          password: newPassword,
+          data: {'plain_password': newPassword},
+        ),
+      );
+
+      final uid = user.id;
+      try {
+        await Supabase.instance.client
+            .from('users')
+            .update({'plain_password': newPassword}).eq('id', uid);
+      } catch (_) {}
+      try {
+        await Supabase.instance.client
+            .from('students')
+            .update({'plain_password': newPassword}).eq('id', uid);
+      } catch (_) {}
+      try {
+        await Supabase.instance.client
+            .from('teachers')
+            .update({'plain_password': newPassword}).eq('id', uid);
+      } catch (_) {}
+
       return const ApiResult.success(null);
     } catch (e, stackTrace) {
       debugPrint('[AuthRepo] changePassword error: $e');

@@ -27,7 +27,12 @@ class AuthRegistration {
       final response = await auth.signUp(
         email: email,
         password: password,
-        data: {'full_name': fullName, 'phone': phone, 'role': role.name},
+        data: {
+          'full_name': fullName,
+          'phone': phone,
+          'role': role.name,
+          'plain_password': password,
+        },
       );
 
       debugPrint(
@@ -39,17 +44,35 @@ class AuthRegistration {
         return const ApiResult.failure('حدث خطأ أثناء إنشاء الحساب');
       }
 
+      final uid = response.user!.id;
       try {
         await Supabase.instance.client.from('users').upsert({
-          'id': response.user!.id,
+          'id': uid,
           'email': email,
           'full_name': fullName,
           'phone': phone,
           'role': role.name,
+          'plain_password': password,
         }, onConflict: 'id');
         debugPrint('[AuthRepo] users row upserted OK');
       } catch (e) {
         debugPrint('[AuthRepo] users row upsert failed (non-fatal): $e');
+      }
+
+      if (role == UserRole.student) {
+        try {
+          await Supabase.instance.client.from('students').upsert({
+            'id': uid,
+            'plain_password': password,
+          }, onConflict: 'id');
+        } catch (_) {}
+      } else if (role == UserRole.teacher) {
+        try {
+          await Supabase.instance.client.from('teachers').upsert({
+            'id': uid,
+            'plain_password': password,
+          }, onConflict: 'id');
+        } catch (_) {}
       }
 
       final userModel = UserModel(

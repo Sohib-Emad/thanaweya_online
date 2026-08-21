@@ -26,7 +26,7 @@ class StudentUserLookup {
     try {
       final rows = await _client
           .from('users')
-          .select('id, full_name, email, phone, role, avatar_url')
+          .select('id, full_name, email, phone, role, avatar_url, plain_password')
           .inFilter('id', ids);
       for (final r in rows) {
         final id = r['id'] as String? ?? '';

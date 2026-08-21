@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'token_manager.dart';
 import 'notification_handler.dart';
+import 'notification_storage.dart';
 
 /// Required entry point for FCM messages received while the app is in the
 /// background or terminated. Must be a top-level function.
@@ -14,15 +15,10 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     '[Push] background message: ${message.notification?.title} '
     '(${message.messageId})',
   );
+  await NotificationStorage.saveRemoteMessage(message);
 }
 
 /// Centralises Firebase Cloud Messaging and local notification handling.
-///
-/// Responsibilities:
-///   * Requests permission (iOS / Android 13+)
-///   * Registers / refreshes the FCM token in Supabase
-///   * Shows a local notification while the app is in the foreground
-///   * Navigates to the notifications screen when a notification is tapped
 class PushNotificationService {
   PushNotificationService._();
 
@@ -41,9 +37,11 @@ class PushNotificationService {
     if (_initialized) return;
     _initialized = true;
 
+    await NotificationStorage.init();
+
     await NotificationHandler.initLocalNotifications(
       _localNotifications,
-      onNotificationTap: _navigateToNotifications,
+      onNotificationTap: (payload) => _handleNotificationTap(payload),
     );
 
     final settings = await _messaging.requestPermission(
@@ -53,17 +51,23 @@ class PushNotificationService {
     );
     debugPrint('[Push] permission status: ${settings.authorizationStatus}');
 
-    FirebaseMessaging.onMessage
-        .listen((m) => NotificationHandler.showLocalNotification(_localNotifications, m));
+    FirebaseMessaging.onMessage.listen((m) async {
+      await NotificationStorage.saveRemoteMessage(m);
+      NotificationHandler.showLocalNotification(_localNotifications, m);
+    });
 
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
-    FirebaseMessaging.onMessageOpenedApp.listen((_) => _navigateToNotifications());
+    FirebaseMessaging.onMessageOpenedApp.listen((m) {
+      final link = NotificationStorage.extractLink(m);
+      _handleNotificationTap(link);
+    });
 
     final initialMessage = await _messaging.getInitialMessage();
     if (initialMessage != null) {
+      final link = NotificationStorage.extractLink(initialMessage);
       WidgetsBinding.instance
-          .addPostFrameCallback((_) => _navigateToNotifications());
+          .addPostFrameCallback((_) => _handleNotificationTap(link));
     }
 
     _messaging.onTokenRefresh.listen((token) => TokenManager.saveToken(token));
@@ -99,7 +103,7 @@ class PushNotificationService {
     }
   }
 
-  void _navigateToNotifications() {
-    NotificationHandler.navigateToNotifications(navigatorKey);
+  void _handleNotificationTap(String? payload) {
+    NotificationHandler.handleNotificationAction(navigatorKey, payload);
   }
 }
