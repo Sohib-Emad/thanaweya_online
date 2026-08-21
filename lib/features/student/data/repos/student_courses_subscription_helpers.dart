@@ -1,6 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// Subscription-checking helpers: subscriptions, activation codes, cross-ref.
+/// Subscription-checking helpers: strictly per-course subscriptions, activation codes, and enrollments.
 class StudentCoursesSubscriptionHelpers {
   final SupabaseClient _client = Supabase.instance.client;
 
@@ -20,15 +20,17 @@ class StudentCoursesSubscriptionHelpers {
           final expiresAt = DateTime.tryParse(expiresAtStr);
           if (expiresAt != null && expiresAt.isBefore(DateTime.now())) continue;
         }
-        final tId = sub['teacher_id'] as String?;
         final cId = sub['course_id'] as String?;
-        if (courseId != null && courseId.isNotEmpty && cId == courseId) {
+        final tId = sub['teacher_id'] as String?;
+
+        // If checking a specific course, ONLY match that exact course_id
+        if (courseId != null && courseId.isNotEmpty) {
+          if (cId == courseId) return true;
+        } else if (targetTeacherId != null && targetTeacherId.isNotEmpty) {
+          if (tId == targetTeacherId) return true;
+        } else {
           return true;
         }
-        if (targetTeacherId != null &&
-            targetTeacherId.isNotEmpty &&
-            tId == targetTeacherId) return true;
-        if (targetTeacherId == null && courseId == null) return true;
       }
     } catch (_) {}
     return null;
@@ -66,14 +68,15 @@ class StudentCoursesSubscriptionHelpers {
         final expiresAt = DateTime.tryParse(expiresAtStr);
         if (expiresAt != null && expiresAt.isBefore(DateTime.now())) continue;
       }
-      final tId = code['teacher_id'] as String?;
       final cId = code['course_id'] as String?;
-      if (courseId != null && courseId.isNotEmpty && cId == courseId) {
-        return true;
+      final tId = code['teacher_id'] as String?;
+
+      // If checking a specific course, ONLY match that exact course_id
+      if (courseId != null && courseId.isNotEmpty) {
+        if (cId == courseId) return true;
+      } else if (targetTeacherId != null && targetTeacherId.isNotEmpty) {
+        if (tId == targetTeacherId) return true;
       }
-      if (targetTeacherId != null &&
-          targetTeacherId.isNotEmpty &&
-          tId == targetTeacherId) return true;
     }
     return null;
   }
@@ -83,38 +86,15 @@ class StudentCoursesSubscriptionHelpers {
     String courseId,
     String? targetTeacherId,
   ) async {
-    final allTeacherIds = <String>{};
     try {
-      final subs = await _client
-          .from('subscriptions')
-          .select('teacher_id')
-          .eq('student_id', uid);
-      for (final s in subs) {
-        final tId = s['teacher_id'] as String?;
-        if (tId != null && tId.isNotEmpty) allTeacherIds.add(tId);
-      }
-    } catch (_) {}
-    try {
-      final codes = await _client
-          .from('activation_codes')
-          .select('teacher_id')
-          .or('used_by.eq.$uid,used_by_student_id.eq.$uid');
-      for (final c in codes) {
-        final tId = c['teacher_id'] as String?;
-        if (tId != null && tId.isNotEmpty) allTeacherIds.add(tId);
-      }
-    } catch (_) {}
-    if (allTeacherIds.isEmpty) return null;
-    if (targetTeacherId != null &&
-        allTeacherIds.contains(targetTeacherId)) return true;
-    try {
-      final match = await _client
-          .from('courses')
+      // Check explicit enrollment for this exact course
+      final enrollRes = await _client
+          .from('course_enrollments')
           .select('id')
-          .eq('id', courseId)
-          .inFilter('teacher_id', allTeacherIds.toList())
+          .eq('student_id', uid)
+          .eq('course_id', courseId)
           .limit(1);
-      if (match.isNotEmpty) return true;
+      if (enrollRes.isNotEmpty) return true;
     } catch (_) {}
     return null;
   }

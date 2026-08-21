@@ -27,11 +27,7 @@ class AuthRegistration {
       final response = await auth.signUp(
         email: email,
         password: password,
-        data: {
-          'full_name': fullName,
-          'phone': phone,
-          'role': role.name,
-        },
+        data: {'full_name': fullName, 'phone': phone, 'role': role.name},
       );
 
       debugPrint(
@@ -44,16 +40,13 @@ class AuthRegistration {
       }
 
       try {
-        await Supabase.instance.client.from('users').upsert(
-          {
-            'id': response.user!.id,
-            'email': email,
-            'full_name': fullName,
-            'phone': phone,
-            'role': role.name,
-          },
-          onConflict: 'id',
-        );
+        await Supabase.instance.client.from('users').upsert({
+          'id': response.user!.id,
+          'email': email,
+          'full_name': fullName,
+          'phone': phone,
+          'role': role.name,
+        }, onConflict: 'id');
         debugPrint('[AuthRepo] users row upserted OK');
       } catch (e) {
         debugPrint('[AuthRepo] users row upsert failed (non-fatal): $e');
@@ -87,7 +80,7 @@ class AuthRegistration {
       email: user.email ?? '',
       fullName: user.userMetadata?['full_name'] ?? '',
       phone: user.userMetadata?['phone'] ?? '',
-      role: UserRole.values.byName(user.userMetadata?['role'] ?? 'student'),
+      role: UserRole.fromString(user.userMetadata?['role']),
       createdAt: DateTime.parse(user.createdAt),
       updatedAt: DateTime.parse(user.updatedAt ?? user.createdAt),
     );

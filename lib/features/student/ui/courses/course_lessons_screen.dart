@@ -4,10 +4,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:thanaweya_online/core/router/app_router.dart';
+import 'package:thanaweya_online/core/services/student_realtime_service.dart';
 import 'package:thanaweya_online/core/theme/notebook_theme.dart';
+import 'package:thanaweya_online/core/utils/lesson_progression_helper.dart';
 import 'package:thanaweya_online/features/shared/models/lesson_model.dart';
 import 'package:thanaweya_online/features/student/data/repos/student_courses_repo.dart';
 import 'package:thanaweya_online/features/student/logic/student_courses_cubit.dart';
+import 'package:thanaweya_online/features/student/ui/courses/widgets/lesson_exam_required_dialog.dart';
 import 'package:thanaweya_online/features/student/ui/courses/widgets/widgets.dart';
 import 'package:thanaweya_online/l10n/l10n.dart';
 
@@ -27,7 +30,13 @@ class _CourseLessonsScreenState extends State<CourseLessonsScreen> {
   void initState() {
     super.initState();
     _coursesCubit = StudentCoursesCubit(repo: StudentCoursesRepo());
-    _coursesCubit.loadCourseLessons(widget.courseId);
+    _loadProgressAndSubscription();
+
+    StudentRealtimeService.instance.addCoursesListener(_onRealtimeUpdate);
+  }
+
+  void _onRealtimeUpdate() {
+    if (!mounted) return;
     _loadProgressAndSubscription();
   }
 
@@ -52,12 +61,19 @@ class _CourseLessonsScreenState extends State<CourseLessonsScreen> {
   Future<void> _loadProgressAndSubscription() async {
     final uid = Supabase.instance.client.auth.currentUser?.id ??
         Supabase.instance.client.auth.currentSession?.user.id;
-    if (uid != null && mounted) _coursesCubit.loadProgress(uid);
+    _coursesCubit.loadCourseLessons(widget.courseId, studentId: uid);
+    if (uid != null && mounted) {
+      _coursesCubit.loadProgress(uid, courseId: widget.courseId);
+    }
     await _checkSubscription();
   }
 
   @override
-  void dispose() { _coursesCubit.close(); super.dispose(); }
+  void dispose() {
+    StudentRealtimeService.instance.removeCoursesListener(_onRealtimeUpdate);
+    _coursesCubit.close();
+    super.dispose();
+  }
 
   Map<String, dynamic> _videoArgs(LessonModel lesson) => {
     'lessonId': lesson.id, 'videoUrl': lesson.videoUrlOrId,
@@ -76,19 +92,42 @@ class _CourseLessonsScreenState extends State<CourseLessonsScreen> {
         if (isSub) {
           if (mounted) setState(() => _isSubscribed = true);
           if (!mounted) return;
-          _goToVideo(lesson);
+        } else {
+          _showLockedLessonDialog(lesson.title);
           return;
         }
+      } else {
+        _showLockedLessonDialog(lesson.title);
+        return;
       }
-      _showLockedLessonDialog(lesson.title);
+    }
+
+    final statusMap = LessonProgressionHelper.evaluateLessons(
+      lessons: _coursesCubit.state.lessons,
+      progress: _coursesCubit.state.progress,
+      isSubscribed: true,
+      courseExams: _coursesCubit.state.courseExams,
+      examSubmissions: _coursesCubit.state.examSubmissions,
+    );
+
+    final lockStatus = statusMap[lesson.id];
+    if (lockStatus != null && !lockStatus.isUnlocked) {
+      LessonExamRequiredDialog.show(
+        context,
+        lessonTitle: lesson.title,
+        lockStatus: lockStatus,
+        courseId: widget.courseId,
+        onRefresh: _loadProgressAndSubscription,
+      );
       return;
     }
+
     _goToVideo(lesson);
   }
 
   void _goToVideo(LessonModel lesson) {
     Navigator.pushNamed(context, AppRouter.studentVideoPlayer,
-        arguments: _videoArgs(lesson)).then((_) => _checkSubscription());
+        arguments: _videoArgs(lesson)).then((_) => _loadProgressAndSubscription());
   }
 
   void _showLockedLessonDialog(String lessonTitle) {
@@ -122,8 +161,12 @@ class _CourseLessonsScreenState extends State<CourseLessonsScreen> {
               child: BlocBuilder<StudentCoursesCubit, StudentCoursesState>(
                 bloc: _coursesCubit,
                 builder: (_, state) => LessonListView(
-                    state: state, completedIds: _completedIds,
-                    isSubscribed: _isSubscribed, onOpenLesson: _openLesson),
+                    state: state,
+                    completedIds: _completedIds,
+                    isSubscribed: _isSubscribed,
+                    onOpenLesson: _openLesson,
+                    onRefresh: _loadProgressAndSubscription,
+                  ),
               ),
             ),
             BlocBuilder<StudentCoursesCubit, StudentCoursesState>(

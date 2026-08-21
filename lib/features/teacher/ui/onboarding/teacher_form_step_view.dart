@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:thanaweya_online/features/shared/models/subscription_plan_item.dart';
 
 import 'package:thanaweya_online/features/teacher/ui/onboarding/widgets/widgets.dart';
 
@@ -28,6 +29,7 @@ Widget buildTeacherFormStep({
   required XFile? proof,
   required XFile? paymentReceipt,
   required int selectedPlanIndex,
+  List<SubscriptionPlanItem> plans = const [],
   required Future<void> Function({
     required String title,
     required Function(XFile?) onImageSelected,
@@ -108,10 +110,12 @@ Widget buildTeacherFormStep({
     key: const ValueKey(3),
     selectedPlanIndex: selectedPlanIndex,
     onPlanChanged: onPlanChanged,
+    plans: plans,
   ),
   4 => TeacherFormStep4(
     key: const ValueKey(4),
     selectedPlanIndex: selectedPlanIndex,
+    plans: plans,
     paymentReceiptFile: paymentReceipt,
     onPickImage: pick,
     onPaymentReceiptPicked: onPaymentReceipt,

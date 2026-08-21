@@ -2,6 +2,7 @@
 library;
 
 export 'activation_code_section.dart';
+export 'qr_scanner_sheet.dart';
 export 'bookmark_category_bar.dart';
 export 'bookmark_course_card.dart';
 export 'certificate_card.dart';
@@ -28,6 +29,7 @@ export 'intro_player_manager.dart';
 export 'lesson_card.dart';
 export 'lesson_document_tile.dart';
 export 'lesson_exam_tile.dart';
+export 'lesson_exam_required_dialog.dart';
 export 'lesson_list_item.dart';
 export 'lesson_list_view.dart';
 export 'lesson_locked_dialog.dart';
@@ -47,6 +49,7 @@ export 'reviews_entry.dart';
 export 'star_rating_selector.dart';
 export 'teacher_about_tab.dart';
 export 'teacher_cover_card.dart';
+export 'teacher_courses_tab.dart';
 export 'teacher_info_row.dart';
 export 'teacher_profile_body.dart';
 export 'upload_overlay.dart';

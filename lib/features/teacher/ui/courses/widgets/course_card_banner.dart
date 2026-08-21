@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -45,8 +46,20 @@ class CourseCardBanner extends StatelessWidget {
       gradient: LinearGradient(colors: [Color(0xFF0284C7), Color(0xFF0EA5E9)], begin: Alignment.topRight, end: Alignment.bottomLeft),
     ),
     child: hasCover
-        ? Image.network(course.coverImageUrl!, fit: BoxFit.cover, width: double.infinity, height: 130.h,
-            errorBuilder: (_, error, _) { debugPrint('[CourseCard] Cover load failed: $error'); return _fallbackCover(); })
+        ? CachedNetworkImage(
+            imageUrl: course.coverImageUrl!,
+            fit: BoxFit.cover,
+            width: double.infinity,
+            height: 130.h,
+            placeholder: (_, __) => Container(
+              color: const Color(0xFF0284C7),
+              child: const Center(child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)),
+            ),
+            errorWidget: (_, __, error) {
+              debugPrint('[CourseCard] Cover load failed: $error');
+              return _fallbackCover();
+            },
+          )
         : _fallbackCover(),
   );
 

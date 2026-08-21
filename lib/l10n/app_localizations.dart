@@ -1871,7 +1871,7 @@ abstract class AppLocalizations {
   /// No description provided for @inviteLink.
   ///
   /// In en, this message translates to:
-  /// **'Join Thanaweya Online: https://thanaweya.online/invite'**
+  /// **'Join Thanaweya Online: https://thanaweya-online-website.vercel.app/'**
   String get inviteLink;
 
   /// No description provided for @inviteCopied.

@@ -14,21 +14,28 @@ class StudentCoursesLessonsDetailRepo {
     required String studentId,
     required String lessonId,
   }) async {
+    final cleanLessonId = lessonId.trim();
+    if (cleanLessonId.isEmpty) {
+      return const ApiResult.success({'maxViews': 3, 'viewCount': 0});
+    }
     try {
-      final uid = _client.auth.currentUser?.id ??
-          _client.auth.currentSession?.user.id ??
-          studentId;
-      int maxViews = 5;
+      final uid = (_client.auth.currentUser?.id ??
+              _client.auth.currentSession?.user.id ??
+              studentId)
+          .trim();
+      int maxViews = 3;
       try {
         final lesson = await _client
             .from('lessons')
             .select('max_views')
-            .eq('id', lessonId)
+            .eq('id', cleanLessonId)
             .maybeSingle();
         if (lesson != null && lesson['max_views'] != null) {
-          maxViews = (lesson['max_views'] as num).toInt();
+          final mv = (lesson['max_views'] as num).toInt();
+          if (mv > 0) maxViews = mv;
         }
       } catch (_) {}
+
       int viewCount = 0;
       if (uid.isNotEmpty) {
         try {
@@ -45,7 +52,7 @@ class StudentCoursesLessonsDetailRepo {
       }
       return ApiResult.success({'maxViews': maxViews, 'viewCount': viewCount});
     } catch (_) {
-      return const ApiResult.success({'maxViews': 5, 'viewCount': 0});
+      return const ApiResult.success({'maxViews': 3, 'viewCount': 0});
     }
   }
 
@@ -62,10 +69,11 @@ class StudentCoursesLessonsDetailRepo {
           'increment_lesson_view',
           params: {'p_student_id': uid, 'p_lesson_id': lessonId},
         );
-        return ApiResult.success((res as num).toInt());
-      } catch (_) {
-        return await _incrementViewFallback(uid, lessonId);
-      }
+        if (res != null) {
+          return ApiResult.success((res as num).toInt());
+        }
+      } catch (_) {}
+      return await _incrementViewFallback(uid, lessonId);
     } catch (_) {
       return const ApiResult.success(1);
     }
@@ -84,12 +92,26 @@ class StudentCoursesLessonsDetailRepo {
           .maybeSingle();
       final currentCount = (current?['view_count'] as num?)?.toInt() ?? 0;
       final newCount = currentCount + 1;
-      await _client.from('lesson_progress').upsert({
-        'student_id': uid,
-        'lesson_id': lessonId,
-        'view_count': newCount,
-        'last_watched_at': DateTime.now().toIso8601String(),
-      }, onConflict: 'student_id,lesson_id');
+
+      if (current != null) {
+        await _client
+            .from('lesson_progress')
+            .update({
+              'view_count': newCount,
+              'last_watched_at': DateTime.now().toIso8601String(),
+            })
+            .eq('student_id', uid)
+            .eq('lesson_id', lessonId);
+      } else {
+        await _client.from('lesson_progress').insert({
+          'student_id': uid,
+          'lesson_id': lessonId,
+          'view_count': newCount,
+          'watched_seconds': 0,
+          'is_completed': false,
+          'last_watched_at': DateTime.now().toIso8601String(),
+        });
+      }
       return ApiResult.success(newCount);
     } catch (_) {
       return const ApiResult.success(1);
@@ -100,11 +122,13 @@ class StudentCoursesLessonsDetailRepo {
   Future<ApiResult<List<Map<String, dynamic>>>> getLessonDocuments(
     String lessonId,
   ) async {
+    final cleanId = lessonId.trim();
+    if (cleanId.isEmpty) return const ApiResult.success([]);
     try {
       final data = await _client
           .from('lesson_documents')
           .select('id, title, file_url, file_type, created_at')
-          .eq('lesson_id', lessonId)
+          .eq('lesson_id', cleanId)
           .order('created_at');
       return ApiResult.success(
         data.map((e) => Map<String, dynamic>.from(e as Map)).toList(),

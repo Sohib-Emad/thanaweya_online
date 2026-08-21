@@ -72,21 +72,31 @@ class _ProgressSectionState extends State<ProgressSection> {
   Future<void> _grantExtraViews(Map<String, dynamic> row) async {
     final title = row['title'] as String? ?? 'درس';
     final viewCount = (row['view_count'] as num?)?.toInt() ?? 0;
+    final maxViews = (row['max_views'] as num?)?.toInt() ?? 5;
     final lessonId = row['lesson_id'] as String? ?? '';
 
-    final confirmed = await GrantViewsDialog.show(context,
-        lessonTitle: title, currentViewCount: viewCount);
-    if (confirmed != true || !mounted) return;
+    final newCount = await GrantViewsDialog.show(
+      context,
+      lessonTitle: title,
+      currentViewCount: viewCount,
+      maxViews: maxViews,
+    );
+    if (newCount == null || !mounted) return;
 
     final res = await _repo.progress.detail.resetStudentLessonViews(
-        studentId: widget.studentId, lessonId: lessonId, newCount: 0);
+      studentId: widget.studentId,
+      lessonId: lessonId,
+      newCount: newCount,
+    );
     if (!mounted) return;
 
     res.when(
       success: (_) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('✅ تم تجديد وفتح 5 مشاهدات جديدة لهذا الدرس بنجاح للطالب!',
-              style: GoogleFonts.cairo(fontWeight: FontWeight.w700)),
+          content: Text(
+            '✅ تم زيادة وتجديد مشاهدات الحصة للطالب بنجاح!',
+            style: GoogleFonts.cairo(fontWeight: FontWeight.w700),
+          ),
           backgroundColor: const Color(0xFF059669),
           behavior: SnackBarBehavior.floating,
         ));

@@ -24,13 +24,15 @@ class AdminPlansCubit extends Cubit<AdminPlansState> {
     );
   }
 
-  Future<void> addPlan({
+  Future<bool> addPlan({
     required String name,
     required String billingPeriod,
     required double price,
     int? maxStudents,
     int? maxCourses,
     int? storageLimitMb,
+    int? displayOrder,
+    bool isActive = true,
   }) async {
     final result = await _repo.addPlan(
       name: name,
@@ -39,18 +41,30 @@ class AdminPlansCubit extends Cubit<AdminPlansState> {
       maxStudents: maxStudents,
       maxCourses: maxCourses,
       storageLimitMb: storageLimitMb,
+      displayOrder: displayOrder,
+      isActive: isActive,
     );
-    result.when(
-      success: (_) => loadPlans(),
-      failure: (message, _) => emit(state.copyWith(errorMessage: message)),
+    return result.when(
+      success: (_) {
+        loadPlans();
+        return true;
+      },
+      failure: (message, _) {
+        emit(state.copyWith(errorMessage: message));
+        return false;
+      },
     );
   }
 
-  Future<void> updatePlan({
+  Future<bool> updatePlan({
     required String planId,
     required String name,
     required String billingPeriod,
     required double price,
+    int? maxStudents,
+    int? maxCourses,
+    int? storageLimitMb,
+    int? displayOrder,
     bool? isActive,
   }) async {
     final result = await _repo.updatePlan(
@@ -58,19 +72,56 @@ class AdminPlansCubit extends Cubit<AdminPlansState> {
       name: name,
       billingPeriod: billingPeriod,
       price: price,
+      maxStudents: maxStudents,
+      maxCourses: maxCourses,
+      storageLimitMb: storageLimitMb,
+      displayOrder: displayOrder,
       isActive: isActive,
     );
-    result.when(
-      success: (_) => loadPlans(),
-      failure: (message, _) => emit(state.copyWith(errorMessage: message)),
+    return result.when(
+      success: (_) {
+        loadPlans();
+        return true;
+      },
+      failure: (message, _) {
+        emit(state.copyWith(errorMessage: message));
+        return false;
+      },
+    );
+  }
+
+  Future<bool> deletePlan(String planId) async {
+    final result = await _repo.deletePlan(planId);
+    return result.when(
+      success: (_) {
+        loadPlans();
+        return true;
+      },
+      failure: (message, _) {
+        emit(state.copyWith(errorMessage: message));
+        return false;
+      },
     );
   }
 
   Future<void> togglePlanStatus(String planId, bool isActive) async {
+    // Optimistic UI update
+    final updatedPlans = state.plans.map((p) {
+      if (p['id'] == planId) {
+        return {...p, 'is_active': isActive};
+      }
+      return p;
+    }).toList();
+    emit(state.copyWith(plans: updatedPlans));
+
     final result = await _repo.togglePlanStatus(planId, isActive);
     result.when(
-      success: (_) => loadPlans(),
-      failure: (message, _) => emit(state.copyWith(errorMessage: message)),
+      success: (_) {},
+      failure: (message, _) {
+        // Rollback on failure
+        loadPlans();
+        emit(state.copyWith(errorMessage: message));
+      },
     );
   }
 }

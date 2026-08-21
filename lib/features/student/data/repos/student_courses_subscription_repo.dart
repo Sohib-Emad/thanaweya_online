@@ -60,17 +60,31 @@ class StudentCoursesSubscriptionRepo {
       final price = (courseRows.first['price'] as num?)?.toDouble() ?? 0.0;
       if (price == 0.0) return true;
     } catch (_) {}
+
     try {
       final payRes = await _client
           .from('payments')
           .select('id, status, course_id')
-          .eq('payer_id', uid);
-      for (final p in payRes) {
+          .or('payer_id.eq.$uid,user_id.eq.$uid');
+      for (final p in (payRes as List)) {
         final s = (p['status'] as String?)?.toLowerCase();
         if (s != 'success' && s != 'completed') continue;
         if (p['course_id'] == courseId) return true;
       }
-    } catch (_) {}
+    } catch (_) {
+      try {
+        final payRes = await _client
+            .from('payments')
+            .select('id, status, course_id')
+            .eq('payer_id', uid);
+        for (final p in (payRes as List)) {
+          final s = (p['status'] as String?)?.toLowerCase();
+          if (s != 'success' && s != 'completed') continue;
+          if (p['course_id'] == courseId) return true;
+        }
+      } catch (_) {}
+    }
+
     try {
       final enRes = await _client
           .from('course_enrollments')
@@ -80,6 +94,27 @@ class StudentCoursesSubscriptionRepo {
           .limit(1);
       if (enRes.isNotEmpty) return true;
     } catch (_) {}
+
+    try {
+      final prog = await _client
+          .from('lesson_progress')
+          .select('lesson_id')
+          .eq('student_id', uid);
+      final lIds = (prog as List)
+          .map((e) => e['lesson_id'] as String?)
+          .whereType<String>()
+          .toList();
+      if (lIds.isNotEmpty) {
+        final match = await _client
+            .from('lessons')
+            .select('id')
+            .eq('course_id', courseId)
+            .inFilter('id', lIds)
+            .limit(1);
+        if (match.isNotEmpty) return true;
+      }
+    } catch (_) {}
+
     return null;
   }
 

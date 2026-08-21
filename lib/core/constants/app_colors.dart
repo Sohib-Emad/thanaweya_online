@@ -65,6 +65,7 @@ class AppColors {
 
   // Borders & Shadows
   static const Color border = Color(0xFFE2E8F0);
+  static const Color cardBorder = border;
   static const Color borderLight = Color(0xFFF1F5F9);
   static const Color cardShadow = Color(0x0A0F172A);
 

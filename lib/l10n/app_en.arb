@@ -539,7 +539,7 @@
   "supportCenter": "Support & Help Center",
   "supportCenterMessage": "Help & technical support center",
   "inviteFriends": "Invite Friends",
-  "inviteLink": "Join Thanaweya Online: https://thanaweya.online/invite",
+  "inviteLink": "Join Thanaweya Online: https://thanaweya-online-website.vercel.app/",
   "inviteCopied": "Invite link copied successfully",
   "logoutConfirmMessage": "Are you sure you want to log out of your account?",
   "editProfileSubtitle": "Your data on notebook pages",

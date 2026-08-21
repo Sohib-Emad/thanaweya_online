@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:thanaweya_online/features/shared/widgets/app_card.dart';
@@ -97,12 +98,17 @@ class TeacherRequestCard extends StatelessWidget {
                         SizedBox(height: 8.h),
                         ClipRRect(
                           borderRadius: BorderRadius.circular(12.r),
-                          child: Image.network(
-                            receiptUrl!,
+                          child: CachedNetworkImage(
+                            imageUrl: receiptUrl!,
                             height: 220.h,
                             width: double.infinity,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => Container(
+                            placeholder: (_, __) => Container(
+                              height: 220.h,
+                              color: Colors.grey.shade100,
+                              child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                            ),
+                            errorWidget: (context, error, stackTrace) => Container(
                               height: 120.h,
                               color: Colors.grey.shade100,
                               child: const Center(child: Text('تعذر تحميل صورة الإيصال')),
@@ -116,12 +122,17 @@ class TeacherRequestCard extends StatelessWidget {
                         SizedBox(height: 8.h),
                         ClipRRect(
                           borderRadius: BorderRadius.circular(12.r),
-                          child: Image.network(
-                            idFrontUrl!,
+                          child: CachedNetworkImage(
+                            imageUrl: idFrontUrl!,
                             height: 180.h,
                             width: double.infinity,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
+                            placeholder: (_, __) => Container(
+                              height: 180.h,
+                              color: Colors.grey.shade100,
+                              child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                            ),
+                            errorWidget: (context, error, stackTrace) =>
                                 const SizedBox.shrink(),
                           ),
                         ),
@@ -132,12 +143,17 @@ class TeacherRequestCard extends StatelessWidget {
                         SizedBox(height: 8.h),
                         ClipRRect(
                           borderRadius: BorderRadius.circular(12.r),
-                          child: Image.network(
-                            proofUrl!,
+                          child: CachedNetworkImage(
+                            imageUrl: proofUrl!,
                             height: 180.h,
                             width: double.infinity,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
+                            placeholder: (_, __) => Container(
+                              height: 180.h,
+                              color: Colors.grey.shade100,
+                              child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                            ),
+                            errorWidget: (context, error, stackTrace) =>
                                 const SizedBox.shrink(),
                           ),
                         ),

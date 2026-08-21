@@ -30,23 +30,6 @@ class StudentCoursesMyCoursesEnricher {
         }
       } catch (_) {}
     }
-    if (teacherIdSet.isNotEmpty) {
-      try {
-        final rows = await _client
-            .from('courses')
-            .select(
-              'id, teacher_id, title, description, cover_image_url, price, '
-              'intro_video_url, intro_video_source_type, is_published, '
-              '"order", created_at, updated_at',
-            )
-            .inFilter('teacher_id', teacherIdSet.toList())
-            .order('order');
-        for (final c in rows) {
-          final id = c['id'] as String? ?? '';
-          if (id.isNotEmpty && seen.add(id)) coursesData.add(c);
-        }
-      } catch (_) {}
-    }
     if (coursesData.isEmpty) return const ApiResult.success([]);
     return await _enrichCourses(uid, coursesData);
   }
@@ -76,11 +59,58 @@ class StudentCoursesMyCoursesEnricher {
     final teachersMap = {for (final t in teacherRows) (t['id'] ?? ''): t};
     final subjectsMap = {for (final s in subjectRows) (s['id'] ?? ''): s};
 
+    final allCourseIds = coursesData
+        .map((c) => c['id'] as String?)
+        .whereType<String>()
+        .toList();
+
+    List<dynamic> lessonRows = [];
+    List<dynamic> progressRows = [];
+    if (allCourseIds.isNotEmpty) {
+      try {
+        lessonRows = await _client
+            .from('lessons')
+            .select('id, course_id')
+            .inFilter('course_id', allCourseIds);
+      } catch (_) {}
+      try {
+        progressRows = await _client
+            .from('lesson_progress')
+            .select('lesson_id, is_completed, view_count, watched_seconds')
+            .eq('student_id', uid);
+      } catch (_) {}
+    }
+
+    final courseLessonsMap = <String, List<String>>{};
+    for (final l in lessonRows) {
+      final cid = l['course_id'] as String? ?? '';
+      final lid = l['id'] as String? ?? '';
+      if (cid.isNotEmpty && lid.isNotEmpty) {
+        courseLessonsMap.putIfAbsent(cid, () => []).add(lid);
+      }
+    }
+
+    final completedLessonIds = <String>{};
+    for (final p in progressRows) {
+      final lid = p['lesson_id'] as String? ?? '';
+      final isDone = (p['is_completed'] as bool?) ?? false;
+      final viewCount = (p['view_count'] as num?)?.toInt() ?? 0;
+      if (lid.isNotEmpty && (isDone || viewCount >= 3)) {
+        completedLessonIds.add(lid);
+      }
+    }
+
     final result = <Map<String, dynamic>>[];
     for (final course in coursesData) {
+      final cid = course['id'] as String? ?? '';
       final tid = course['teacher_id'] as String? ?? '';
       final teacher = teachersMap[tid] ?? {};
       final subjectId = teacher['subject_id'];
+      final lessons = courseLessonsMap[cid] ?? [];
+      final totalCount = lessons.length;
+      final completedCount = lessons.where(completedLessonIds.contains).length;
+      final progress = totalCount > 0 ? (completedCount / totalCount) : 0.0;
+
       result.add({
         ...course,
         'teacher_name': (usersMap[tid]?['full_name'] as String?) ?? 'مدرس',
@@ -89,6 +119,10 @@ class StudentCoursesMyCoursesEnricher {
             : '',
         'subject_id': subjectId,
         'stage': teacher['stage'],
+        'totalCount': totalCount,
+        'completedCount': completedCount,
+        'progress': progress,
+        'isCompleted': progress >= 1.0 && totalCount > 0,
       });
     }
     return ApiResult.success(result);

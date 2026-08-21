@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:thanaweya_online/core/router/app_router.dart';
+import 'package:thanaweya_online/core/services/student_realtime_service.dart';
 import 'package:thanaweya_online/features/student/data/repos/student_courses_repo.dart';
 import 'package:thanaweya_online/features/student/logic/student_courses_cubit.dart';
 import 'package:thanaweya_online/features/student/ui/courses/widgets/widgets.dart';
@@ -27,16 +28,29 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
   void initState() {
     super.initState();
     _coursesCubit = StudentCoursesCubit(repo: StudentCoursesRepo());
-    _coursesCubit.loadCourse(widget.courseId);
-    _coursesCubit.loadCourseLessons(widget.courseId);
     final userId = Supabase.instance.client.auth.currentUser?.id ??
         Supabase.instance.client.auth.currentSession?.user.id;
-    if (userId != null) _coursesCubit.loadProgress(userId);
+    _coursesCubit.loadCourse(widget.courseId);
+    _coursesCubit.loadCourseLessons(widget.courseId, studentId: userId);
+    if (userId != null) _coursesCubit.loadProgress(userId, courseId: widget.courseId);
+    _checkSubscription();
+
+    StudentRealtimeService.instance.addCoursesListener(_onRealtimeUpdate);
+  }
+
+  void _onRealtimeUpdate() {
+    if (!mounted) return;
+    final userId = Supabase.instance.client.auth.currentUser?.id ??
+        Supabase.instance.client.auth.currentSession?.user.id;
+    _coursesCubit.loadCourse(widget.courseId);
+    _coursesCubit.loadCourseLessons(widget.courseId, studentId: userId);
+    if (userId != null) _coursesCubit.loadProgress(userId, courseId: widget.courseId);
     _checkSubscription();
   }
 
   @override
   void dispose() {
+    StudentRealtimeService.instance.removeCoursesListener(_onRealtimeUpdate);
     _playerManager.dispose();
     _coursesCubit.close();
     super.dispose();
@@ -55,7 +69,8 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
       }
     }
     if (userId == null || !mounted) return;
-    _coursesCubit.loadProgress(userId);
+    _coursesCubit.loadCourseLessons(widget.courseId, studentId: userId);
+    _coursesCubit.loadProgress(userId, courseId: widget.courseId);
     final res = await StudentCoursesRepo().subscription.checkIsSubscribed(studentId: userId, courseId: widget.courseId);
     if (!mounted) return;
     res.when(
@@ -112,6 +127,15 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
               'courseTitle': course['title'] ?? '',
               'price': (course['price'] as num?)?.toDouble(),
             }).then((_) => _checkSubscription());
+          },
+          onRefresh: () async {
+            HapticFeedback.lightImpact();
+            final userId = Supabase.instance.client.auth.currentUser?.id ??
+                Supabase.instance.client.auth.currentSession?.user.id;
+            _coursesCubit.loadCourse(widget.courseId);
+            _coursesCubit.loadCourseLessons(widget.courseId, studentId: userId);
+            if (userId != null) _coursesCubit.loadProgress(userId, courseId: widget.courseId);
+            await _checkSubscription();
           },
           onBack: () => Navigator.pop(context),
         );

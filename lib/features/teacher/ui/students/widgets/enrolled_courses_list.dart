@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -54,7 +55,14 @@ class EnrolledCoursesList extends StatelessWidget {
     width: 46.r, height: 46.r, clipBehavior: Clip.antiAlias,
     decoration: BoxDecoration(color: const Color(0xFF0284C7).withAlpha(20), borderRadius: BorderRadius.circular(10.r)),
     child: url.isNotEmpty
-        ? Image.network(url, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _icon())
+        ? CachedNetworkImage(
+            imageUrl: url,
+            fit: BoxFit.cover,
+            placeholder: (_, __) => const Center(
+              child: CircularProgressIndicator(color: Color(0xFF0284C7), strokeWidth: 2),
+            ),
+            errorWidget: (_, _, _) => _icon(),
+          )
         : _icon(),
   );
 

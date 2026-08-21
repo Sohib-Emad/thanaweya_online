@@ -7,14 +7,16 @@ import 'package:thanaweya_online/core/theme/notebook_theme.dart';
 class ExamTimerChip extends StatelessWidget {
   final int secondsRemaining;
   final String formattedTime;
+  final bool? isUrgent;
 
   const ExamTimerChip({
     super.key,
     required this.secondsRemaining,
     required this.formattedTime,
+    this.isUrgent,
   });
 
-  bool get _isUrgent => secondsRemaining < 300;
+  bool get _isUrgent => isUrgent ?? (secondsRemaining < 300);
 
   @override
   Widget build(BuildContext context) {

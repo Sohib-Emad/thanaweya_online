@@ -1,5 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-
+import 'package:thanaweya_online/features/shared/models/lesson_model.dart';
 import 'package:thanaweya_online/features/teacher/data/repos/teacher_courses_repo.dart';
 export 'package:thanaweya_online/features/teacher/logic/teacher_courses_state.dart';
 import 'package:thanaweya_online/features/teacher/logic/teacher_courses_state.dart';
@@ -121,7 +121,7 @@ class TeacherCoursesCubit extends Cubit<TeacherCoursesState> {
     );
   }
 
-  Future<void> addLesson({
+  Future<LessonModel?> addLesson({
     required String courseId,
     required String title,
     String? description,
@@ -135,14 +135,20 @@ class TeacherCoursesCubit extends Cubit<TeacherCoursesState> {
       videoSourceType: videoSourceType, videoUrlOrId: videoUrlOrId,
       isFreePreview: isFreePreview,
     );
-    result.when(
-      success: (lesson) => emit(state.copyWith(
-        status: TeacherCoursesStatus.loaded,
-        lessons: [...state.lessons, lesson],
-      )),
-      failure: (message, _) => emit(state.copyWith(
-        status: TeacherCoursesStatus.error, errorMessage: message,
-      )),
+    return result.when(
+      success: (lesson) {
+        emit(state.copyWith(
+          status: TeacherCoursesStatus.loaded,
+          lessons: [...state.lessons, lesson],
+        ));
+        return lesson;
+      },
+      failure: (message, _) {
+        emit(state.copyWith(
+          status: TeacherCoursesStatus.error, errorMessage: message,
+        ));
+        return null;
+      },
     );
   }
 

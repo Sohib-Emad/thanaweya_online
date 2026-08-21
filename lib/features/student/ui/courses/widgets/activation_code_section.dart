@@ -3,16 +3,18 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../../core/theme/notebook_theme.dart';
 
-/// Activation code input section with paste button and info hint.
+/// Activation code input section with QR Scanner, paste button, and info hint.
 class ActivationCodeSection extends StatelessWidget {
   final TextEditingController controller;
   final VoidCallback onPaste;
+  final VoidCallback onScanQr;
   final ValueChanged<String?> onChanged;
 
   const ActivationCodeSection({
     super.key,
     required this.controller,
     required this.onPaste,
+    required this.onScanQr,
     required this.onChanged,
   });
 
@@ -33,39 +35,72 @@ class ActivationCodeSection extends StatelessWidget {
               SizedBox(width: 10.w),
               Expanded(
                 child: Text(
-                  'أدخل كود التفعيل المستلم من مدرسك لتفعيل هذا الكورس والبدء في مشاهدة الحصص والامتحانات فوراً.',
+                  'أدخل كود التفعيل المستلم من مدرسك أو امسح كود الـ QR من الكارت المطبوع لتفعيل الكورس فوراً.',
                   style: NotebookText.strong(12.sp),
                 ),
               ),
             ],
           ),
         ),
-        SizedBox(height: 22.h),
+        SizedBox(height: 18.h),
+
+        // Quick Input Options (Scan QR & Paste)
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              'كود تفعيل الكورس من المدرس',
-              style: NotebookText.heading(13.sp),
+            Expanded(
+              flex: 3,
+              child: ElevatedButton.icon(
+                onPressed: onScanQr,
+                icon: Icon(
+                  Icons.qr_code_scanner_rounded,
+                  size: 18.r,
+                  color: Colors.white,
+                ),
+                label: Text(
+                  'مسح كود QR من الكارت',
+                  style: NotebookText.strong(12.sp, color: Colors.white),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: NotebookColors.green,
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(vertical: 10.h),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  elevation: 1,
+                ),
+              ),
             ),
-            TextButton.icon(
-              onPressed: onPaste,
-              icon: Icon(
-                Icons.content_paste_rounded,
-                size: 16.r,
-                color: NotebookColors.green,
-              ),
-              label: Text(
-                'لصق الكود',
-                style: NotebookText.strong(12.sp, color: NotebookColors.green),
-              ),
-              style: TextButton.styleFrom(
-                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            SizedBox(width: 8.w),
+            Expanded(
+              flex: 2,
+              child: OutlinedButton.icon(
+                onPressed: onPaste,
+                icon: Icon(
+                  Icons.content_paste_rounded,
+                  size: 16.r,
+                  color: NotebookColors.ink,
+                ),
+                label: Text(
+                  'لصق الكود',
+                  style: NotebookText.strong(12.sp, color: NotebookColors.ink),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: NotebookColors.ink.withAlpha(50)),
+                  padding: EdgeInsets.symmetric(vertical: 10.h),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                ),
               ),
             ),
           ],
+        ),
+        SizedBox(height: 16.h),
+
+        Text(
+          'رمز أو كود الاشتراك (Code)',
+          style: NotebookText.heading(13.sp),
         ),
         SizedBox(height: 8.h),
         TextField(
@@ -78,7 +113,7 @@ class ActivationCodeSection extends StatelessWidget {
           textCapitalization: TextCapitalization.characters,
           onChanged: onChanged,
           decoration: InputDecoration(
-            hintText: 'مثال: TH-2026-ABCD',
+            hintText: 'مثال: TH-GQDY-SCSW',
             hintStyle: NotebookText.note(13.sp).copyWith(letterSpacing: 1.0),
             filled: true,
             fillColor: NotebookColors.surfaceBright,

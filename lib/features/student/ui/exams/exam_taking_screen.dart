@@ -1,18 +1,20 @@
 import 'dart:async';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:thanaweya_online/core/router/app_router.dart';
 import 'package:thanaweya_online/core/theme/notebook_theme.dart';
+import 'package:thanaweya_online/core/utils/exam_scoring_helper.dart';
 import 'package:thanaweya_online/features/shared/models/question_model.dart';
 import 'package:thanaweya_online/features/student/data/repos/student_exams_repo.dart';
 import 'package:thanaweya_online/features/student/logic/student_exams_cubit.dart';
 import 'package:thanaweya_online/features/student/ui/exams/widgets/widgets.dart';
 import 'package:thanaweya_online/l10n/l10n.dart';
 
-/// Screen where students take an exam with timer, questions, and anti-cheat.
+/// Screen where students take an exam with server-authoritative timer,
+/// offline support, and automatic answer persistence.
 class ExamTakingScreen extends StatefulWidget {
   final String examId;
   final String examTitle;
@@ -29,46 +31,75 @@ class ExamTakingScreen extends StatefulWidget {
 class _ExamTakingScreenState extends State<ExamTakingScreen>
     with WidgetsBindingObserver {
   late final StudentExamsCubit _cubit;
-  Timer? _timer;
+
+  /// One-second ticker — does NOT track elapsed time itself;
+  /// we re-compute from [examStartedAt] on every tick so the count is
+  /// always accurate even after the app wakes from background.
+  Timer? _ticker;
   int _secondsRemaining = 0;
-  bool _timerStarted = false;
   bool _isSubmitting = false;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _cubit = StudentExamsCubit(repo: StudentExamsRepo());
+
+    // When exam loads, start the ticker
     _cubit.stream.listen((state) {
-      if (state.currentExam != null && !_timerStarted) {
-        _timerStarted = true;
-        _secondsRemaining = state.currentExam!.durationMinutes * 60;
-        _timer = Timer.periodic(const Duration(seconds: 1), (t) {
-          if (_secondsRemaining > 0) {
-            setState(() => _secondsRemaining--);
-          } else {
-            _timer?.cancel();
-            _submitExam(isTimeOut: true);
-          }
-        });
+      if (state.examStartedAt != null && _ticker == null) {
+        _startTicker();
       }
     });
+
     _cubit.startExam(widget.examId);
+    _watchConnectivity();
+  }
+
+  void _startTicker() {
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      final remaining = _cubit.state.computeSecondsRemaining();
+      setState(() => _secondsRemaining = remaining);
+      if (remaining <= 0) {
+        _ticker?.cancel();
+        _submitExam(isTimeOut: true);
+      }
+    });
+    // Initial value
+    setState(() => _secondsRemaining = _cubit.state.computeSecondsRemaining());
+  }
+
+  void _watchConnectivity() {
+    _connectivitySub = Connectivity().onConnectivityChanged.listen((results) {
+      final offline = !results.any((r) =>
+          r == ConnectivityResult.wifi ||
+          r == ConnectivityResult.mobile ||
+          r == ConnectivityResult.ethernet);
+      _cubit.setOffline(offline);
+    });
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _timer?.cancel();
+    _ticker?.cancel();
+    _connectivitySub?.cancel();
     _cubit.close();
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused || state == AppLifecycleState.detached ||
-        state == AppLifecycleState.inactive) {
-      _autoSubmitDueToExit();
+    // When app comes back to foreground, re-sync the timer immediately
+    if (state == AppLifecycleState.resumed) {
+      final remaining = _cubit.state.computeSecondsRemaining();
+      if (mounted) setState(() => _secondsRemaining = remaining);
+      if (remaining <= 0) {
+        _ticker?.cancel();
+        _submitExam(isTimeOut: true);
+      }
     }
   }
 
@@ -79,15 +110,21 @@ class _ExamTakingScreenState extends State<ExamTakingScreen>
     int score = 0, total = 0;
     for (final q in questions) {
       total += q.points;
-      if (q.correctAnswer != null && answers[q.id] == q.correctAnswer) score += q.points;
+      final studentAns = answers[q.id];
+      if (ExamScoringHelper.isCorrect(q, studentAns)) {
+        score += q.points;
+      }
     }
     return (score, total);
   }
 
-  Future<void> _submitAndGoToResult({required bool autoSubmitted, required bool isTimeOut}) async {
+  Future<void> _submitAndGoToResult({
+    required bool autoSubmitted,
+    required bool isTimeOut,
+  }) async {
     if (_isSubmitting) return;
     _isSubmitting = true;
-    _timer?.cancel();
+    _ticker?.cancel();
     final state = _cubit.state;
     final studentId = Supabase.instance.client.auth.currentUser?.id;
     final (score, total) = _calculateScore(state.currentQuestions, state.answers);
@@ -95,18 +132,21 @@ class _ExamTakingScreenState extends State<ExamTakingScreen>
       await _cubit.submitExam(examId: widget.examId, studentId: studentId);
     }
     if (!mounted) return;
+    final finalScore = _cubit.state.lastScore ?? score;
+    final finalTotal = _cubit.state.lastTotalPoints ?? total;
     HapticFeedback.mediumImpact();
     Navigator.pushReplacementNamed(context, AppRouter.studentExamResult, arguments: {
-      'score': score, 'total': total, 'autoSubmitted': autoSubmitted,
-      'isTimeOut': isTimeOut, 'examId': widget.examId,
-      'examTitle': widget.examTitle, 'maxAttempts': widget.maxAttempts,
+      'score': finalScore,
+      'total': finalTotal,
+      'autoSubmitted': autoSubmitted,
+      'isTimeOut': isTimeOut,
+      'examId': widget.examId,
+      'examTitle': widget.examTitle,
+      'maxAttempts': widget.maxAttempts,
       'attemptNumber': widget.attemptsUsed + 1,
+      'passingScore': state.currentExam?.passingScore ?? 50,
+      'isPendingSync': state.pendingSyncCount > 0,
     });
-  }
-
-  void _autoSubmitDueToExit() {
-    if (_isSubmitting) return;
-    _submitAndGoToResult(autoSubmitted: true, isTimeOut: false);
   }
 
   void _submitExam({bool isTimeOut = false}) =>
@@ -122,27 +162,64 @@ class _ExamTakingScreenState extends State<ExamTakingScreen>
           bloc: _cubit,
           builder: (context, state) {
             if (state.examStatus == StudentExamsStatus.loading) {
-              return Center(child: CircularProgressIndicator(color: NotebookColors.green));
+              return _buildLoading(l10n);
             }
-            if (state.examStatus == StudentExamsStatus.error || state.currentQuestions.isEmpty) {
-              return Center(
-                child: Padding(
-                  padding: EdgeInsets.all(24.w),
-                  child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    NotebookEmptyNote(icon: Icons.error_outline_rounded,
-                        message: state.errorMessage ?? l10n.loadQuestionsError),
-                    SizedBox(height: 16.h),
-                    SizedBox(width: 200.w, child: NotebookPrimaryButton(
-                        label: l10n.backLabel, onPressed: () => Navigator.pop(context))),
-                  ]),
-                ),
-              );
+            if (state.examStatus == StudentExamsStatus.error ||
+                state.currentQuestions.isEmpty) {
+              return _buildError(state, l10n);
             }
-            return ExamBody(state: state, secondsRemaining: _secondsRemaining,
-                formattedTime: _formatTimer(_secondsRemaining),
-                cubit: _cubit, onSubmit: _submitExam);
+            return ExamBody(
+              state: state,
+              secondsRemaining: _secondsRemaining,
+              formattedTime: _formatTimer(_secondsRemaining),
+              cubit: _cubit,
+              onSubmit: _submitExam,
+            );
           },
         ),
+      ),
+    );
+  }
+
+  Widget _buildLoading(AppLocalizations l10n) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(color: NotebookColors.green),
+          const SizedBox(height: 16),
+          Text(
+            'جاري تحميل الاختبار...',
+            style: NotebookText.body(14),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'يرجى الانتظار حتى يكتمل التحميل',
+            style: NotebookText.note(12),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildError(StudentExamsState state, AppLocalizations l10n) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          NotebookEmptyNote(
+            icon: Icons.error_outline_rounded,
+            message: state.errorMessage ?? l10n.loadQuestionsError,
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: 200,
+            child: NotebookPrimaryButton(
+              label: l10n.backLabel,
+              onPressed: () => Navigator.pop(context),
+            ),
+          ),
+        ]),
       ),
     );
   }

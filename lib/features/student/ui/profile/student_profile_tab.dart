@@ -62,27 +62,36 @@ class _StudentProfileTabState extends State<StudentProfileTab> {
         automaticallyImplyBack: !widget.isTabMode,
       ),
       body: NotebookPaper(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(20.w, 18.h, 20.w, 120.h),
-          physics: const BouncingScrollPhysics(),
-          child: Column(
-            children: [
-              ProfileAvatar(
-                avatarUrl: _avatarUrl,
-                name: _fullName,
-                onEditTap: () {
-                  HapticFeedback.lightImpact();
-                  Navigator.pushNamed(context, AppRouter.studentEditProfile)
-                      .then((_) => _loadUser());
-                },
-              ),
-              SizedBox(height: 2.h),
-              Text(_email, style: NotebookText.note(12.sp)),
-              SizedBox(height: 6.h),
-              Container(width: 56.w, height: 2.h, color: NotebookColors.marginRed.withAlpha(160)),
-              SizedBox(height: 26.h),
-              ProfileMenuCard(l10n: l10n),
-            ],
+        child: RefreshIndicator(
+          color: NotebookColors.green,
+          onRefresh: () async {
+            HapticFeedback.lightImpact();
+            _loadUser();
+          },
+          child: SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(20.w, 18.h, 20.w, 120.h),
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+            child: Column(
+              children: [
+                ProfileAvatar(
+                  avatarUrl: _avatarUrl,
+                  name: _fullName,
+                  onEditTap: () {
+                    HapticFeedback.lightImpact();
+                    Navigator.pushNamed(context, AppRouter.studentEditProfile)
+                        .then((_) => _loadUser());
+                  },
+                ),
+                SizedBox(height: 2.h),
+                Text(_email, style: NotebookText.note(12.sp)),
+                SizedBox(height: 6.h),
+                Container(width: 56.w, height: 2.h, color: NotebookColors.marginRed.withAlpha(160)),
+                SizedBox(height: 26.h),
+                ProfileMenuCard(l10n: l10n),
+              ],
+            ),
           ),
         ),
       ),

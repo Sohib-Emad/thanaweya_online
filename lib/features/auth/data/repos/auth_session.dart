@@ -36,7 +36,7 @@ class AuthSession {
         email: user.email ?? '',
         fullName: user.userMetadata?['full_name'] ?? '',
         phone: user.userMetadata?['phone'] ?? '',
-        role: UserRole.values.byName(user.userMetadata?['role'] ?? 'student'),
+        role: UserRole.fromString(user.userMetadata?['role']),
         createdAt: DateTime.parse(user.createdAt),
         updatedAt: DateTime.parse(user.updatedAt ?? user.createdAt),
       );

@@ -29,8 +29,6 @@ class StudentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final done = progressPercent >= 100;
-    final accent = done ? const Color(0xFF059669) : const Color(0xFF0284C7);
     return Container(
       decoration: BoxDecoration(
         color: Colors.white, borderRadius: BorderRadius.circular(16.r),
@@ -85,21 +83,6 @@ class StudentCard extends StatelessWidget {
                       Expanded(child: Text(email, style: GoogleFonts.cairo(fontSize: 10.5.sp, color: const Color(0xFF94A3B8)), maxLines: 1, overflow: TextOverflow.ellipsis)),
                     ],
                   ]),
-                  if (totalLessons > 0) ...[
-                    SizedBox(height: 8.h),
-                    Row(children: [
-                      Expanded(child: ClipRRect(
-                        borderRadius: BorderRadius.circular(4.r),
-                        child: LinearProgressIndicator(
-                          value: (progressPercent / 100).clamp(0.0, 1.0), minHeight: 5.h,
-                          backgroundColor: const Color(0xFFF1F5F9), valueColor: AlwaysStoppedAnimation<Color>(accent),
-                        ),
-                      )),
-                      SizedBox(width: 8.w),
-                      Text(done ? 'إنجاز 100% ✅' : '$completedLessons/$totalLessons ($progressPercent%)',
-                        style: GoogleFonts.cairo(fontSize: 10.sp, fontWeight: FontWeight.w800, color: accent)),
-                    ]),
-                  ],
                 ],
               )),
               SizedBox(width: 6.w),

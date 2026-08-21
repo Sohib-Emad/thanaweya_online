@@ -46,8 +46,18 @@ class _StudentTransactionsScreenState extends State<StudentTransactionsScreen> {
   void dispose() { _cubit.close(); super.dispose(); }
 
   Future<void> _loadPayments() async {
-    final userId = Supabase.instance.client.auth.currentUser?.id;
-    if (userId != null) _cubit.loadPayments(userId);
+    String? userId = Supabase.instance.client.auth.currentUser?.id ??
+        Supabase.instance.client.auth.currentSession?.user.id;
+    if (userId == null) {
+      for (int i = 0; i < 6; i++) {
+        await Future.delayed(Duration(milliseconds: 150 * (i + 1)));
+        if (!mounted) return;
+        userId = Supabase.instance.client.auth.currentUser?.id ??
+            Supabase.instance.client.auth.currentSession?.user.id;
+        if (userId != null) break;
+      }
+    }
+    if (userId != null && mounted) _cubit.loadPayments(userId);
   }
 
   String _fmtAmt(dynamic a, AppLocalizations l10n) {

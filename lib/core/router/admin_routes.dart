@@ -7,6 +7,9 @@ import '../../features/admin/ui/subjects/manage_subjects_screen.dart';
 import '../../features/admin/ui/plans/subscription_plans_screen.dart';
 import '../../features/admin/ui/plans/edit_plan_screen.dart';
 import '../../features/admin/ui/reports/platform_reports_screen.dart';
+import '../../features/admin/ui/students/admin_students_screen.dart';
+import '../../features/admin/ui/codes/admin_active_codes_screen.dart';
+import '../../features/admin/ui/notifications/admin_push_tokens_screen.dart';
 
 /// Route name constants and page builder for admin feature routes.
 class AdminRoutes {
@@ -20,6 +23,9 @@ class AdminRoutes {
   static const String adminSubscriptionPlans = '/admin/subscription-plans';
   static const String adminEditPlan = '/admin/edit-plan';
   static const String adminPlatformReports = '/admin/platform-reports';
+  static const String adminStudents = '/admin/students';
+  static const String adminActiveCodes = '/admin/active-codes';
+  static const String adminPushTokens = '/admin/push-tokens';
 
   /// Builds the page widget for an admin route.
   /// Returns `null` if [settings.name] does not match any admin route.
@@ -36,9 +42,19 @@ class AdminRoutes {
       case adminSubscriptionPlans:
         return const SubscriptionPlansScreen();
       case adminEditPlan:
-        return const EditPlanScreen();
+        return EditPlanScreen(plan: settings.arguments as Map<String, dynamic>?);
       case adminPlatformReports:
         return const PlatformReportsScreen();
+      case adminStudents:
+        return AdminStudentsScreen(
+          initialTeacherId: settings.arguments as String?,
+        );
+      case adminActiveCodes:
+        return AdminActiveCodesScreen(
+          initialTeacherId: settings.arguments as String?,
+        );
+      case adminPushTokens:
+        return const AdminPushTokensScreen();
       default:
         return null;
     }

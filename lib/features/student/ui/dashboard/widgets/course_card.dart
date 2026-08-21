@@ -81,6 +81,30 @@ class CourseCard extends StatelessWidget {
                   )
                 else
                   const SizedBox.shrink(),
+                SizedBox(width: 6.w),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF59E0B).withAlpha(20),
+                    borderRadius: BorderRadius.circular(6.r),
+                    border: Border.all(color: const Color(0xFFF59E0B).withAlpha(80)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.stars_rounded, size: 11.r, color: const Color(0xFFD97706)),
+                      SizedBox(width: 2.w),
+                      Text(
+                        '+50 نقطة',
+                        style: GoogleFonts.cairo(
+                          fontSize: 9.sp,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFFD97706),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
                 const Spacer(),
                 GestureDetector(
                   onTap: () => Navigator.pushNamed(context, AppRouter.studentBookmarks),

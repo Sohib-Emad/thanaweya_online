@@ -12,6 +12,7 @@ _$QuestionModelImpl _$$QuestionModelImplFromJson(Map<String, dynamic> json) =>
       examId: json['exam_id'] as String,
       questionType: $enumDecode(_$QuestionTypeEnumMap, json['question_type']),
       text: json['text'] as String,
+      imageUrl: json['image_url'] as String?,
       options:
           (json['options'] as List<dynamic>?)
               ?.map((e) => e as String)
@@ -29,6 +30,7 @@ Map<String, dynamic> _$$QuestionModelImplToJson(_$QuestionModelImpl instance) =>
       'exam_id': instance.examId,
       'question_type': _$QuestionTypeEnumMap[instance.questionType]!,
       'text': instance.text,
+      'image_url': instance.imageUrl,
       'options': instance.options,
       'correct_answer': instance.correctAnswer,
       'points': instance.points,

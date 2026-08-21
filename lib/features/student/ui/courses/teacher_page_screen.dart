@@ -6,7 +6,7 @@ import 'package:thanaweya_online/features/student/logic/student_courses_cubit.da
 import 'package:thanaweya_online/features/student/ui/courses/widgets/teacher_profile_body.dart';
 import 'package:thanaweya_online/l10n/l10n.dart';
 
-/// Screen displaying a teacher's full profile page.
+/// Screen displaying a teacher's full profile page with both teacher bio & published courses.
 class TeacherPageScreen extends StatefulWidget {
   final String teacherId;
   final String title;
@@ -30,8 +30,13 @@ class _TeacherPageScreenState extends State<TeacherPageScreen> {
   void initState() {
     super.initState();
     _coursesCubit = StudentCoursesCubit(repo: StudentCoursesRepo());
+    _loadData();
+  }
+
+  void _loadData() {
     if (widget.teacherId.isNotEmpty) {
       _coursesCubit.loadTeacherProfile(widget.teacherId);
+      _coursesCubit.loadTeacherCourses(widget.teacherId);
     }
   }
 
@@ -76,6 +81,11 @@ class _TeacherPageScreenState extends State<TeacherPageScreen> {
               name: widget.title.trim().replaceFirst('أ. ', ''),
               displayName: _teacherDisplayName(context.l10n),
               profile: state.teacherProfile,
+              courses: state.courses,
+              isLoadingCourses:
+                  state.coursesStatus == StudentCoursesStatus.loading,
+              onRefreshCourses: () =>
+                  _coursesCubit.loadTeacherCourses(widget.teacherId),
             );
           },
         ),

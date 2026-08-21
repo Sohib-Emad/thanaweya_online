@@ -10,6 +10,7 @@ import 'package:thanaweya_online/core/theme/teacher_desk_theme.dart';
 import 'package:thanaweya_online/features/auth/data/repos/auth_repo.dart';
 import 'package:thanaweya_online/features/auth/logic/auth_cubit.dart';
 import 'package:thanaweya_online/features/auth/logic/auth_state.dart' as local;
+import 'package:thanaweya_online/features/shared/models/subscription_plan_item.dart';
 import 'package:thanaweya_online/features/teacher/ui/onboarding/teacher_data_upsert.dart';
 import 'package:thanaweya_online/features/teacher/ui/onboarding/teacher_form_header.dart';
 import 'package:thanaweya_online/features/teacher/ui/onboarding/teacher_form_step_view.dart';
@@ -40,20 +41,44 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
   bool _terms = true;
   XFile? _avatar, _idFront, _idBack, _proof;
   XFile? _paymentReceipt;
-  int _selectedPlanIndex =
-      2; // Default to Annual Plan (Best Value with 2 months free)
+  List<SubscriptionPlanItem> _plans = [];
+  int _selectedPlanIndex = 0;
   int _step = 0;
   final _picker = ImagePicker();
   late final AuthCubit _authCubit;
   static const _sysKeys = ['general', 'baccalaureate', 'both'];
-  static const _planKeys = ['monthly', 'term', 'annual'];
-  static const _planAmounts = [1000.0, 5000.0, 10000.0];
 
   @override
   void initState() {
     super.initState();
     _authCubit = AuthCubit(authRepo: AuthRepo());
     _loadSubjects();
+    _loadPlans();
+  }
+
+  Future<void> _loadPlans() async {
+    try {
+      final data = await Supabase.instance.client
+          .from('subscription_plans')
+          .select()
+          .eq('is_active', true)
+          .order('display_order', ascending: true);
+      if (mounted && data.isNotEmpty) {
+        setState(() {
+          _plans = data
+              .asMap()
+              .entries
+              .map((e) => SubscriptionPlanItem.fromMap(e.value, e.key))
+              .toList();
+          // Select last (usually annual) or first
+          if (_selectedPlanIndex >= _plans.length) {
+            _selectedPlanIndex = 0;
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('[TeacherForm] load plans failed: $e');
+    }
   }
 
   @override
@@ -217,6 +242,7 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
                           proof: _proof,
                           paymentReceipt: _paymentReceipt,
                           selectedPlanIndex: _selectedPlanIndex,
+                          plans: _plans,
                           pick: _pick,
                           onAvatar: (f) => setState(() => _avatar = f),
                           onIdFront: (f) => setState(() => _idFront = f),
@@ -268,6 +294,11 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
       return BlocConsumer<AuthCubit, local.AuthState>(
         listener: (ctx, state) {
           if (state.status == local.AuthStatus.authenticated) {
+            final activePlans = _plans.isNotEmpty ? _plans : SubscriptionPlanItem.defaultPlans;
+            final plan = (_selectedPlanIndex >= 0 && _selectedPlanIndex < activePlans.length)
+                ? activePlans[_selectedPlanIndex]
+                : activePlans.first;
+
             upsertTeacherData(
               avatar: _avatar,
               idFront: _idFront,
@@ -281,9 +312,9 @@ class _TeacherFormScreenState extends State<TeacherFormScreen> {
               baccalaureateTracks: _trackIds.toList(),
               governorate: _gov,
               teachingMode: _mode,
-              selectedPlan: _planKeys[_selectedPlanIndex],
+              selectedPlan: plan.billingPeriod,
               paymentMethod: 'instapay',
-              subscriptionAmount: _planAmounts[_selectedPlanIndex],
+              subscriptionAmount: plan.price,
               bio: _bioCtrl.text.trim(),
             );
             Navigator.pushNamedAndRemoveUntil(

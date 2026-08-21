@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:thanaweya_online/core/router/app_router.dart';
@@ -12,6 +13,9 @@ import 'package:thanaweya_online/features/teacher/data/repos/teacher_exams_repo.
 import 'package:thanaweya_online/features/teacher/logic/teacher_exams_cubit.dart';
 import 'package:thanaweya_online/features/teacher/ui/exams/widgets/widgets.dart';
 
+import 'package:thanaweya_online/core/router/route_observer.dart';
+import 'package:thanaweya_online/core/services/teacher_realtime_service.dart';
+
 /// Screen listing all teacher exams with search, CRUD, and grades summary.
 class ExamsListScreen extends StatefulWidget {
   const ExamsListScreen({super.key});
@@ -19,7 +23,7 @@ class ExamsListScreen extends StatefulWidget {
   State<ExamsListScreen> createState() => _ExamsListScreenState();
 }
 
-class _ExamsListScreenState extends State<ExamsListScreen> {
+class _ExamsListScreenState extends State<ExamsListScreen> with RouteAware {
   final _cubit = TeacherExamsCubit(repo: TeacherExamsRepo());
   final _searchController = TextEditingController();
   String _searchQuery = '';
@@ -30,10 +34,28 @@ class _ExamsListScreenState extends State<ExamsListScreen> {
   void initState() {
     super.initState();
     _loadExams();
+    TeacherRealtimeService.instance.addExamsListener(_onRealtimeExams);
+  }
+
+  void _onRealtimeExams() {
+    if (!mounted) return;
+    _loadExams();
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute) appRouteObserver.subscribe(this, route);
+  }
+
+  @override
+  void didPopNext() => _loadExams();
+
+  @override
   void dispose() {
+    TeacherRealtimeService.instance.removeExamsListener(_onRealtimeExams);
+    appRouteObserver.unsubscribe(this);
     _cubit.close();
     _searchController.dispose();
     super.dispose();
@@ -84,50 +106,85 @@ class _ExamsListScreenState extends State<ExamsListScreen> {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: DeskColors.ground,
-        appBar: DeskTopBar(title: 'الامتحانات والاختبارات', subtitle: 'إدارة وتصحيح الاختبارات الإلكترونية'),
-        body: DeskSurface(
-          child: BlocBuilder<TeacherExamsCubit, TeacherExamsState>(
-            bloc: _cubit,
-            builder: (context, state) {
-              if (state.status == TeacherExamsStatus.loading && state.exams.isEmpty) {
-                return const Center(child: CircularProgressIndicator(color: DeskColors.primary));
-              }
-              if (state.status == TeacherExamsStatus.error && state.exams.isEmpty) {
-                return Center(child: DeskEmptyNote(message: state.errorMessage ?? 'حدث خطأ أثناء تحميل الاختبارات', icon: Icons.error_outline_rounded, actionLabel: 'إعادة المحاولة', onAction: _loadExams));
-              }
-              if (state.exams.isEmpty) {
-                return DeskEmptyNote(message: 'لا توجد اختبارات مسجلة بعد', subMessage: 'استخدم زر + لإنشاء أول اختبار إضافة أسئلة', icon: Icons.quiz_outlined, actionLabel: 'إنشاء اختبار جديد', onAction: () => _showExamSheet(context, null));
-              }
-              return ExamListBody(
-                exams: state.exams,
-                state: state,
-                courseTitles: _courseTitles,
-                gradesSummaryByExam: _gradesSummaryByExam,
-                searchController: _searchController,
-                searchQuery: _searchQuery,
-                onSearchChanged: (val) => setState(() => _searchQuery = val),
-                onRefresh: _loadExams,
-                onExamTap: (exam) { HapticFeedback.lightImpact(); Navigator.pushNamed(context, AppRouter.teacherAddQuestion, arguments: exam.id); },
-                onExamEdit: (exam) => _showExamSheet(context, exam),
-                onExamDelete: (exam) async { if (await showDeleteExamDialog(context, exam)) _cubit.deleteExam(exam.id); },
-                onExamResults: (exam) async {
-                  await Navigator.pushNamed(context, AppRouter.teacherExamResults, arguments: {'examId': exam.id, 'examTitle': exam.title});
-                  _loadExams();
-                },
-                onTogglePublish: (exam) => _cubit.setExamPublished(exam.id, !exam.isPublished),
+        backgroundColor: const Color(0xFFF8FAFC),
+        appBar: DeskTopBar(
+          title: 'الامتحانات والاختبارات',
+          subtitle: 'إدارة وتصحيح الاختبارات الإلكترونية',
+        ),
+        body: BlocBuilder<TeacherExamsCubit, TeacherExamsState>(
+          bloc: _cubit,
+          builder: (context, state) {
+            if (state.status == TeacherExamsStatus.loading && state.exams.isEmpty) {
+              return const Center(child: CircularProgressIndicator(color: Color(0xFF0284C7)));
+            }
+            if (state.status == TeacherExamsStatus.error && state.exams.isEmpty) {
+              return Center(
+                child: DeskEmptyNote(
+                  message: state.errorMessage ?? 'حدث خطأ أثناء تحميل الاختبارات',
+                  icon: Icons.error_outline_rounded,
+                  actionLabel: 'إعادة المحاولة',
+                  onAction: _loadExams,
+                ),
               );
-            },
-          ),
+            }
+            if (state.exams.isEmpty) {
+              return DeskEmptyNote(
+                message: 'لا توجد اختبارات مسجلة بعد',
+                subMessage: 'استخدم زر + لإنشاء أول اختبار وإضافة أسئلة',
+                icon: Icons.quiz_outlined,
+                actionLabel: 'إنشاء اختبار جديد',
+                onAction: () => _showExamSheet(context, null),
+              );
+            }
+            return ExamListBody(
+              exams: state.exams,
+              state: state,
+              courseTitles: _courseTitles,
+              gradesSummaryByExam: _gradesSummaryByExam,
+              searchController: _searchController,
+              searchQuery: _searchQuery,
+              onSearchChanged: (val) => setState(() => _searchQuery = val),
+              onRefresh: _loadExams,
+              onExamTap: (exam) async {
+                HapticFeedback.lightImpact();
+                await Navigator.pushNamed(
+                  context,
+                  AppRouter.teacherAddQuestion,
+                  arguments: exam.id,
+                );
+                _loadExams();
+              },
+              onExamEdit: (exam) => _showExamSheet(context, exam),
+              onExamDelete: (exam) async {
+                if (await showDeleteExamDialog(context, exam)) _cubit.deleteExam(exam.id);
+              },
+              onExamResults: (exam) async {
+                await Navigator.pushNamed(
+                  context,
+                  AppRouter.teacherExamResults,
+                  arguments: {'examId': exam.id, 'examTitle': exam.title},
+                );
+                _loadExams();
+              },
+              onTogglePublish: (exam) => _cubit.setExamPublished(exam.id, !exam.isPublished),
+            );
+          },
         ),
         floatingActionButton: FloatingActionButton.extended(
           heroTag: null,
-          onPressed: () { HapticFeedback.lightImpact(); Navigator.pushNamed(context, AppRouter.teacherExamBuilder); },
-          backgroundColor: DeskColors.primary,
-          foregroundColor: DeskColors.onPrimary,
+          onPressed: () async {
+            HapticFeedback.lightImpact();
+            await Navigator.pushNamed(context, AppRouter.teacherExamBuilder);
+            _loadExams();
+          },
+          backgroundColor: const Color(0xFF0284C7),
+          foregroundColor: Colors.white,
           elevation: 4,
           icon: const Icon(Icons.add_rounded, size: 22),
-          label: Text('إنشاء امتحان جديد', style: DeskText.strong(13.sp)),
+          label: Text(
+            '+ إنشاء امتحان جديد',
+            style: GoogleFonts.cairo(fontSize: 13.sp, fontWeight: FontWeight.w800),
+          ),
         ),
       ),
     );

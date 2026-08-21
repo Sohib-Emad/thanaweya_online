@@ -66,7 +66,7 @@ class ActivationCodeData {
           return ApiResult.failure('انتهت صلاحية هذا الكود');
         }
       }
-      await _markCodeUsed(codeRow['id'], userId);
+      await _markCodeUsed(codeRow['id'], userId, targetCourseId);
       await _activateSubscription(userId, targetTeacherId, targetCourseId, codeRow['id']);
       await _insertPayment(userId, targetCourseId, cleanCode);
       return ApiResult.success(targetTeacherId);
@@ -79,44 +79,93 @@ class ActivationCodeData {
     }
   }
 
-  Future<void> _markCodeUsed(dynamic codeId, String userId) async {
+  Future<void> _markCodeUsed(dynamic codeId, String userId, String? courseId) async {
     final now = DateTime.now().toIso8601String();
     final attempts = [
-      {'is_used': true, 'used_by': userId, 'used_by_student_id': userId, 'used_at': now},
+      {
+        'is_used': true,
+        'used_by': userId,
+        'used_by_student_id': userId,
+        'used_at': now,
+        if (courseId != null && courseId.isNotEmpty) 'course_id': courseId,
+      },
+      {
+        'is_used': true,
+        'used_by': userId,
+        'used_at': now,
+        if (courseId != null && courseId.isNotEmpty) 'course_id': courseId,
+      },
       {'is_used': true, 'used_by': userId, 'used_at': now},
-      {'is_used': true, 'used_by_student_id': userId, 'used_at': now},
       {'is_used': true},
     ];
     for (final fields in attempts) {
-      try { await _client.from('activation_codes').update(fields).eq('id', codeId); return; } catch (_) {}
+      try {
+        await _client.from('activation_codes').update(fields).eq('id', codeId);
+        return;
+      } catch (_) {}
     }
   }
 
   Future<void> _activateSubscription(
-    String userId, String teacherId, String? courseId, dynamic codeId,
+    String userId,
+    String teacherId,
+    String? courseId,
+    dynamic codeId,
   ) async {
     if (teacherId.isEmpty) return;
     final now = DateTime.now().toIso8601String();
     final expiry = DateTime.now().add(const Duration(days: 365)).toIso8601String();
     final payload = {
-      'student_id': userId, 'teacher_id': teacherId,
+      'student_id': userId,
+      'teacher_id': teacherId,
       if (courseId != null && courseId.isNotEmpty) 'course_id': courseId,
-      'status': 'active', 'starts_at': now, 'expires_at': expiry,
+      'status': 'active',
+      'starts_at': now,
+      'expires_at': expiry,
+      if (codeId != null) 'activation_code_id': codeId,
     };
     try {
-      await _client.from('subscriptions').upsert({...payload, 'activation_code_id': codeId}, onConflict: 'student_id,teacher_id');
+      await _client.from('subscriptions').insert(payload);
     } catch (_) {
-      try { await _client.from('subscriptions').insert(payload); } catch (_) {}
+      try {
+        await _client.from('subscriptions').upsert(
+          payload,
+          onConflict: (courseId != null && courseId.isNotEmpty)
+              ? 'student_id,course_id'
+              : 'student_id,teacher_id',
+        );
+      } catch (_) {}
+    }
+
+    if (courseId != null && courseId.isNotEmpty) {
+      try {
+        await _client.from('course_enrollments').upsert({
+          'student_id': userId,
+          'course_id': courseId,
+          'enrolled_at': now,
+        }, onConflict: 'student_id,course_id');
+      } catch (_) {
+        try {
+          await _client.from('course_enrollments').insert({
+            'student_id': userId,
+            'course_id': courseId,
+            'enrolled_at': now,
+          });
+        } catch (_) {}
+      }
     }
   }
 
   Future<void> _insertPayment(String userId, String? courseId, String code) async {
     try {
       await _client.from('payments').insert({
-        'payer_id': userId, 'payer_type': 'student_subscription',
+        'payer_id': userId,
+        'payer_type': 'student_subscription',
         if (courseId != null && courseId.isNotEmpty) 'course_id': courseId,
-        'amount': 0.0, 'payment_gateway': 'activation_code',
-        'gateway_transaction_id': 'CODE-$code', 'status': 'success',
+        'amount': 0.0,
+        'payment_gateway': 'activation_code',
+        'gateway_transaction_id': 'CODE-$code',
+        'status': 'success',
       });
     } catch (_) {}
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:thanaweya_online/core/theme/notebook_theme.dart';
 import 'package:thanaweya_online/core/utils/dailymotion_utils.dart';
@@ -6,17 +7,22 @@ import 'package:thanaweya_online/core/utils/dailymotion_utils.dart';
 class DailymotionPlayerWidget extends StatefulWidget {
   final String videoUrlOrId;
   final bool autoPlay;
+  final int startSeconds;
   final VoidCallback? onReady;
+  final void Function(Duration position, Duration duration)? onProgress;
 
   const DailymotionPlayerWidget({
     super.key,
     required this.videoUrlOrId,
     this.autoPlay = true,
+    this.startSeconds = 0,
     this.onReady,
+    this.onProgress,
   });
 
   @override
-  State<DailymotionPlayerWidget> createState() => _DailymotionPlayerWidgetState();
+  State<DailymotionPlayerWidget> createState() =>
+      _DailymotionPlayerWidgetState();
 }
 
 class _DailymotionPlayerWidgetState extends State<DailymotionPlayerWidget> {
@@ -27,6 +33,7 @@ class _DailymotionPlayerWidgetState extends State<DailymotionPlayerWidget> {
     final htmlData = DailymotionUtils.getEmbedHtml(
       widget.videoUrlOrId,
       autoplay: widget.autoPlay,
+      startSeconds: widget.startSeconds,
     );
 
     return Container(
@@ -49,11 +56,41 @@ class _DailymotionPlayerWidgetState extends State<DailymotionPlayerWidget> {
               useShouldOverrideUrlLoading: false,
               supportZoom: false,
             ),
+            onWebViewCreated: (controller) {
+              controller.addJavaScriptHandler(
+                handlerName: 'onDailymotionProgress',
+                callback: (args) {
+                  if (args.isNotEmpty) {
+                    final timeSec = (args[0] as num?)?.toDouble() ?? 0.0;
+                    final durSec = args.length > 1
+                        ? ((args[1] as num?)?.toDouble() ?? 0.0)
+                        : 0.0;
+                    widget.onProgress?.call(
+                      Duration(milliseconds: (timeSec * 1000).round()),
+                      Duration(milliseconds: (durSec * 1000).round()),
+                    );
+                  }
+                },
+              );
+            },
             onLoadStop: (controller, url) {
               if (mounted) {
                 setState(() => _isLoading = false);
                 widget.onReady?.call();
               }
+            },
+            onEnterFullscreen: (controller) {
+              SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+              SystemChrome.setPreferredOrientations([
+                DeviceOrientation.landscapeLeft,
+                DeviceOrientation.landscapeRight,
+              ]);
+            },
+            onExitFullscreen: (controller) {
+              SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+              SystemChrome.setPreferredOrientations([
+                DeviceOrientation.portraitUp,
+              ]);
             },
           ),
           if (_isLoading)

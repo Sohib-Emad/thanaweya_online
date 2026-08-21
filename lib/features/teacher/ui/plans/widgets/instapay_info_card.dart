@@ -101,7 +101,7 @@ class InstaPayInfoCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'رقم التحويل (إنستاباي أو محفظة):',
+                        'رقم التحويل (إنستاباي فقط):',
                         style: DeskText.note(11.sp),
                       ),
                       SizedBox(height: 2.h),
@@ -162,7 +162,7 @@ class InstaPayInfoCard extends StatelessWidget {
           SizedBox(height: 12.h),
 
           // Steps list
-          _buildStepRow('1', 'افتح تطبيق إنستاباي (InstaPay) أو محفظتك الإلكترونية.'),
+          _buildStepRow('1', 'افتح تطبيق إنستاباي (InstaPay).'),
           _buildStepRow('2', 'حوّل مبلغ $amount لـ $planName إلى الرقم $instapayNumber.'),
           _buildStepRow('3', 'التقط صورة/لقطة شاشة لإيصال التحويل وأرفقها بالأسفل.'),
         ],

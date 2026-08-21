@@ -114,8 +114,15 @@ class _PendingReviewScreenState extends State<PendingReviewScreen> {
                     : PendingReviewView(
                         onHomePressed: () {
                           HapticFeedback.lightImpact();
-                          Navigator.popUntil(
-                              context, (route) => route.isFirst);
+                          if (Navigator.canPop(context)) {
+                            Navigator.pop(context);
+                          } else {
+                            Navigator.pushNamedAndRemoveUntil(
+                              context,
+                              AppRouter.roleSelection,
+                              (route) => false,
+                            );
+                          }
                         },
                       ),
           ),

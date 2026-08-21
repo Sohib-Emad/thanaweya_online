@@ -1,7 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:thanaweya_online/features/admin/data/repos/admin_teachers_repo.dart';
 
-
 class AdminTeachersCubit extends Cubit<AdminTeachersState> {
   final AdminTeachersRepo _repo;
 
@@ -66,6 +65,50 @@ class AdminTeachersCubit extends Cubit<AdminTeachersState> {
       failure: (message, _) => emit(state.copyWith(errorMessage: message)),
     );
   }
+
+  Future<void> toggleRenewalAlert(String teacherId, bool requiresRenewal) async {
+    // Optimistically update allTeachers list in state
+    final updated = state.allTeachers.map((t) {
+      if (t['id'] == teacherId) {
+        return {...t, 'requires_renewal': requiresRenewal};
+      }
+      return t;
+    }).toList();
+    emit(state.copyWith(allTeachers: updated));
+
+    final result = await _repo.toggleRenewalAlert(teacherId, requiresRenewal);
+    result.when(
+      success: (_) {},
+      failure: (message, _) {
+        loadAllTeachers();
+        emit(state.copyWith(errorMessage: message));
+      },
+    );
+  }
+
+  Future<void> toggleBanTeacher(String teacherId, bool isBanned, {String? reason}) async {
+    final newStatus = isBanned ? 'banned' : 'approved';
+    final updated = state.allTeachers.map((t) {
+      if (t['id'] == teacherId) {
+        return {
+          ...t,
+          'approval_status': newStatus,
+          'rejection_reason': isBanned ? reason : null,
+        };
+      }
+      return t;
+    }).toList();
+    emit(state.copyWith(allTeachers: updated));
+
+    final result = await _repo.toggleBanTeacher(teacherId, isBanned, reason: reason);
+    result.when(
+      success: (_) {},
+      failure: (message, _) {
+        loadAllTeachers();
+        emit(state.copyWith(errorMessage: message));
+      },
+    );
+  }
 }
 
 enum AdminTeachersStatus { initial, loading, loaded, error }
@@ -93,7 +136,7 @@ class AdminTeachersState {
       status: status ?? this.status,
       pendingTeachers: pendingTeachers ?? this.pendingTeachers,
       allTeachers: allTeachers ?? this.allTeachers,
-      errorMessage: errorMessage,
+      errorMessage: errorMessage ?? this.errorMessage,
     );
   }
 }

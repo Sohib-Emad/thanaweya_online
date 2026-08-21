@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/router/app_router.dart';
+import '../../../core/services/app_system_config_repo.dart';
 import '../../shared/models/user_model.dart';
 import '../../teacher/data/repos/teacher_profile_repo.dart';
 import 'widgets/widgets.dart';
@@ -60,21 +61,61 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
   }
 
   Future<void> _goToNextScreen() async {
+    final config = await AppSystemConfigRepo().fetchConfig();
     final user = Supabase.instance.client.auth.currentUser;
-    if (user != null && Supabase.instance.client.auth.currentSession != null) {
-      final role = UserRole.values.asNameMap()[user.userMetadata?['role']] ?? UserRole.student;
+    final role = (user != null && Supabase.instance.client.auth.currentSession != null)
+        ? (UserRole.values.asNameMap()[user.userMetadata?['role']] ?? UserRole.student)
+        : null;
+
+    // 1. If Maintenance Mode is active and user is not Super Admin -> Maintenance Screen
+    if (config.isMaintenanceMode && role != UserRole.superAdmin) {
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(
+        context,
+        AppRouter.maintenance,
+        arguments: config.maintenanceMessage,
+      );
+      return;
+    }
+
+    // 2. If Force Update Mode is active and user is not Super Admin -> Force Update Screen
+    if (config.isUpdateRequired && role != UserRole.superAdmin) {
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(
+        context,
+        AppRouter.forceUpdate,
+        arguments: config.updateMessage,
+      );
+      return;
+    }
+
+    // 3. Authenticated User Flow
+    if (user != null && Supabase.instance.client.auth.currentSession != null && role != null) {
       if (role == UserRole.teacher) {
         final result = await TeacherProfileRepo().getApprovalStatus(user.id);
-        final approved = result.when(
-          success: (status) => status == 'approved',
-          failure: (_, _) => false,
-        );
         if (!mounted) return;
-        Navigator.pushReplacementNamed(context, approved ? AppRouter.teacherHome : AppRouter.teacherPending);
+
+        String status = 'pending';
+        result.when(
+          success: (s) => status = s,
+          failure: (_, _) {},
+        );
+
+        if (status == 'banned') {
+          Navigator.pushReplacementNamed(context, AppRouter.teacherBanned);
+          return;
+        }
+
+        Navigator.pushReplacementNamed(
+          context,
+          status == 'approved' ? AppRouter.teacherHome : AppRouter.teacherPending,
+        );
       } else {
+        if (!mounted) return;
         Navigator.pushReplacementNamed(context, AppRouter.homeForRole(role));
       }
     } else {
+      if (!mounted) return;
       Navigator.pushReplacementNamed(context, AppRouter.onboarding);
     }
   }

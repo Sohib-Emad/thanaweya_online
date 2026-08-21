@@ -24,6 +24,8 @@ class StudentCoursesState {
   final StudentCoursesStatus lessonsStatus;
   final List<LessonModel> lessons;
   final List<LessonProgressModel> progress;
+  final List<Map<String, dynamic>> courseExams;
+  final List<Map<String, dynamic>> examSubmissions;
 
   const StudentCoursesState({
     this.status = StudentCoursesStatus.initial,
@@ -45,6 +47,8 @@ class StudentCoursesState {
     this.lessonsStatus = StudentCoursesStatus.initial,
     this.lessons = const [],
     this.progress = const [],
+    this.courseExams = const [],
+    this.examSubmissions = const [],
   });
 
   StudentCoursesState copyWith({
@@ -67,6 +71,8 @@ class StudentCoursesState {
     StudentCoursesStatus? lessonsStatus,
     List<LessonModel>? lessons,
     List<LessonProgressModel>? progress,
+    List<Map<String, dynamic>>? courseExams,
+    List<Map<String, dynamic>>? examSubmissions,
   }) {
     return StudentCoursesState(
       status: status ?? this.status,
@@ -88,6 +94,8 @@ class StudentCoursesState {
       lessonsStatus: lessonsStatus ?? this.lessonsStatus,
       lessons: lessons ?? this.lessons,
       progress: progress ?? this.progress,
+      courseExams: courseExams ?? this.courseExams,
+      examSubmissions: examSubmissions ?? this.examSubmissions,
     );
   }
 }

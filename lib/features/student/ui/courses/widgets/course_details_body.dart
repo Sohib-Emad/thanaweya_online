@@ -26,6 +26,7 @@ class CourseDetailsBody extends StatelessWidget {
   final VoidCallback onComplete;
   final VoidCallback onEnroll;
   final VoidCallback onBack;
+  final Future<void> Function()? onRefresh;
 
   const CourseDetailsBody({
     super.key,
@@ -40,6 +41,7 @@ class CourseDetailsBody extends StatelessWidget {
     required this.onComplete,
     required this.onEnroll,
     required this.onBack,
+    this.onRefresh,
     this.youtubeController,
     this.videoController,
   });
@@ -70,43 +72,54 @@ class CourseDetailsBody extends StatelessWidget {
         child: Stack(
           children: [
             NotebookPaper(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: EdgeInsets.only(bottom: 100.h),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    CourseCoverSection(
-                      introVideoUrl: introVideoUrl, introVideoSourceType: introSourceType,
-                      coverUrl: coverUrl, subjectName: subjectName,
-                      youtubeController: youtubeController, videoController: videoController,
-                      onBack: onBack,
-                    ),
-                    CourseMetaSection(course: course, lessonCount: lessonCount, totalDurationText: totalDuration, subjectName: subjectName),
-                    SizedBox(height: 20.h),
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 24.w),
-                      child: NotebookSegmentControl(
-                        options: [l10n.aboutTab, l10n.curriculumTab],
-                        index: selectedTab,
-                        onChanged: onTabChanged,
+              child: RefreshIndicator(
+                color: NotebookColors.green,
+                onRefresh: onRefresh ?? () async {},
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
+                  ),
+                  padding: EdgeInsets.only(bottom: 100.h),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      CourseCoverSection(
+                        introVideoUrl: introVideoUrl, introVideoSourceType: introSourceType,
+                        coverUrl: coverUrl, subjectName: subjectName,
+                        youtubeController: youtubeController, videoController: videoController,
+                        onBack: onBack,
                       ),
-                    ),
-                    SizedBox(height: 22.h),
-                    selectedTab == 0
-                        ? CourseAboutTab(
-                            description: description, teacherName: teacherName,
-                            teacherAvatarUrl: teacherAvatarUrl, teacherId: teacherId,
-                            subjectName: subjectName, courseId: courseId,
-                            isDescriptionExpanded: isDescriptionExpanded,
-                            onToggleDescription: onToggleDescription,
-                          )
-                        : CurriculumTabContent(
-                            lessons: state.lessons, progress: state.progress,
-                            courseId: courseId, isSubscribed: isSubscribed,
-                            onLocked: onLocked, onComplete: onComplete,
-                          ),
-                  ],
+                      CourseMetaSection(course: course, lessonCount: lessonCount, totalDurationText: totalDuration, subjectName: subjectName),
+                      SizedBox(height: 20.h),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 24.w),
+                        child: NotebookSegmentControl(
+                          options: [l10n.aboutTab, l10n.curriculumTab],
+                          index: selectedTab,
+                          onChanged: onTabChanged,
+                        ),
+                      ),
+                      SizedBox(height: 22.h),
+                      selectedTab == 0
+                          ? CourseAboutTab(
+                              description: description, teacherName: teacherName,
+                              teacherAvatarUrl: teacherAvatarUrl, teacherId: teacherId,
+                              subjectName: subjectName, courseId: courseId,
+                              isDescriptionExpanded: isDescriptionExpanded,
+                              onToggleDescription: onToggleDescription,
+                            )
+                          : CurriculumTabContent(
+                              lessons: state.lessons,
+                              progress: state.progress,
+                              courseExams: state.courseExams,
+                              examSubmissions: state.examSubmissions,
+                              courseId: courseId,
+                              isSubscribed: isSubscribed,
+                              onLocked: onLocked,
+                              onComplete: onComplete,
+                            ),
+                    ],
+                  ),
                 ),
               ),
             ),

@@ -63,12 +63,47 @@ class StepQuestionsBuilder extends StatelessWidget {
         ),
         SizedBox(height: 12.h),
         if (questions.isEmpty)
-          Center(
-            child: Padding(
-              padding: EdgeInsets.all(30.r),
-              child: Text(
-                  'لا توجد أسئلة مضافة بعد. اضغط على "+ إضافة سؤال" للبدء.',
-                  style: GoogleFonts.cairo(color: DeskColors.muted)),
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(vertical: 32.h, horizontal: 20.w),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(16.r),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(12.r),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE0F2FE),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.quiz_outlined,
+                    color: Color(0xFF0284C7),
+                    size: 28,
+                  ),
+                ),
+                SizedBox(height: 12.h),
+                Text(
+                  'لا توجد أسئلة مضافة بعد',
+                  style: GoogleFonts.cairo(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF1E293B),
+                  ),
+                ),
+                SizedBox(height: 4.h),
+                Text(
+                  'اضغط على زر "+ إضافة سؤال" للبدء في إضافة أسئلة الامتحان',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.cairo(
+                    fontSize: 12.sp,
+                    color: const Color(0xFF64748B),
+                  ),
+                ),
+              ],
             ),
           )
         else

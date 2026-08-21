@@ -13,6 +13,7 @@ export 'exam_option_tile.dart';
 export 'exam_timer_chip.dart';
 export 'exam_warning_banner.dart';
 export 'grade_card.dart';
+export 'question_image_view.dart';
 export 'question_navigator_grid.dart';
 export 'result_paper_card.dart';
 export 'start_confirmation_dialog.dart';

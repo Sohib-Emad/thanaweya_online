@@ -110,14 +110,30 @@ class _StudentsListScreenState extends State<StudentsListScreen> {
     final filtered = filterStudents(students: state.students, searchQuery: _searchQuery, gradeFilter: _selectedGradeFilter);
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       SizedBox(height: 12.h),
-      Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16.w),
-        child: DeskSearchField(controller: _searchController, hint: 'ابحث باسم الطالب، الإيميل، أو رقم الهاتف...', onChanged: (v) => setState(() => _searchQuery = v)),
+      DeskSearchField(
+        controller: _searchController,
+        hint: 'ابحث باسم الطالب، الإيميل، أو رقم الهاتف...',
+        onChanged: (v) => setState(() => _searchQuery = v),
+        trailing: _searchQuery.isNotEmpty
+            ? GestureDetector(
+                onTap: () {
+                  _searchController.clear();
+                  setState(() => _searchQuery = '');
+                },
+                child: Padding(
+                  padding: EdgeInsets.all(4.r),
+                  child: Icon(Icons.cancel_rounded, size: 18.r, color: DeskColors.faint),
+                ),
+              )
+            : null,
       ),
       SizedBox(height: 10.h),
       StudentGradeFilter(filters: _gradeFilters, selectedValue: _selectedGradeFilter, onSelected: (v) => setState(() => _selectedGradeFilter = v)),
       SizedBox(height: 10.h),
-      StudentCountLabel(count: filtered.length),
+      Padding(
+        padding: EdgeInsets.symmetric(horizontal: 20.w),
+        child: StudentCountLabel(count: filtered.length),
+      ),
       SizedBox(height: 6.h),
       Expanded(child: filtered.isEmpty
           ? const Center(child: StudentsEmptyState(message: 'لا يوجد طلاب مطابقين للبحث أو الفلتر', icon: Icons.person_search_outlined))

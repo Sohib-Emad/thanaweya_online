@@ -21,10 +21,27 @@ class VideoArea extends StatelessWidget {
     required this.activeLessonId,
     required this.isUploadLoading,
     required this.onViewStarted,
+    this.onPositionChanged,
     required this.youtubeController,
     required this.videoController,
     this.courseId = '',
+    this.startSeconds = 0,
+    this.maxWatchedPosition = Duration.zero,
+    this.isFullscreen = false,
+    this.onToggleFullscreen,
   });
+
+  /// Callback for player position updates (Dailymotion, uploaded, YouTube).
+  final void Function(Duration position, Duration duration)? onPositionChanged;
+
+  /// Furthest watched position (for fast-forward prevention).
+  final Duration maxWatchedPosition;
+
+  /// Whether fullscreen is active.
+  final bool isFullscreen;
+
+  /// Fullscreen toggle callback.
+  final VoidCallback? onToggleFullscreen;
 
   /// Whether the subscription status is still being verified.
   final bool isCheckingSubscription;
@@ -62,6 +79,9 @@ class VideoArea extends StatelessWidget {
   /// Course ID passed through to the locked overlay.
   final String courseId;
 
+  /// Resume position in seconds.
+  final int startSeconds;
+
   @override
   Widget build(BuildContext context) {
     return AspectRatio(
@@ -93,9 +113,12 @@ class VideoArea extends StatelessWidget {
 
     if (isDailymotion) {
       return DailymotionPlayerWidget(
+        key: ValueKey('$activeUrl-$startSeconds'),
         videoUrlOrId: activeUrl,
         autoPlay: true,
+        startSeconds: startSeconds,
         onReady: onViewStarted,
+        onProgress: onPositionChanged,
       );
     }
 
@@ -135,7 +158,12 @@ class VideoArea extends StatelessWidget {
             child: CircularProgressIndicator(color: Colors.white),
           )
         else
-          UploadOverlay(controller: videoController!),
+          UploadOverlay(
+            controller: videoController!,
+            maxWatchedPosition: maxWatchedPosition,
+            isFullscreen: isFullscreen,
+            onToggleFullscreen: onToggleFullscreen,
+          ),
       ],
     );
   }

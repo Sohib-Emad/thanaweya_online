@@ -12,6 +12,9 @@ class HomeMasthead extends StatelessWidget {
     super.key,
     required this.firstName,
     required this.onNotificationsTap,
+    this.points = 0,
+    this.canClaimDaily = true,
+    this.onPointsTap,
   });
 
   /// The student's first name displayed in the greeting.
@@ -19,6 +22,15 @@ class HomeMasthead extends StatelessWidget {
 
   /// Called when the notification bell is tapped.
   final VoidCallback onNotificationsTap;
+
+  /// Current points balance.
+  final int points;
+
+  /// Whether the student can claim today's daily gift.
+  final bool canClaimDaily;
+
+  /// Called when points button is tapped.
+  final VoidCallback? onPointsTap;
 
   @override
   Widget build(BuildContext context) {
@@ -68,6 +80,67 @@ class HomeMasthead extends StatelessWidget {
                   ],
                 ),
               ),
+              if (onPointsTap != null) ...[
+                GestureDetector(
+                  onTap: onPointsTap,
+                  child: Container(
+                    height: 40.r,
+                    padding: EdgeInsets.symmetric(horizontal: 10.w),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: canClaimDaily
+                            ? [const Color(0xFFF59E0B), const Color(0xFFD97706)]
+                            : [const Color(0xFFFEF3C7), const Color(0xFFFDE68A)],
+                        begin: Alignment.topRight,
+                        end: Alignment.bottomLeft,
+                      ),
+                      borderRadius: BorderRadius.circular(20.r),
+                      border: Border.all(
+                        color: const Color(0xFFF59E0B),
+                        width: 1.2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFF59E0B).withAlpha(canClaimDaily ? 80 : 30),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          canClaimDaily ? Icons.card_giftcard_rounded : Icons.stars_rounded,
+                          color: canClaimDaily ? Colors.white : const Color(0xFFB45309),
+                          size: 18.r,
+                        ),
+                        SizedBox(width: 5.w),
+                        Text(
+                          '$points',
+                          style: GoogleFonts.cairo(
+                            fontSize: 13.sp,
+                            fontWeight: FontWeight.w900,
+                            color: canClaimDaily ? Colors.white : const Color(0xFF92400E),
+                          ),
+                        ),
+                        if (canClaimDaily) ...[
+                          SizedBox(width: 4.w),
+                          Container(
+                            width: 6.r,
+                            height: 6.r,
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(width: 8.w),
+              ],
               GestureDetector(
                 onTap: onNotificationsTap,
                 child: Container(

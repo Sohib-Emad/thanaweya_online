@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -21,14 +22,21 @@ class StudentHeaderCard extends StatelessWidget {
   final List<Map<String, dynamic>> grades;
   final List<Map<String, dynamic>> lessons;
   final List<Map<String, dynamic>> subscriptions;
+  final List<Map<String, dynamic>> courses;
   final String fallbackEmail;
 
   const StudentHeaderCard({
     super.key,
-    required this.effectiveName, required this.avatarUrl,
-    required this.studentPhone, required this.parentPhone,
-    required this.effectiveGrade, required this.grades,
-    required this.lessons, required this.subscriptions, required this.fallbackEmail,
+    required this.effectiveName,
+    required this.avatarUrl,
+    required this.studentPhone,
+    required this.parentPhone,
+    required this.effectiveGrade,
+    required this.grades,
+    required this.lessons,
+    required this.subscriptions,
+    this.courses = const [],
+    required this.fallbackEmail,
   });
 
   @override
@@ -56,7 +64,16 @@ class StudentHeaderCard extends StatelessWidget {
         gradient: const LinearGradient(colors: [Color(0xFF0284C7), Color(0xFF0369A1)], begin: Alignment.topLeft, end: Alignment.bottomRight),
         boxShadow: [BoxShadow(color: const Color(0xFF0284C7).withAlpha(40), blurRadius: 8, offset: const Offset(0, 3))]),
       child: avatarUrl.isNotEmpty
-          ? ClipOval(child: Image.network(avatarUrl, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _fb(i)))
+          ? ClipOval(
+              child: CachedNetworkImage(
+                imageUrl: avatarUrl,
+                fit: BoxFit.cover,
+                placeholder: (_, __) => const Center(
+                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                ),
+                errorWidget: (_, _, _) => _fb(i),
+              ),
+            )
           : _fb(i),
     );
   }
@@ -78,9 +95,16 @@ class StudentHeaderCard extends StatelessWidget {
 
   Widget _reportBtn(BuildContext context) {
     return ElevatedButton.icon(
-      onPressed: () => ParentReportSheet.show(context,
-          studentName: effectiveName, gradeLevel: effectiveGrade.isNotEmpty ? gradeLabelOf(effectiveGrade) : '',
-          parentPhone: parentPhone.isNotEmpty ? parentPhone : fallbackEmail, grades: grades, progress: lessons, subscriptions: subscriptions),
+      onPressed: () => ParentReportSheet.show(
+        context,
+        studentName: effectiveName,
+        gradeLevel: effectiveGrade.isNotEmpty ? gradeLabelOf(effectiveGrade) : '',
+        parentPhone: parentPhone,
+        grades: grades,
+        progress: lessons,
+        subscriptions: subscriptions,
+        courses: courses,
+      ),
       style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0284C7), foregroundColor: Colors.white,
           padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h), minimumSize: Size.zero,
           tapTargetSize: MaterialTapTargetSize.shrinkWrap, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)), elevation: 0),

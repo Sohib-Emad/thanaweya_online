@@ -34,6 +34,14 @@ class ProfileMenuCard extends StatelessWidget {
             ),
           ),
           ProfileMenuItem(
+            icon: Icons.account_balance_wallet_outlined,
+            title: 'سجل المعاملات والاشتراكات',
+            onTap: () => Navigator.pushNamed(
+              context,
+              AppRouter.studentTransactions,
+            ),
+          ),
+          ProfileMenuItem(
             icon: Icons.notifications_none_rounded,
             title: l10n.notificationSettings,
             onTap: () => Navigator.pushNamed(
@@ -76,6 +84,11 @@ class ProfileMenuCard extends StatelessWidget {
                 ),
               );
             },
+          ),
+          ProfileMenuItem(
+            icon: Icons.person_pin_rounded,
+            title: 'عن مالك ومبرمج المنصة',
+            onTap: () => Navigator.pushNamed(context, AppRouter.aboutOwner),
           ),
           ProfileMenuItem(
             icon: Icons.mail_outline_rounded,

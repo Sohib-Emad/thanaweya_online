@@ -539,7 +539,7 @@
   "supportCenter": "مركز الدعم والمساعدة",
   "supportCenterMessage": "مركز المساعدة والدعم الفني",
   "inviteFriends": "دعوة الأصدقاء للمنصة",
-  "inviteLink": "انضم لمنصة الثانوية أونلاين: https://thanaweya.online/invite",
+  "inviteLink": "انضم لمنصة الثانوية أونلاين: https://thanaweya-online-website.vercel.app/",
   "inviteCopied": "تم نسخ رابط الدعوة بنجاح",
   "logoutConfirmMessage": "هل أنت متأكد أنك تريد تسجيل الخروج من الحساب؟",
   "editProfileSubtitle": "بياناتك على صفحات الدفتر",

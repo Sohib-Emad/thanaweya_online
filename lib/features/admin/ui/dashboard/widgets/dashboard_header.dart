@@ -32,7 +32,12 @@ class DashboardHeader extends StatelessWidget {
                   ),
                 ],
               ),
-              child: Image.asset(AppAssets.logo, fit: BoxFit.contain),
+              child: Image.asset(
+                AppAssets.logo,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) =>
+                    const Icon(Icons.school_rounded, color: AppColors.primary),
+              ),
             ),
             SizedBox(width: 12.w),
             Column(

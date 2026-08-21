@@ -43,5 +43,6 @@ Map<String, dynamic> _$$LessonModelImplToJson(_$LessonModelImpl instance) =>
 
 const _$VideoSourceTypeEnumMap = {
   VideoSourceType.youtube: 'youtube',
+  VideoSourceType.dailymotion: 'dailymotion',
   VideoSourceType.upload: 'upload',
 };

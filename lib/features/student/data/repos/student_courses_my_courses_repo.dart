@@ -38,9 +38,11 @@ class StudentCoursesMyCoursesRepo {
     try {
       final subData = await _client
           .from('subscriptions')
-          .select('teacher_id, course_id')
+          .select('teacher_id, course_id, status')
           .eq('student_id', uid);
       for (final s in subData) {
+        final status = (s['status'] as String?)?.toLowerCase();
+        if (status != 'active' && status != 'completed') continue;
         final tId = s['teacher_id'] as String?;
         final cId = s['course_id'] as String?;
         if (tId != null && tId.isNotEmpty) teacherIds.add(tId);

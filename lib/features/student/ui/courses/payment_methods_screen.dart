@@ -49,6 +49,15 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
     ));
   }
 
+  Future<void> _scanQrCode() async {
+    final scanned = await QrScannerSheet.show(context);
+    if (scanned != null && scanned.trim().isNotEmpty) {
+      _codeController.text = scanned.trim().toUpperCase();
+      setState(() {});
+      _showSnack('تم مسح كود الكارت بنجاح: ${_codeController.text} ✅', ok: true);
+    }
+  }
+
   Future<void> _pasteFromClipboard() async {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
     final text = data?.text?.trim() ?? '';
@@ -70,7 +79,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
 
   Future<void> _redeemCode() async {
     final code = _codeController.text.trim();
-    if (code.isEmpty) { _showSnack('يرجى كتابة أو لصق كود التفعيل أولاً'); return; }
+    if (code.isEmpty) { _showSnack('يرجى كتابة أو لصق أو مسح كود التفعيل أولاً'); return; }
     HapticFeedback.mediumImpact();
     setState(() => _isProcessing = true);
     final error = await _cubit.redeemActivationCode(code, courseId: widget.courseId, teacherId: widget.teacherId);
@@ -96,7 +105,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
       backgroundColor: NotebookColors.ground,
       appBar: NotebookTopBar(
         title: _isFree ? 'تسجيل الكورس المجاني' : 'تفعيل الكورس بكود المدرس',
-        subtitle: _isFree ? 'انضم للكورس وابدأ التعلم الآن' : 'أدخل كود التفعيل المستلم من مدرسك',
+        subtitle: _isFree ? 'انضم للكورس وابدأ التعلم الآن' : 'أدخل كود التفعيل المستلم من مدرسك أو امسح الـ QR',
       ),
       body: Stack(children: [
         NotebookPaper(
@@ -107,7 +116,12 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
               CourseSummaryCard(courseTitle: widget.courseTitle, price: widget.price),
               SizedBox(height: 22.h),
               if (!_isFree)
-                ActivationCodeSection(controller: _codeController, onPaste: _pasteFromClipboard, onChanged: (_) => setState(() {}))
+                ActivationCodeSection(
+                  controller: _codeController,
+                  onPaste: _pasteFromClipboard,
+                  onScanQr: _scanQrCode,
+                  onChanged: (_) => setState(() {}),
+                )
               else
                 const FreeCourseBanner(),
             ]),

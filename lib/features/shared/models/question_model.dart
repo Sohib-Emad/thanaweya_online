@@ -17,6 +17,7 @@ class QuestionModel with _$QuestionModel {
     @JsonKey(name: 'exam_id') required String examId,
     @JsonKey(name: 'question_type') required QuestionType questionType,
     required String text,
+    @JsonKey(name: 'image_url') String? imageUrl,
     @Default([]) List<String> options,
     @JsonKey(name: 'correct_answer') String? correctAnswer,
     required int points,

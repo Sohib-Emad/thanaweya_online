@@ -45,6 +45,10 @@ class TeacherExamsRepo {
     required DateTime endAt,
     String? courseId,
     String? lessonId,
+    int passingScore = 50,
+    bool allowRetake = false,
+    int maxAttempts = 1,
+    bool shuffleQuestions = false,
     bool isPublished = true,
   }) async {
     try {
@@ -54,10 +58,14 @@ class TeacherExamsRepo {
             'teacher_id': teacherId,
             'title': title,
             'duration_minutes': durationMinutes,
-            'start_at': startAt.toIso8601String(),
-            'end_at': endAt.toIso8601String(),
+            'start_at': startAt.toUtc().toIso8601String(),
+            'end_at': endAt.toUtc().toIso8601String(),
             'course_id': courseId,
             'lesson_id': lessonId,
+            'passing_score': passingScore,
+            'allow_retake': allowRetake,
+            'max_attempts': maxAttempts,
+            'shuffle_questions': shuffleQuestions,
             'is_published': isPublished,
           })
           .select()
@@ -77,6 +85,10 @@ class TeacherExamsRepo {
     required DateTime endAt,
     String? courseId,
     String? lessonId,
+    int? passingScore,
+    bool? allowRetake,
+    int? maxAttempts,
+    bool? shuffleQuestions,
     bool? clearLesson,
     bool? isPublished,
   }) async {
@@ -84,8 +96,8 @@ class TeacherExamsRepo {
       final updates = <String, dynamic>{
         'title': title,
         'duration_minutes': durationMinutes,
-        'start_at': startAt.toIso8601String(),
-        'end_at': endAt.toIso8601String(),
+        'start_at': startAt.toUtc().toIso8601String(),
+        'end_at': endAt.toUtc().toIso8601String(),
       };
       if (courseId != null) updates['course_id'] = courseId;
       if (clearLesson == true) {
@@ -93,6 +105,10 @@ class TeacherExamsRepo {
       } else if (lessonId != null) {
         updates['lesson_id'] = lessonId;
       }
+      if (passingScore != null) updates['passing_score'] = passingScore;
+      if (allowRetake != null) updates['allow_retake'] = allowRetake;
+      if (maxAttempts != null) updates['max_attempts'] = maxAttempts;
+      if (shuffleQuestions != null) updates['shuffle_questions'] = shuffleQuestions;
       if (isPublished != null) updates['is_published'] = isPublished;
       await _client.from('exams').update(updates).eq('id', examId);
       return const ApiResult.success(null);

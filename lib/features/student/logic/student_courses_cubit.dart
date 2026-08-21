@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:thanaweya_online/features/student/data/repos/student_courses_repo.dart';
 export 'package:thanaweya_online/features/student/logic/student_courses_state.dart';
@@ -116,25 +117,75 @@ class StudentCoursesCubit extends Cubit<StudentCoursesState> {
     );
   }
 
-  Future<void> loadCourseLessons(String courseId) async {
+  Future<void> loadCourseLessons(String courseId, {String? studentId}) async {
     emit(state.copyWith(lessonsStatus: StudentCoursesStatus.loading));
+    final uid = studentId ??
+        Supabase.instance.client.auth.currentUser?.id ??
+        Supabase.instance.client.auth.currentSession?.user.id ??
+        '';
+
     final result = await _repo.lessons.getCourseLessons(courseId);
-    result.when(
-      success: (lessons) => emit(state.copyWith(
-        lessonsStatus: StudentCoursesStatus.loaded,
-        lessons: lessons,
-      )),
-      failure: (message, _) => emit(state.copyWith(
-        lessonsStatus: StudentCoursesStatus.error,
-        errorMessage: message,
-      )),
+    await result.when(
+      success: (lessons) async {
+        List<Map<String, dynamic>> exams = [];
+        List<Map<String, dynamic>> submissions = [];
+        try {
+          final examsRes = await _repo.lessons.getCourseLessonExams(
+            courseId: courseId,
+            studentId: uid,
+          );
+          examsRes.when(
+            success: (data) {
+              exams = (data['exams'] as List<dynamic>?)
+                      ?.cast<Map<String, dynamic>>() ??
+                  [];
+              submissions = (data['submissions'] as List<dynamic>?)
+                      ?.cast<Map<String, dynamic>>() ??
+                  [];
+            },
+            failure: (_, __) {},
+          );
+        } catch (_) {}
+
+        emit(state.copyWith(
+          lessonsStatus: StudentCoursesStatus.loaded,
+          lessons: lessons,
+          courseExams: exams,
+          examSubmissions: submissions,
+        ));
+      },
+      failure: (message, _) async {
+        emit(state.copyWith(
+          lessonsStatus: StudentCoursesStatus.error,
+          errorMessage: message,
+        ));
+      },
     );
   }
 
-  Future<void> loadProgress(String studentId) async {
+  Future<void> loadProgress(String studentId, {String? courseId}) async {
     final result = await _repo.lessons.getStudentProgress(studentId);
     result.when(
-      success: (progress) => emit(state.copyWith(progress: progress)),
+      success: (progress) async {
+        emit(state.copyWith(progress: progress));
+        if (courseId != null && courseId.isNotEmpty) {
+          try {
+            final examsRes = await _repo.lessons.getCourseLessonExams(
+              courseId: courseId,
+              studentId: studentId,
+            );
+            examsRes.when(
+              success: (data) {
+                emit(state.copyWith(
+                  courseExams: (data['exams'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [],
+                  examSubmissions: (data['submissions'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [],
+                ));
+              },
+              failure: (_, __) {},
+            );
+          } catch (_) {}
+        }
+      },
       failure: (_, __) {},
     );
   }

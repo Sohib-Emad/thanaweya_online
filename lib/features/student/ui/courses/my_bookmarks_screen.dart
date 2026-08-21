@@ -85,35 +85,54 @@ class _MyBookmarksScreenState extends State<MyBookmarksScreen> {
           );
         }
         if (state.bookmarks.isEmpty) {
-          return Padding(
-            padding: const EdgeInsets.all(24),
-            child: NotebookEmptyNote(icon: Icons.bookmark_border_rounded, message: l10n.noBookmarks),
+          return RefreshIndicator(
+            color: NotebookColors.green,
+            onRefresh: () async {
+              if (_userId.isNotEmpty) await _cubit.loadBookmarks(_userId);
+            },
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: NotebookEmptyNote(icon: Icons.bookmark_border_rounded, message: l10n.noBookmarks),
+                ),
+              ],
+            ),
           );
         }
-        return ListView.separated(
-          padding: EdgeInsets.fromLTRB(24.w, 0, 24.w, 20.h),
-          physics: const BouncingScrollPhysics(),
-          itemCount: state.bookmarks.length,
-          separatorBuilder: (_, __) => SizedBox(height: 14.h),
-          itemBuilder: (context, index) {
-            final bookmark = state.bookmarks[index];
-            final course = bookmark['courses'] as Map<String, dynamic>? ?? {};
-            final teachers = course['teachers'] as Map<String, dynamic>? ?? {};
-            final users = teachers['users'] as Map<String, dynamic>? ?? {};
-            final subjects = teachers['subjects'] as Map<String, dynamic>? ?? {};
-            final courseId = course['id'] as String? ?? '';
-            return BookmarkCourseCard(
-              title: course['title'] as String? ?? '',
-              subject: subjects['name_ar'] as String? ?? '',
-              teacherName: users['full_name'] as String? ?? '',
-              coverUrl: course['cover_image_url'] as String? ?? '',
-              onTap: () {
-                HapticFeedback.lightImpact();
-                Navigator.pushNamed(context, AppRouter.studentCourseDetails, arguments: courseId);
-              },
-              onRemoveBookmark: () => _removeBookmark(courseId),
-            );
+        return RefreshIndicator(
+          color: NotebookColors.green,
+          onRefresh: () async {
+            if (_userId.isNotEmpty) await _cubit.loadBookmarks(_userId);
           },
+          child: ListView.separated(
+            padding: EdgeInsets.fromLTRB(24.w, 0, 24.w, 20.h),
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+            itemCount: state.bookmarks.length,
+            separatorBuilder: (_, _) => SizedBox(height: 14.h),
+            itemBuilder: (context, index) {
+              final bookmark = state.bookmarks[index];
+              final course = bookmark['courses'] as Map<String, dynamic>? ?? {};
+              final teachers = course['teachers'] as Map<String, dynamic>? ?? {};
+              final users = teachers['users'] as Map<String, dynamic>? ?? {};
+              final subjects = teachers['subjects'] as Map<String, dynamic>? ?? {};
+              final courseId = course['id'] as String? ?? '';
+              return BookmarkCourseCard(
+                title: course['title'] as String? ?? '',
+                subject: subjects['name_ar'] as String? ?? '',
+                teacherName: users['full_name'] as String? ?? '',
+                coverUrl: course['cover_image_url'] as String? ?? '',
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  Navigator.pushNamed(context, AppRouter.studentCourseDetails, arguments: courseId);
+                },
+                onRemoveBookmark: () => _removeBookmark(courseId),
+              );
+            },
+          ),
         );
       },
     );

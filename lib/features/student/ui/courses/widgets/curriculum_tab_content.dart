@@ -3,15 +3,20 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'package:thanaweya_online/core/theme/notebook_theme.dart';
 import 'package:thanaweya_online/core/utils/formatters.dart';
+import 'package:thanaweya_online/core/utils/lesson_progression_helper.dart';
 import 'package:thanaweya_online/features/shared/models/lesson_model.dart';
 import 'package:thanaweya_online/features/shared/models/lesson_progress_model.dart';
 import 'package:thanaweya_online/features/student/ui/courses/widgets/curriculum_lesson_tile.dart';
+import 'package:thanaweya_online/features/student/ui/courses/widgets/lesson_exam_required_dialog.dart';
 import 'package:thanaweya_online/l10n/l10n.dart';
 
-/// Curriculum tab body: lists course sections and their lesson tiles.
+/// Curriculum tab body: lists course sections and their lesson tiles with
+/// sequential unlocking and exam prerequisite checks.
 class CurriculumTabContent extends StatelessWidget {
   final List<LessonModel> lessons;
   final List<LessonProgressModel> progress;
+  final List<Map<String, dynamic>> courseExams;
+  final List<Map<String, dynamic>> examSubmissions;
   final String courseId;
   final bool isSubscribed;
   final void Function(String lessonTitle)? onLocked;
@@ -21,6 +26,8 @@ class CurriculumTabContent extends StatelessWidget {
     super.key,
     required this.lessons,
     required this.progress,
+    this.courseExams = const [],
+    this.examSubmissions = const [],
     required this.courseId,
     required this.isSubscribed,
     this.onLocked,
@@ -58,12 +65,28 @@ class CurriculumTabContent extends StatelessWidget {
               ),
               SizedBox(height: 12.h),
               ...items.map(
-                (les) => CurriculumLessonTile(
-                  lesson: les,
-                  courseId: courseId,
-                  onLocked: (title) => onLocked?.call(title),
-                  onComplete: () => onComplete?.call(),
-                ),
+                (les) {
+                  final lockStatus = les['lockStatus'] as LessonLockStatus;
+                  return CurriculumLessonTile(
+                    lesson: les,
+                    courseId: courseId,
+                    lockStatus: lockStatus,
+                    onLocked: (title) {
+                      if (!isSubscribed) {
+                        onLocked?.call(title);
+                      } else {
+                        LessonExamRequiredDialog.show(
+                          context,
+                          lessonTitle: title,
+                          lockStatus: lockStatus,
+                          courseId: courseId,
+                          onRefresh: onComplete,
+                        );
+                      }
+                    },
+                    onComplete: () => onComplete?.call(),
+                  );
+                },
               ),
               SizedBox(height: 16.h),
             ],
@@ -75,14 +98,20 @@ class CurriculumTabContent extends StatelessWidget {
 
   List<Map<String, dynamic>> _buildSections(AppLocalizations l10n) {
     if (lessons.isEmpty) return const [];
-    final completedIds = {
-      for (final p in progress)
-        if (p.isCompleted || p.watchedSeconds > 0) p.lessonId,
-    };
+
+    final statusMap = LessonProgressionHelper.evaluateLessons(
+      lessons: lessons,
+      progress: progress,
+      isSubscribed: isSubscribed,
+      courseExams: courseExams,
+      examSubmissions: examSubmissions,
+    );
+
     final totalSeconds = lessons.fold<int>(
       0,
       (sum, l) => sum + (l.durationSeconds ?? 0),
     );
+
     return [
       {
         'sectionNumber': l10n.sectionLabel('01'),
@@ -102,8 +131,10 @@ class CurriculumTabContent extends StatelessWidget {
                       (lessons[i].durationSeconds! / 60).ceil(),
                     )
                   : '',
-              'isUnlocked': isSubscribed,
-              'isCompleted': completedIds.contains(lessons[i].id),
+              'isUnlocked': statusMap[lessons[i].id]?.isUnlocked ?? false,
+              'isCompleted': statusMap[lessons[i].id]?.isCompleted ?? false,
+              'lockStatus': statusMap[lessons[i].id] ??
+                  const LessonLockStatus(isUnlocked: false, isCompleted: false),
             },
         ],
       },

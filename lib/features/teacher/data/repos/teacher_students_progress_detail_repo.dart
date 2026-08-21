@@ -15,22 +15,62 @@ class TeacherStudentsProgressDetailRepo {
     String studentId,
   ) async {
     try {
+      // 1. Try secure RPC first
+      try {
+        final rpcRes = await _client.rpc(
+          'get_teacher_student_progress',
+          params: {'p_teacher_id': teacherId, 'p_student_id': studentId},
+        );
+        if (rpcRes is Map && rpcRes['lessons'] is List) {
+          final list = (rpcRes['lessons'] as List).cast<Map<String, dynamic>>();
+          if (list.isNotEmpty) {
+            final total = list.length;
+            final completed = list.where((l) => l['is_completed'] == true).length;
+            final inProgress = list.where((l) =>
+                l['is_completed'] != true &&
+                ((l['watched_seconds'] as num?)?.toInt() ?? 0) > 0).length;
+            final percent = total > 0 ? ((completed / total) * 100).round() : 0;
+            return ApiResult.success({
+              'total': total,
+              'completed': completed,
+              'in_progress': inProgress,
+              'percent': percent,
+              'lessons': list,
+            });
+          }
+        }
+      } catch (_) {}
+
+      // 2. Direct query fallback
       final courseMap = await _builder.fetchTeacherCourseMap(teacherId);
       final courseIds = courseMap.keys.toList();
       final teacherLessons = await _builder.fetchTeacherLessons(
         courseIds, teacherId,
       );
-      final progressData = await _client
-          .from('lesson_progress')
-          .select(
-            'id, lesson_id, is_completed, watched_seconds, '
-            'last_watched_at, view_count',
-          )
-          .eq('student_id', studentId);
+      List<dynamic> progressData = [];
+      try {
+        progressData = await _client
+            .from('lesson_progress')
+            .select(
+              'id, lesson_id, is_completed, watched_seconds, '
+              'last_watched_at, view_count, '
+              'lessons(id, title, course_id, duration_seconds, max_views, courses(id, title))',
+            )
+            .eq('student_id', studentId);
+      } catch (_) {
+        progressData = await _client
+            .from('lesson_progress')
+            .select(
+              'id, lesson_id, is_completed, watched_seconds, '
+              'last_watched_at, view_count',
+            )
+            .eq('student_id', studentId);
+      }
+
       final progressMap = <String, Map<String, dynamic>>{};
       for (final p in progressData) {
         final lId = p['lesson_id'] as String? ?? '';
-        if (lId.isNotEmpty) progressMap[lId] = p;
+        if (lId.isNotEmpty) progressMap[lId] = Map<String, dynamic>.from(p as Map);
       }
       final lessonsList = _builder.buildLessonsList(
         teacherLessons, progressMap, courseMap,
@@ -41,7 +81,7 @@ class TeacherStudentsProgressDetailRepo {
       final inProgress = lessonsList
           .where((l) =>
               l['is_completed'] != true &&
-              (l['watched_seconds'] as int) > 0)
+              ((l['watched_seconds'] as num?)?.toInt() ?? 0) > 0)
           .length;
       final percent = total > 0 ? ((completed / total) * 100).round() : 0;
       return ApiResult.success({

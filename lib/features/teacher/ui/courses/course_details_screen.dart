@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:thanaweya_online/core/router/app_router.dart';
 
 import 'package:thanaweya_online/core/theme/teacher_desk_theme.dart';
 import 'package:thanaweya_online/features/shared/models/course_model.dart';
@@ -10,6 +12,9 @@ import 'package:thanaweya_online/features/shared/models/lesson_model.dart';
 import 'package:thanaweya_online/features/teacher/data/repos/teacher_courses_repo.dart';
 import 'package:thanaweya_online/features/teacher/data/repos/teacher_exams_repo.dart';
 import 'package:thanaweya_online/features/teacher/data/repos/teacher_students_repo.dart';
+
+import 'package:thanaweya_online/core/router/route_observer.dart';
+import 'package:thanaweya_online/core/services/teacher_realtime_service.dart';
 
 import 'widgets/widgets.dart';
 
@@ -24,7 +29,7 @@ class CourseDetailsScreen extends StatefulWidget {
 }
 
 class _CourseDetailsScreenState extends State<CourseDetailsScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, RouteAware {
   late TabController _tabController;
   late CourseModel _currentCourse;
   final _coursesRepo = TeacherCoursesRepo();
@@ -44,10 +49,36 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
     _currentCourse = widget.course;
     _tabController = TabController(length: 4, vsync: this);
     _loadAll();
+
+    TeacherRealtimeService.instance.addLessonsListener(_onRealtimeRefresh);
+    TeacherRealtimeService.instance.addExamsListener(_onRealtimeRefresh);
+    TeacherRealtimeService.instance.addCoursesListener(_onRealtimeRefresh);
+  }
+
+  void _onRealtimeRefresh() {
+    if (!mounted) return;
+    _loadAll();
   }
 
   @override
-  void dispose() { _tabController.dispose(); super.dispose(); }
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute) appRouteObserver.subscribe(this, route);
+  }
+
+  @override
+  void didPopNext() => _loadAll();
+
+  @override
+  void dispose() {
+    TeacherRealtimeService.instance.removeLessonsListener(_onRealtimeRefresh);
+    TeacherRealtimeService.instance.removeExamsListener(_onRealtimeRefresh);
+    TeacherRealtimeService.instance.removeCoursesListener(_onRealtimeRefresh);
+    appRouteObserver.unsubscribe(this);
+    _tabController.dispose();
+    super.dispose();
+  }
 
   Future<void> _loadAll() => Future.wait([_loadLessons(), _loadExams(), _loadStudents()]);
 
@@ -101,6 +132,65 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
     res.when(success: (_) { _snack('تم حذف المحاضرة بنجاح'); _loadLessons(); }, failure: (m, _) => _snack('فشل حذف المحاضرة: $m'));
   }
 
+  void _handleLessonExam(LessonModel lesson, ExamModel? exam) async {
+    HapticFeedback.lightImpact();
+    if (exam == null) {
+      // Create new exam specifically for this lesson
+      await Navigator.pushNamed(
+        context,
+        AppRouter.teacherExamBuilder,
+        arguments: {
+          'courseId': _currentCourse.id,
+          'lessonId': lesson.id,
+        },
+      );
+      _loadAll();
+    } else {
+      // Existing exam menu
+      showModalBottomSheet(
+        context: context,
+        backgroundColor: Colors.transparent,
+        builder: (ctx) => Directionality(
+          textDirection: TextDirection.rtl,
+          child: Container(
+            padding: EdgeInsets.all(20.r),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'امتحان: ${exam.title}',
+                  style: DeskText.heading(15.sp),
+                ),
+                SizedBox(height: 12.h),
+                ListTile(
+                  leading: const Icon(Icons.help_outline_rounded, color: Color(0xFF0284C7)),
+                  title: Text('إدارة الأسئلة وإضافة أسئلة جديدة', style: GoogleFonts.cairo(fontWeight: FontWeight.w700)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    Navigator.pushNamed(context, AppRouter.teacherAddQuestion, arguments: exam.id).then((_) => _loadAll());
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.analytics_outlined, color: Color(0xFF16A34A)),
+                  title: Text('عرض درجات ونتائج الطلاب', style: GoogleFonts.cairo(fontWeight: FontWeight.w700)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    Navigator.pushNamed(context, AppRouter.teacherExamResults, arguments: {'examId': exam.id, 'examTitle': exam.title});
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Directionality(
@@ -121,7 +211,16 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen>
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  CourseLessonsTab(isLoading: _loadingLessons, lessons: _lessons, courseId: _currentCourse.id, onRefresh: _loadLessons, onShowDocuments: _openDocsSheet, onConfirmDelete: _deleteLesson),
+                  CourseLessonsTab(
+                    isLoading: _loadingLessons,
+                    lessons: _lessons,
+                    exams: _exams,
+                    courseId: _currentCourse.id,
+                    onRefresh: _loadLessons,
+                    onShowDocuments: _openDocsSheet,
+                    onConfirmDelete: _deleteLesson,
+                    onExamTap: _handleLessonExam,
+                  ),
                   CourseStudentsTab(isLoading: _loadingStudents, students: _students, onRefresh: _loadStudents),
                   CourseExamsTab(isLoading: _loadingExams, exams: _exams, courseId: _currentCourse.id, onRefresh: _loadExams),
                   CourseStatisticsTab(lessonsCount: _lessons.length, examsCount: _exams.length, studentsCount: _students.length, course: _currentCourse),

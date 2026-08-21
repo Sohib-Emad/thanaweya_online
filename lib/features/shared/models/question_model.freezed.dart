@@ -27,6 +27,8 @@ mixin _$QuestionModel {
   @JsonKey(name: 'question_type')
   QuestionType get questionType => throw _privateConstructorUsedError;
   String get text => throw _privateConstructorUsedError;
+  @JsonKey(name: 'image_url')
+  String? get imageUrl => throw _privateConstructorUsedError;
   List<String> get options => throw _privateConstructorUsedError;
   @JsonKey(name: 'correct_answer')
   String? get correctAnswer => throw _privateConstructorUsedError;
@@ -57,6 +59,7 @@ abstract class $QuestionModelCopyWith<$Res> {
     @JsonKey(name: 'exam_id') String examId,
     @JsonKey(name: 'question_type') QuestionType questionType,
     String text,
+    @JsonKey(name: 'image_url') String? imageUrl,
     List<String> options,
     @JsonKey(name: 'correct_answer') String? correctAnswer,
     int points,
@@ -84,6 +87,7 @@ class _$QuestionModelCopyWithImpl<$Res, $Val extends QuestionModel>
     Object? examId = null,
     Object? questionType = null,
     Object? text = null,
+    Object? imageUrl = freezed,
     Object? options = null,
     Object? correctAnswer = freezed,
     Object? points = null,
@@ -108,6 +112,10 @@ class _$QuestionModelCopyWithImpl<$Res, $Val extends QuestionModel>
                 ? _value.text
                 : text // ignore: cast_nullable_to_non_nullable
                       as String,
+            imageUrl: freezed == imageUrl
+                ? _value.imageUrl
+                : imageUrl // ignore: cast_nullable_to_non_nullable
+                      as String?,
             options: null == options
                 ? _value.options
                 : options // ignore: cast_nullable_to_non_nullable
@@ -148,6 +156,7 @@ abstract class _$$QuestionModelImplCopyWith<$Res>
     @JsonKey(name: 'exam_id') String examId,
     @JsonKey(name: 'question_type') QuestionType questionType,
     String text,
+    @JsonKey(name: 'image_url') String? imageUrl,
     List<String> options,
     @JsonKey(name: 'correct_answer') String? correctAnswer,
     int points,
@@ -174,6 +183,7 @@ class __$$QuestionModelImplCopyWithImpl<$Res>
     Object? examId = null,
     Object? questionType = null,
     Object? text = null,
+    Object? imageUrl = freezed,
     Object? options = null,
     Object? correctAnswer = freezed,
     Object? points = null,
@@ -198,6 +208,10 @@ class __$$QuestionModelImplCopyWithImpl<$Res>
             ? _value.text
             : text // ignore: cast_nullable_to_non_nullable
                   as String,
+        imageUrl: freezed == imageUrl
+            ? _value.imageUrl
+            : imageUrl // ignore: cast_nullable_to_non_nullable
+                  as String?,
         options: null == options
             ? _value._options
             : options // ignore: cast_nullable_to_non_nullable
@@ -231,6 +245,7 @@ class _$QuestionModelImpl implements _QuestionModel {
     @JsonKey(name: 'exam_id') required this.examId,
     @JsonKey(name: 'question_type') required this.questionType,
     required this.text,
+    @JsonKey(name: 'image_url') this.imageUrl,
     final List<String> options = const [],
     @JsonKey(name: 'correct_answer') this.correctAnswer,
     required this.points,
@@ -251,6 +266,9 @@ class _$QuestionModelImpl implements _QuestionModel {
   final QuestionType questionType;
   @override
   final String text;
+  @override
+  @JsonKey(name: 'image_url')
+  final String? imageUrl;
   final List<String> _options;
   @override
   @JsonKey()
@@ -274,7 +292,7 @@ class _$QuestionModelImpl implements _QuestionModel {
 
   @override
   String toString() {
-    return 'QuestionModel(id: $id, examId: $examId, questionType: $questionType, text: $text, options: $options, correctAnswer: $correctAnswer, points: $points, order: $order, createdAt: $createdAt)';
+    return 'QuestionModel(id: $id, examId: $examId, questionType: $questionType, text: $text, imageUrl: $imageUrl, options: $options, correctAnswer: $correctAnswer, points: $points, order: $order, createdAt: $createdAt)';
   }
 
   @override
@@ -287,6 +305,8 @@ class _$QuestionModelImpl implements _QuestionModel {
             (identical(other.questionType, questionType) ||
                 other.questionType == questionType) &&
             (identical(other.text, text) || other.text == text) &&
+            (identical(other.imageUrl, imageUrl) ||
+                other.imageUrl == imageUrl) &&
             const DeepCollectionEquality().equals(other._options, _options) &&
             (identical(other.correctAnswer, correctAnswer) ||
                 other.correctAnswer == correctAnswer) &&
@@ -304,6 +324,7 @@ class _$QuestionModelImpl implements _QuestionModel {
     examId,
     questionType,
     text,
+    imageUrl,
     const DeepCollectionEquality().hash(_options),
     correctAnswer,
     points,
@@ -331,6 +352,7 @@ abstract class _QuestionModel implements QuestionModel {
     @JsonKey(name: 'exam_id') required final String examId,
     @JsonKey(name: 'question_type') required final QuestionType questionType,
     required final String text,
+    @JsonKey(name: 'image_url') final String? imageUrl,
     final List<String> options,
     @JsonKey(name: 'correct_answer') final String? correctAnswer,
     required final int points,
@@ -351,6 +373,9 @@ abstract class _QuestionModel implements QuestionModel {
   QuestionType get questionType;
   @override
   String get text;
+  @override
+  @JsonKey(name: 'image_url')
+  String? get imageUrl;
   @override
   List<String> get options;
   @override

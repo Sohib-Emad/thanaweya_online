@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -44,12 +45,15 @@ class ProfileAvatar extends StatelessWidget {
                 ),
                 child: ClipOval(
                   child: avatarUrl != null && avatarUrl!.isNotEmpty
-                      ? Image.network(
-                          avatarUrl!,
+                      ? CachedNetworkImage(
+                          imageUrl: avatarUrl!,
                           fit: BoxFit.cover,
                           width: 100.r,
                           height: 100.r,
-                          errorBuilder: (_, _, _) => _fallbackAvatar(),
+                          placeholder: (_, __) => const Center(
+                            child: CircularProgressIndicator(color: Color(0xFF0284C7), strokeWidth: 2),
+                          ),
+                          errorWidget: (_, _, _) => _fallbackAvatar(),
                         )
                       : _fallbackAvatar(),
                 ),

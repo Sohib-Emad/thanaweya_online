@@ -40,7 +40,25 @@ class StudentExamsListingRepo {
         final examId = exam['id'] as String? ?? '';
         final tId = exam['teacher_id'] as String? ?? '';
         final cId = exam['course_id'] as String? ?? '';
-        final maxAttempts = (exam['max_attempts'] as num?)?.toInt() ?? 3;
+        final allowRetake = exam['allow_retake'] as bool? ?? false;
+        final maxAttempts = (exam['max_attempts'] as num?)?.toInt() ?? (allowRetake ? 3 : 1);
+        final attemptsUsed = attemptsMap[examId] ?? 0;
+
+        final now = DateTime.now().toUtc();
+        final startAtStr = exam['start_at'] as String?;
+        final endAtStr = exam['end_at'] as String?;
+        final startAt = startAtStr != null ? DateTime.tryParse(startAtStr)?.toUtc() : null;
+        final endAt = endAtStr != null ? DateTime.tryParse(endAtStr)?.toUtc() : null;
+
+        String examStatus = 'available';
+        if (startAt != null && now.isBefore(startAt)) {
+          examStatus = 'upcoming';
+        } else if (endAt != null && now.isAfter(endAt)) {
+          examStatus = 'expired';
+        } else if (attemptsUsed >= maxAttempts) {
+          examStatus = 'completed';
+        }
+
         return {
           ...exam,
           'teacher_name': teacherNames[tId] ?? 'المعلم',
@@ -49,9 +67,10 @@ class StudentExamsListingRepo {
               ? courseTitles[cId]!
               : (teacherNames[tId] ?? ''),
           'max_attempts': maxAttempts,
-          'attempts_used': attemptsMap[examId] ?? 0,
+          'attempts_used': attemptsUsed,
           'questions_count': questionCountMap[examId] ?? 0,
           'is_subscribed': teacherIdSet.contains(tId),
+          'exam_status': examStatus,
         };
       }).toList()
         ..sort((a, b) =>

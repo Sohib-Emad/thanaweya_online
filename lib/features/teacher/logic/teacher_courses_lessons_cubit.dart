@@ -32,7 +32,7 @@ class TeacherCoursesLessonsCubit extends Cubit<TeacherCoursesLessonsState> {
     );
   }
 
-  Future<void> addLesson({
+  Future<LessonModel?> addLesson({
     required String courseId,
     required String title,
     String? description,
@@ -49,15 +49,21 @@ class TeacherCoursesLessonsCubit extends Cubit<TeacherCoursesLessonsState> {
       videoUrlOrId: videoUrlOrId,
       isFreePreview: isFreePreview,
     );
-    result.when(
-      success: (lesson) => emit(state.copyWith(
-        lessonsStatus: TeacherCoursesLessonsStatus.loaded,
-        lessons: [...state.lessons, lesson],
-      )),
-      failure: (message, _) => emit(state.copyWith(
-        lessonsStatus: TeacherCoursesLessonsStatus.error,
-        errorMessage: message,
-      )),
+    return result.when(
+      success: (lesson) {
+        emit(state.copyWith(
+          lessonsStatus: TeacherCoursesLessonsStatus.loaded,
+          lessons: [...state.lessons, lesson],
+        ));
+        return lesson;
+      },
+      failure: (message, _) {
+        emit(state.copyWith(
+          lessonsStatus: TeacherCoursesLessonsStatus.error,
+          errorMessage: message,
+        ));
+        return null;
+      },
     );
   }
 

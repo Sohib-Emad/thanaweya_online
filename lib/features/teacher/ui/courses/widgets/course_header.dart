@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -81,7 +82,14 @@ class CourseHeader extends StatelessWidget {
       child: course.coverImageUrl != null && course.coverImageUrl!.isNotEmpty
           ? ClipRRect(
               borderRadius: BorderRadius.circular(16.r),
-              child: Image.network(course.coverImageUrl!, fit: BoxFit.cover, errorBuilder: (_, _, _) => Icon(Icons.menu_book_rounded, color: Colors.white, size: 32.r)),
+              child: CachedNetworkImage(
+                imageUrl: course.coverImageUrl!,
+                fit: BoxFit.cover,
+                placeholder: (_, __) => const Center(
+                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                ),
+                errorWidget: (_, _, _) => Icon(Icons.menu_book_rounded, color: Colors.white, size: 32.r),
+              ),
             )
           : Icon(Icons.menu_book_rounded, color: Colors.white, size: 32.r),
     );

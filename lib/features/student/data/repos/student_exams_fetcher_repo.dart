@@ -12,7 +12,8 @@ class StudentExamsFetcherRepo {
     final seen = <String>{};
     const fields =
         'id, teacher_id, course_id, lesson_id, title, duration_minutes, '
-        'start_at, end_at, max_score, max_attempts, is_published, created_at';
+        'start_at, end_at, max_score, passing_score, allow_retake, max_attempts, '
+        'shuffle_questions, is_published, created_at';
     if (courseIds.isNotEmpty) {
       try {
         final rows = await _client

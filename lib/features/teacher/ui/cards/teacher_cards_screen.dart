@@ -9,6 +9,7 @@ import 'package:thanaweya_online/features/shared/models/course_model.dart';
 import 'package:thanaweya_online/features/teacher/data/repos/teacher_cards_repo.dart';
 import 'package:thanaweya_online/features/teacher/data/repos/teacher_courses_repo.dart';
 import 'package:thanaweya_online/features/teacher/logic/teacher_cards_cubit.dart';
+import 'package:thanaweya_online/features/teacher/ui/cards/services/pdf_cards_generator.dart';
 import 'package:thanaweya_online/features/teacher/ui/cards/widgets/widgets.dart';
 
 /// Screen for managing and generating activation card codes.
@@ -38,21 +39,39 @@ class _TeacherCardsScreenState extends State<TeacherCardsScreen> {
 
   Future<void> _loadCourses() async {
     final res = await TeacherCoursesRepo().getCourses(_teacherId);
-    res.when(success: (c) { if (mounted) setState(() => _teacherCourses = c); }, failure: (_, __) {});
+    res.when(success: (c) { if (mounted) setState(() => _teacherCourses = c); }, failure: (_, _) {});
   }
 
   @override
   void dispose() { _cubit.close(); super.dispose(); }
 
-  void _exportCodes() {
+  Future<void> _printAllCardsPdf() async {
     final available = _cubit.state.codes.where((c) => c['is_used'] != true).toList();
     if (available.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('لا توجد أكواد متاحة للتصدير')),
+        SnackBar(
+          content: Text('لا توجد أكواد متاحة للطباعة حالياً', style: GoogleFonts.cairo()),
+          backgroundColor: const Color(0xFF0F172A),
+        ),
       );
       return;
     }
-    ExportCodesDialog.show(context, codes: available);
+    final teacherName = Supabase.instance.client.auth.currentUser?.userMetadata?['full_name'] as String? ?? 'المعلم';
+    try {
+      await PdfCardsGenerator.printAllCards(
+        cards: available,
+        defaultTeacherName: teacherName,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('يرجى إعادة تشغيل التطبيق بالكامل (Full Restart) لتفعيل خدمة الطباعة: $e', style: GoogleFonts.cairo()),
+            backgroundColor: DeskColors.danger,
+          ),
+        );
+      }
+    }
   }
 
   void _onStateChanged(BuildContext ctx, TeacherCardsState state) {
@@ -100,14 +119,22 @@ class _TeacherCardsScreenState extends State<TeacherCardsScreen> {
             title: 'أكواد التفعيل والاشتراكات',
             subtitle: 'إدارة وتوليد أكواد التفعيل المجمعة',
             actions: [
-              IconButton(
-                icon: const Icon(Icons.share_outlined, color: Color(0xFF0284C7)),
-                tooltip: 'تصدير ومشاركة الأكواد المتاحة',
-                onPressed: _exportCodes,
-              ),
-              IconButton(
-                icon: Icon(Icons.refresh_rounded, color: DeskColors.primary),
-                onPressed: () => _cubit.loadCodes(_teacherId),
+              Container(
+                margin: EdgeInsets.symmetric(vertical: 8.h),
+                child: ElevatedButton.icon(
+                  onPressed: _printAllCardsPdf,
+                  icon: const Icon(Icons.picture_as_pdf_rounded, color: Colors.white, size: 16),
+                  label: Text(
+                    'طباعة PDF',
+                    style: GoogleFonts.cairo(fontSize: 11.sp, fontWeight: FontWeight.w800, color: Colors.white),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFD97706),
+                    padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 0),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+                    elevation: 0,
+                  ),
+                ),
               ),
             ],
           ),

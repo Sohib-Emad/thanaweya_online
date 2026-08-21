@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -82,12 +83,15 @@ class EditProfileAvatar extends StatelessWidget {
       );
     }
     if (avatarUrl != null && avatarUrl!.isNotEmpty) {
-      return Image.network(
-        avatarUrl!,
+      return CachedNetworkImage(
+        imageUrl: avatarUrl!,
         fit: BoxFit.cover,
         width: 96.r,
         height: 96.r,
-        errorBuilder: (_, _, _) => _fallbackAvatar(),
+        placeholder: (_, __) => const Center(
+          child: CircularProgressIndicator(color: Color(0xFF0284C7), strokeWidth: 2),
+        ),
+        errorWidget: (_, _, _) => _fallbackAvatar(),
       );
     }
     return _fallbackAvatar();

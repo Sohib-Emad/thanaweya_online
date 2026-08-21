@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:thanaweya_online/core/router/app_router.dart';
+
+import 'package:thanaweya_online/core/services/teacher_realtime_service.dart';
 import 'package:thanaweya_online/core/supabase/storage_helper.dart';
 import 'package:thanaweya_online/core/theme/teacher_desk_theme.dart';
 import 'package:thanaweya_online/features/teacher/data/repos/teacher_courses_repo.dart';
@@ -96,7 +100,7 @@ class _AddLessonScreenState extends State<AddLessonScreen> {
       sourceType = _sourceIndex == 0 ? 'dailymotion' : 'youtube';
     }
     final desc = _descCtl.text.trim();
-    await _cubit.addLesson(
+    final newLesson = await _cubit.addLesson(
       courseId: widget.courseId,
       title: _titleCtl.text.trim(),
       description: desc.isNotEmpty ? desc : null,
@@ -105,9 +109,62 @@ class _AddLessonScreenState extends State<AddLessonScreen> {
       isFreePreview: _isFreePreview,
     );
     if (mounted) {
+      TeacherRealtimeService.instance.notifyLessonsChanged();
       setState(() => _isSaving = false);
-      Navigator.pop(context);
-      _showSnack('تم حفظ وإضافة الدرس بنجاح');
+      if (newLesson != null) {
+        final createExam = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => Directionality(
+            textDirection: TextDirection.rtl,
+            child: AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18.r)),
+              title: Row(
+                children: [
+                  const Icon(Icons.celebration_rounded, color: Color(0xFF16A34A)),
+                  SizedBox(width: 8.w),
+                  Text('تمت إضافة المحاضرة 🎉', style: DeskText.heading(14.sp)),
+                ],
+              ),
+              content: Text(
+                'هل ترغب في إنشاء امتحان لهذه الحصة الآن؟\n(ملاحظة: لن يتمكن الطالب من فتح المحاضرة التالية إلا بعد اجتياز هذا الامتحان بنجاح)',
+                style: GoogleFonts.cairo(fontSize: 12.sp, height: 1.5, color: const Color(0xFF334155)),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: Text('لاحقاً', style: GoogleFonts.cairo(color: const Color(0xFF64748B), fontWeight: FontWeight.w700)),
+                ),
+                ElevatedButton.icon(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF9333EA),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+                  ),
+                  icon: const Icon(Icons.quiz_rounded, size: 16),
+                  label: Text('إنشاء امتحان للحصة 📝', style: GoogleFonts.cairo(fontWeight: FontWeight.w800, fontSize: 12.sp)),
+                ),
+              ],
+            ),
+          ),
+        );
+
+        if (!mounted) return;
+        Navigator.pop(context);
+        if (createExam == true) {
+          Navigator.pushNamed(
+            context,
+            AppRouter.teacherExamBuilder,
+            arguments: {
+              'courseId': widget.courseId,
+              'lessonId': newLesson.id,
+            },
+          );
+        }
+      } else {
+        Navigator.pop(context);
+      }
     }
   }
 

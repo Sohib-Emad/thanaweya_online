@@ -123,11 +123,12 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
   }
 
   Widget _body() {
-    if (_loading)
+    if (_loading) {
       return const Center(
         child: CircularProgressIndicator(color: DeskColors.primary),
       );
-    if (_error != null)
+    }
+    if (_error != null) {
       return Center(
         child: DeskEmptyNote(
           message: _error!,
@@ -136,6 +137,7 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
           onAction: _load,
         ),
       );
+    }
     final p = _profile ?? {};
     return RefreshIndicator(
       onRefresh: _load,
@@ -153,6 +155,7 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
             grades: _grades,
             lessons: _lessons,
             subscriptions: _subs,
+            courses: _courses,
             fallbackEmail: widget.email,
           ),
           SizedBox(height: 16.h),

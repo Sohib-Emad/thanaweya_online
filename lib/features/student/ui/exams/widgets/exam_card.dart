@@ -57,11 +57,35 @@ class ExamCard extends StatelessWidget {
             SizedBox(width: 4.w),
             Text(context.l10n.examDurationLabel(duration), style: NotebookText.note(11.sp)),
             if (qCount > 0) ...[
-              SizedBox(width: 12.w),
+              SizedBox(width: 10.w),
               Icon(Icons.help_outline_rounded, size: 13.r, color: NotebookColors.pencil),
               SizedBox(width: 4.w),
               Text('$qCount سؤال', style: NotebookText.note(11.sp)),
             ],
+            SizedBox(width: 10.w),
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 1.5.h),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF59E0B).withAlpha(20),
+                borderRadius: BorderRadius.circular(6.r),
+                border: Border.all(color: const Color(0xFFF59E0B).withAlpha(80)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.stars_rounded, size: 12.r, color: const Color(0xFFD97706)),
+                  SizedBox(width: 2.w),
+                  Text(
+                    '+20 نقطة',
+                    style: GoogleFonts.cairo(
+                      fontSize: 9.5.sp,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFFD97706),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ]),
           SizedBox(height: 14.h),
           Wrap(alignment: WrapAlignment.spaceBetween, crossAxisAlignment: WrapCrossAlignment.center,

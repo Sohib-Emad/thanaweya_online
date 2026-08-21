@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:thanaweya_online/features/shared/models/subscription_plan_item.dart';
 
 import 'package:thanaweya_online/core/theme/teacher_desk_theme.dart';
 import 'package:thanaweya_online/features/teacher/ui/onboarding/widgets/field_label.dart';
@@ -11,6 +12,7 @@ import 'package:thanaweya_online/features/teacher/ui/plans/widgets/receipt_uploa
 /// to confirm subscription and request activation.
 class TeacherFormStep4 extends StatelessWidget {
   final int selectedPlanIndex;
+  final List<SubscriptionPlanItem> plans;
   final XFile? paymentReceiptFile;
   final Future<void> Function({
     required String title,
@@ -22,32 +24,26 @@ class TeacherFormStep4 extends StatelessWidget {
   const TeacherFormStep4({
     super.key,
     required this.selectedPlanIndex,
+    this.plans = const [],
     required this.paymentReceiptFile,
     required this.onPickImage,
     required this.onPaymentReceiptPicked,
     required this.onChangePlan,
   });
 
-  String get _selectedPlanName => switch (selectedPlanIndex) {
-        0 => 'الباقة الشهرية',
-        1 => 'باقة الترم الدراسي',
-        2 => 'الباقة السنوية الشاملة',
-        _ => 'باقة الاشتراك',
-      };
+  SubscriptionPlanItem get _currentPlan {
+    final list = plans.isNotEmpty ? plans : SubscriptionPlanItem.defaultPlans;
+    if (selectedPlanIndex >= 0 && selectedPlanIndex < list.length) {
+      return list[selectedPlanIndex];
+    }
+    return list.first;
+  }
 
-  String get _selectedPlanAmount => switch (selectedPlanIndex) {
-        0 => '1,000 ج.م',
-        1 => '5,000 ج.م',
-        2 => '10,000 ج.م',
-        _ => '1,000 ج.م',
-      };
+  String get _selectedPlanName => _currentPlan.name;
 
-  String get _selectedPlanPeriod => switch (selectedPlanIndex) {
-        0 => 'شهرياً',
-        1 => 'للترم (5 أشهر)',
-        2 => 'سنوياً (12 شهر - وفر شهرين)',
-        _ => '',
-      };
+  String get _selectedPlanAmount => _currentPlan.formattedPrice;
+
+  String get _selectedPlanPeriod => _currentPlan.periodLabel;
 
   @override
   Widget build(BuildContext context) {

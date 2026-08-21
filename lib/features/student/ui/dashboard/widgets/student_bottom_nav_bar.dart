@@ -63,9 +63,9 @@ class StudentBottomNavBar extends StatelessWidget {
             },
           ),
           NavBarItem(
-            icon: Icons.account_balance_wallet_outlined,
-            activeIcon: Icons.account_balance_wallet_rounded,
-            label: l10n.transactionsTab,
+            icon: Icons.emoji_events_outlined,
+            activeIcon: Icons.emoji_events_rounded,
+            label: 'المتفوقين',
             isSelected: currentIndex == 2,
             onTap: () {
               HapticFeedback.selectionClick();

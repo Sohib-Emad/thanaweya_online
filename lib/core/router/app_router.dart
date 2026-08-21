@@ -8,6 +8,10 @@ import '../../features/auth/ui/role_selection_screen.dart';
 import '../../features/onboarding/ui/onboarding_screen.dart';
 import '../../features/splash/ui/splash_screen.dart';
 import '../../features/shared/ui/notifications_screen.dart';
+import '../../features/shared/ui/maintenance_screen.dart';
+import '../../features/shared/ui/force_update_screen.dart';
+import '../../features/shared/ui/teacher_banned_screen.dart';
+import '../../features/shared/ui/about_owner_screen.dart';
 import '../../features/student/ui/courses/course_filter_screen.dart';
 import '../../features/student/ui/courses/widgets/course_filters.dart';
 import 'teacher_routes.dart';
@@ -27,6 +31,10 @@ class AppRouter {
   static const String forgotPassword = '/forgot-password';
   static const String otp = '/otp';
   static const String notifications = '/notifications';
+  static const String maintenance = '/maintenance';
+  static const String forceUpdate = '/force-update';
+  static const String teacherBanned = '/teacher-banned';
+  static const String aboutOwner = '/about-owner';
 
   // ─── Re-exported Feature Route Names ────────────────────────────────────
   // Teacher
@@ -96,6 +104,9 @@ class AppRouter {
   static const String adminSubscriptionPlans = AdminRoutes.adminSubscriptionPlans;
   static const String adminEditPlan = AdminRoutes.adminEditPlan;
   static const String adminPlatformReports = AdminRoutes.adminPlatformReports;
+  static const String adminStudents = AdminRoutes.adminStudents;
+  static const String adminActiveCodes = AdminRoutes.adminActiveCodes;
+  static const String adminPushTokens = AdminRoutes.adminPushTokens;
 
   static String homeForRole(UserRole role) => switch (role) {
         UserRole.superAdmin => adminDashboard,
@@ -139,6 +150,17 @@ class AppRouter {
         return OtpScreen(email: settings.arguments as String? ?? '');
       case notifications:
         return const NotificationsScreen();
+      case maintenance:
+        return MaintenanceScreen(
+            customMessage: settings.arguments as String?);
+      case forceUpdate:
+        return ForceUpdateScreen(
+            customMessage: settings.arguments as String?);
+      case teacherBanned:
+        return TeacherBannedScreen(
+            banReason: settings.arguments as String?);
+      case aboutOwner:
+        return const AboutOwnerScreen();
     }
     return TeacherRoutes.build(settings) ??
         StudentRoutes.build(settings) ??

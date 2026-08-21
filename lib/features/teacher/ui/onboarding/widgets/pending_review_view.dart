@@ -99,7 +99,7 @@ class PendingReviewView extends StatelessWidget {
               icon: Icons.home_rounded,
               onPressed: () {
                 HapticFeedback.lightImpact();
-                Navigator.popUntil(context, (route) => route.isFirst);
+                onHomePressed();
               },
             ),
             SizedBox(height: 16.h),

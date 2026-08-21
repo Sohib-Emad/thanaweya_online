@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -75,7 +76,14 @@ class _CoverBox extends StatelessWidget {
         border: Border.all(color: accent.withAlpha(90), width: 1.2),
       ),
       child: coverUrl.isNotEmpty
-          ? Image.network(coverUrl, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _fallback())
+          ? CachedNetworkImage(
+              imageUrl: coverUrl,
+              fit: BoxFit.cover,
+              placeholder: (_, __) => Center(
+                child: CircularProgressIndicator(color: accent, strokeWidth: 2),
+              ),
+              errorWidget: (_, __, ___) => _fallback(),
+            )
           : _fallback(),
     );
   }

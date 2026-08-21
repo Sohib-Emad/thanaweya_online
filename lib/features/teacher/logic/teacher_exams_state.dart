@@ -9,7 +9,7 @@ class TeacherExamsState {
   final List<QuestionModel> questions;
   final TeacherExamsStatus questionsStatus;
   final Map<String, Map<String, int>> questionStats;
-  final Map<String, dynamic> examQuestionStats;
+  final Map<String, Map<String, int>> examQuestionStats;
   final String? errorMessage;
 
   const TeacherExamsState({
@@ -28,7 +28,7 @@ class TeacherExamsState {
     List<QuestionModel>? questions,
     TeacherExamsStatus? questionsStatus,
     Map<String, Map<String, int>>? questionStats,
-    Map<String, dynamic>? examQuestionStats,
+    Map<String, Map<String, int>>? examQuestionStats,
     String? errorMessage,
   }) {
     return TeacherExamsState(

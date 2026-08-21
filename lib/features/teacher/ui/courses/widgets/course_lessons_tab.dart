@@ -5,27 +5,32 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'package:thanaweya_online/core/router/app_router.dart';
 import 'package:thanaweya_online/core/theme/teacher_desk_theme.dart';
+import 'package:thanaweya_online/features/shared/models/exam_model.dart';
 import 'package:thanaweya_online/features/shared/models/lesson_model.dart';
 
 import 'lesson_tile.dart';
 
-/// Lessons list tab for the course details screen.
+/// Lessons list tab for the course details screen with linked exams.
 class CourseLessonsTab extends StatelessWidget {
   final bool isLoading;
   final List<LessonModel> lessons;
+  final List<ExamModel> exams;
   final String courseId;
   final VoidCallback onRefresh;
   final void Function(LessonModel) onShowDocuments;
   final void Function(LessonModel) onConfirmDelete;
+  final void Function(LessonModel, ExamModel?) onExamTap;
 
   const CourseLessonsTab({
     super.key,
     required this.isLoading,
     required this.lessons,
+    this.exams = const [],
     required this.courseId,
     required this.onRefresh,
     required this.onShowDocuments,
     required this.onConfirmDelete,
+    required this.onExamTap,
   });
 
   @override
@@ -120,17 +125,29 @@ class CourseLessonsTab extends StatelessWidget {
   }
 
   Widget _buildLessonList() {
+    // Map lesson ID -> ExamModel
+    final examByLesson = <String, ExamModel>{};
+    for (final e in exams) {
+      if (e.lessonId != null && e.lessonId!.isNotEmpty) {
+        examByLesson[e.lessonId!] = e;
+      }
+    }
+
     return Column(
       children: lessons.asMap().entries.map((entry) {
         final idx = entry.key + 1;
         final lesson = entry.value;
+        final linkedExam = examByLesson[lesson.id];
+
         return Padding(
-          padding: EdgeInsets.only(bottom: 8.h),
+          padding: EdgeInsets.only(bottom: 10.h),
           child: LessonTile(
             lesson: lesson,
             number: idx,
+            exam: linkedExam,
             onAttachments: () => onShowDocuments(lesson),
             onDelete: () => onConfirmDelete(lesson),
+            onExam: () => onExamTap(lesson, linkedExam),
           ),
         );
       }).toList(),

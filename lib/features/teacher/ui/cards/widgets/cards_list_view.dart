@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:thanaweya_online/features/teacher/logic/teacher_cards_cubit.dart';
 import 'package:thanaweya_online/features/teacher/ui/cards/widgets/activation_card_item.dart';
 import 'package:thanaweya_online/features/teacher/ui/cards/widgets/cards_empty_state.dart';
@@ -22,6 +23,8 @@ class CardsListView extends StatelessWidget {
   Widget build(BuildContext context) {
     if (cards.isEmpty) return const CardsEmptyState();
 
+    final teacherName = Supabase.instance.client.auth.currentUser?.userMetadata?['full_name'] as String?;
+
     return ListView.separated(
       physics: const BouncingScrollPhysics(),
       padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 80.h),
@@ -41,6 +44,7 @@ class CardsListView extends StatelessWidget {
           code: code,
           isUsed: isUsed,
           courseTitle: courseTitle,
+          teacherName: teacherName,
           studentName: studentName,
           onCopy: () => copyCodeToClipboard(context, code),
           onDelete: () async {

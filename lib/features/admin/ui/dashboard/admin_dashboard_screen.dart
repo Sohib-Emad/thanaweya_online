@@ -62,6 +62,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       SliverToBoxAdapter(
                         child: DashboardStatsList(stats: state.stats),
                       ),
+                      SliverToBoxAdapter(child: SizedBox(height: 16.h)),
+                      const SliverToBoxAdapter(
+                        child: AdminQuickActionsGrid(),
+                      ),
+                      SliverToBoxAdapter(child: SizedBox(height: 16.h)),
+                      const SliverToBoxAdapter(
+                        child: AdminSystemModesCard(),
+                      ),
+                      SliverToBoxAdapter(child: SizedBox(height: 16.h)),
                       SliverToBoxAdapter(
                         child: RecentTeachersList(teachers: state.recentTeachers),
                       ),

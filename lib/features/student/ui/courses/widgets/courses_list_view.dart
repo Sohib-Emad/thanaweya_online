@@ -23,12 +23,28 @@ class CoursesListView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final allCourses = isOngoing ? state.myCourses : <Map<String, dynamic>>[];
+    final List<Map<String, dynamic>> myCourses =
+        (state.myCourses as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [];
 
-    if (isOngoing &&
-        (state.myCoursesStatus.toString().contains('loading') ||
+    final ongoingCourses = myCourses.where((c) {
+      final isDone = (c['isCompleted'] as bool?) ?? false;
+      final progress = (c['progress'] as num?)?.toDouble() ?? 0.0;
+      final total = (c['totalCount'] as num?)?.toInt() ?? 0;
+      return !(isDone || (progress >= 1.0 && total > 0));
+    }).toList();
+
+    final completedCourses = myCourses.where((c) {
+      final isDone = (c['isCompleted'] as bool?) ?? false;
+      final progress = (c['progress'] as num?)?.toDouble() ?? 0.0;
+      final total = (c['totalCount'] as num?)?.toInt() ?? 0;
+      return isDone || (progress >= 1.0 && total > 0);
+    }).toList();
+
+    final allCourses = isOngoing ? ongoingCourses : completedCourses;
+
+    if ((state.myCoursesStatus.toString().contains('loading') ||
             state.myCoursesStatus.toString().contains('initial')) &&
-        state.myCourses.isEmpty) {
+        myCourses.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -41,9 +57,8 @@ class CoursesListView extends StatelessWidget {
       );
     }
 
-    if (isOngoing &&
-        state.myCoursesStatus.toString().contains('error') &&
-        state.myCourses.isEmpty) {
+    if (state.myCoursesStatus.toString().contains('error') &&
+        myCourses.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

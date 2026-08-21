@@ -81,10 +81,14 @@ class TeacherRoutes {
       case teacherExams:
         return const ExamsListScreen();
       case teacherExamBuilder:
-        final args = settings.arguments as Map<String, dynamic>? ?? {};
+        final raw = settings.arguments;
+        final args = raw is Map<String, dynamic>
+            ? raw
+            : <String, dynamic>{if (raw is String) 'courseId': raw};
         return ExamBuilderWizard(
           examId: args['examId'] as String?,
           initialCourseId: args['courseId'] as String?,
+          initialLessonId: args['lessonId'] as String?,
         );
       case teacherAddQuestion:
         final examId = settings.arguments as String? ?? '';

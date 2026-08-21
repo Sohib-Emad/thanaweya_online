@@ -22,11 +22,16 @@ class TeacherExamsCubit extends Cubit<TeacherExamsState> {
     emit(state.copyWith(status: TeacherExamsStatus.loading));
     final result = await _repo.getExams(teacherId);
     result.when(
-      success: (exams) => emit(state.copyWith(
-        status: TeacherExamsStatus.loaded, exams: exams,
-      )),
+      success: (exams) {
+        emit(state.copyWith(
+          status: TeacherExamsStatus.loaded,
+          exams: exams,
+        ));
+        loadExamQuestionStats(teacherId);
+      },
       failure: (message, _) => emit(state.copyWith(
-        status: TeacherExamsStatus.error, errorMessage: message,
+        status: TeacherExamsStatus.error,
+        errorMessage: message,
       )),
     );
   }
@@ -144,11 +149,17 @@ class TeacherExamsCubit extends Cubit<TeacherExamsState> {
     required List<String> options,
     String? correctAnswer,
     required int points,
+    String? imageUrl,
   }) async {
     emit(state.copyWith(status: TeacherExamsStatus.loading));
     final result = await _repo.questions.addQuestion(
-      examId: examId, questionType: questionType, text: text,
-      options: options, correctAnswer: correctAnswer, points: points,
+      examId: examId,
+      questionType: questionType,
+      text: text,
+      options: options,
+      correctAnswer: correctAnswer,
+      points: points,
+      imageUrl: imageUrl,
     );
     result.when(
       success: (question) => emit(state.copyWith(
@@ -171,16 +182,14 @@ class TeacherExamsCubit extends Cubit<TeacherExamsState> {
     );
   }
 
-  Future<void> loadExamQuestionStats(String examId) async {
-    emit(state.copyWith(status: TeacherExamsStatus.loading));
-    final result = await _repo.questions.getExamQuestionStats(examId);
+  Future<void> loadExamQuestionStats(String teacherId) async {
+    final result = await _repo.questions.getExamQuestionStats(teacherId);
     result.when(
       success: (stats) => emit(state.copyWith(
-        status: TeacherExamsStatus.loaded, questionStats: stats,
+        questionStats: stats,
+        examQuestionStats: stats,
       )),
-      failure: (message, _) => emit(state.copyWith(
-        status: TeacherExamsStatus.error, errorMessage: message,
-      )),
+      failure: (_, _) {},
     );
   }
 }

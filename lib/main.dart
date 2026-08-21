@@ -10,6 +10,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 
+import 'features/student/data/repos/exam_sync_service.dart';
 import 'core/firebase/push_notification_service.dart';
 import 'core/l10n/locale_controller.dart';
 import 'l10n/l10n.dart';
@@ -56,6 +57,9 @@ void main() async {
   // Firebase Cloud Messaging: permissions, token registration, foreground
   // display and tap handling.
   await PushNotificationService.instance.initialize();
+
+  // Background exam submission sync when internet reconnects
+  ExamSyncService.init();
 
   // Restore the saved app language (defaults to Arabic)
   await LocaleController.instance.load();

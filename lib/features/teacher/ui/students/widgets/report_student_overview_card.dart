@@ -19,6 +19,12 @@ class ReportStudentOverviewCard extends StatelessWidget {
   final Color ratingColor;
   final String overallRating;
 
+  bool get _hasValidParentPhone {
+    if (parentPhone.trim().isEmpty || parentPhone.contains('@')) return false;
+    final digits = parentPhone.replaceAll(RegExp(r'[^\d]'), '');
+    return digits.length >= 7;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -38,15 +44,34 @@ class ReportStudentOverviewCard extends StatelessWidget {
               children: [
                 Text(studentName, style: DeskText.strong(15.sp)),
                 SizedBox(height: 2.h),
-                Text(
-                  parentPhone.isNotEmpty
-                      ? 'رقم ولي الأمر: $parentPhone'
-                      : 'لم يتم تسجيل رقم ولي الأمر',
-                  style: DeskText.note(11.5.sp),
+                Row(
+                  children: [
+                    Icon(
+                      _hasValidParentPhone ? Icons.phone_rounded : Icons.info_outline_rounded,
+                      size: 13.r,
+                      color: _hasValidParentPhone ? const Color(0xFF64748B) : const Color(0xFFEF4444),
+                    ),
+                    SizedBox(width: 4.w),
+                    Expanded(
+                      child: Text(
+                        _hasValidParentPhone
+                            ? 'رقم ولي الأمر: $parentPhone'
+                            : 'لم يتم تسجيل رقم ولي الأمر',
+                        style: GoogleFonts.cairo(
+                          fontSize: 11.sp,
+                          fontWeight: _hasValidParentPhone ? FontWeight.w500 : FontWeight.w700,
+                          color: _hasValidParentPhone ? const Color(0xFF64748B) : const Color(0xFFEF4444),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
+          SizedBox(width: 8.w),
           Container(
             padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
             decoration: BoxDecoration(
@@ -58,7 +83,7 @@ class ReportStudentOverviewCard extends StatelessWidget {
               overallRating,
               style: GoogleFonts.cairo(
                 fontSize: 11.5.sp,
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w900,
                 color: ratingColor,
               ),
             ),

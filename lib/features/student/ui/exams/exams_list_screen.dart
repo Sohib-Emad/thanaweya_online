@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:thanaweya_online/core/router/app_router.dart';
 import 'package:thanaweya_online/core/router/route_observer.dart';
+import 'package:thanaweya_online/core/services/student_realtime_service.dart';
 import 'package:thanaweya_online/core/theme/notebook_theme.dart';
 import 'package:thanaweya_online/features/student/data/repos/student_exams_repo.dart';
 import 'package:thanaweya_online/features/student/logic/student_exams_cubit.dart';
@@ -23,7 +24,16 @@ class _StudentExamsListScreenState extends State<StudentExamsListScreen>
     with RouteAware {
   final _cubit = StudentExamsCubit(repo: StudentExamsRepo());
   @override
-  void initState() { super.initState(); _loadExams(); }
+  void initState() {
+    super.initState();
+    _loadExams();
+    StudentRealtimeService.instance.addExamsListener(_onRealtimeExams);
+  }
+
+  void _onRealtimeExams() {
+    if (!mounted) return;
+    _loadExams();
+  }
 
   @override
   void didChangeDependencies() {
@@ -42,7 +52,12 @@ class _StudentExamsListScreenState extends State<StudentExamsListScreen>
   void didPopNext() => _loadExams();
 
   @override
-  void dispose() { appRouteObserver.unsubscribe(this); _cubit.close(); super.dispose(); }
+  void dispose() {
+    StudentRealtimeService.instance.removeExamsListener(_onRealtimeExams);
+    appRouteObserver.unsubscribe(this);
+    _cubit.close();
+    super.dispose();
+  }
 
   Future<void> _loadExams() async {
     String? userId = Supabase.instance.client.auth.currentUser?.id ??

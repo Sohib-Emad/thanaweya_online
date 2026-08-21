@@ -6,7 +6,7 @@ import 'package:thanaweya_online/core/theme/notebook_theme.dart';
 import 'package:thanaweya_online/core/utils/formatters.dart';
 import 'package:thanaweya_online/features/shared/models/lesson_model.dart';
 
-/// A tappable tile representing a single lesson in the course list.
+/// A tappable tile representing a single lesson in the course list with locked state support.
 class LessonListItem extends StatelessWidget {
   const LessonListItem({
     super.key,
@@ -14,6 +14,7 @@ class LessonListItem extends StatelessWidget {
     required this.index,
     required this.isActive,
     required this.isCompleted,
+    this.isLocked = false,
     required this.onTap,
   });
 
@@ -28,6 +29,9 @@ class LessonListItem extends StatelessWidget {
 
   /// Whether the student has completed this lesson.
   final bool isCompleted;
+
+  /// Whether this lesson is locked (requires exam/previous lesson).
+  final bool isLocked;
 
   /// Called when the user taps the tile.
   final VoidCallback onTap;
@@ -47,31 +51,49 @@ class LessonListItem extends StatelessWidget {
         child: Row(
           children: [
             Icon(
-              isActive
-                  ? Icons.play_circle_fill_rounded
-                  : isCompleted
-                      ? Icons.check_circle_rounded
-                      : Icons.play_circle_outline_rounded,
-              color:
-                  isActive || isCompleted ? NotebookColors.green : NotebookColors.pencil,
+              isLocked
+                  ? Icons.lock_outline_rounded
+                  : isActive
+                      ? Icons.play_circle_fill_rounded
+                      : isCompleted
+                          ? Icons.check_circle_rounded
+                          : Icons.play_circle_outline_rounded,
+              color: isLocked
+                  ? NotebookColors.pencil.withAlpha(150)
+                  : (isActive || isCompleted
+                      ? NotebookColors.green
+                      : NotebookColors.pencil),
               size: 22.r,
             ),
             SizedBox(width: 12.w),
             Expanded(
               child: Text(
                 '${index + 1}. ${lesson.title}',
-                style: NotebookText.body(12.sp,
-                    color: isActive ? NotebookColors.green : NotebookColors.ink),
+                style: NotebookText.body(
+                  12.sp,
+                  color: isLocked
+                      ? NotebookColors.pencil
+                      : (isActive ? NotebookColors.green : NotebookColors.ink),
+                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            if (lesson.durationSeconds != null)
+            if (isLocked)
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4.w),
+                child: Text(
+                  '🔒 مغلق',
+                  style: NotebookText.note(10.5.sp,
+                      color: NotebookColors.marginRed),
+                ),
+              )
+            else if (lesson.durationSeconds != null)
               Text(
                 Formatters.formatDurationMinutes(
                   (lesson.durationSeconds! / 60).ceil(),
                 ),
-                style: NotebookText.note(10.sp),
+                style: NotebookText.note(11.sp),
               ),
           ],
         ),

@@ -981,7 +981,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get inviteLink =>
-      'انضم لمنصة الثانوية أونلاين: https://thanaweya.online/invite';
+      'انضم لمنصة الثانوية أونلاين: https://thanaweya-online-website.vercel.app/';
 
   @override
   String get inviteCopied => 'تم نسخ رابط الدعوة بنجاح';

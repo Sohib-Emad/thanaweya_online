@@ -4,7 +4,6 @@ import 'package:lottie/lottie.dart';
 import 'package:thanaweya_online/core/constants/app_colors.dart';
 import 'package:thanaweya_online/core/constants/app_text_styles.dart';
 
-
 import 'onboarding_lottie_data.dart';
 
 /// Single onboarding page content with Lottie animation, title and description.

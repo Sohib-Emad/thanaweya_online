@@ -118,7 +118,7 @@ CREATE TABLE IF NOT EXISTS public.subscription_plans (
 -- Teachers
 CREATE TABLE IF NOT EXISTS public.teachers (
   id UUID PRIMARY KEY REFERENCES public.users(id) ON DELETE CASCADE,
-  subject_id UUID NOT NULL REFERENCES public.subjects(id),
+  subject_id UUID REFERENCES public.subjects(id) ON DELETE SET NULL,
   stage teacher_stage NOT NULL,
   bio TEXT,
   approval_status approval_status NOT NULL DEFAULT 'pending',
@@ -223,7 +223,7 @@ CREATE TABLE IF NOT EXISTS public.activation_codes (
   course_id UUID REFERENCES public.courses(id) ON DELETE SET NULL,
   code TEXT UNIQUE NOT NULL,
   is_used BOOLEAN NOT NULL DEFAULT false,
-  used_by UUID REFERENCES public.students(id),
+  used_by UUID REFERENCES public.students(id) ON DELETE SET NULL,
   used_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

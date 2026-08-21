@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:thanaweya_online/core/services/teacher_realtime_service.dart';
 import 'package:thanaweya_online/core/supabase/storage_helper.dart';
 import 'package:thanaweya_online/core/theme/teacher_desk_theme.dart';
 import 'package:thanaweya_online/features/shared/models/course_model.dart';
@@ -72,6 +73,7 @@ class _EditCourseModalState extends State<EditCourseModal> {
     );
     res.when(
       success: (_) {
+        TeacherRealtimeService.instance.notifyCoursesChanged();
         widget.onCourseUpdated(widget.course.copyWith(title: title, description: _descCtrl.text.trim(), coverImageUrl: coverUrl ?? widget.course.coverImageUrl, price: price, isPublished: _isPublished));
         Navigator.pop(context);
         widget.onShowSnack('تم تحديث بيانات الكورس بنجاح');

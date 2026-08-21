@@ -39,6 +39,7 @@ class TeacherExamsQuestionsCubit extends Cubit<TeacherExamsQuestionsState> {
     required List<String> options,
     String? correctAnswer,
     required int points,
+    String? imageUrl,
   }) async {
     emit(state.copyWith(questionsStatus: TeacherExamsQuestionsStatus.loading));
     final result = await _repo.questions.addQuestion(
@@ -48,6 +49,7 @@ class TeacherExamsQuestionsCubit extends Cubit<TeacherExamsQuestionsState> {
       options: options,
       correctAnswer: correctAnswer,
       points: points,
+      imageUrl: imageUrl,
     );
     result.when(
       success: (question) => emit(state.copyWith(

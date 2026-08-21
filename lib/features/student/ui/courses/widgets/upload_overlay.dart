@@ -12,10 +12,22 @@ class UploadOverlay extends StatelessWidget {
   const UploadOverlay({
     super.key,
     required this.controller,
+    this.maxWatchedPosition = Duration.zero,
+    this.isFullscreen = false,
+    this.onToggleFullscreen,
   });
 
   /// The underlying [VideoPlayerController] driving playback.
   final VideoPlayerController controller;
+
+  /// Furthest position watched so far (to prevent fast-forwarding).
+  final Duration maxWatchedPosition;
+
+  /// Whether player is currently in fullscreen.
+  final bool isFullscreen;
+
+  /// Callback when fullscreen button is tapped.
+  final VoidCallback? onToggleFullscreen;
 
   @override
   Widget build(BuildContext context) {
@@ -32,22 +44,49 @@ class UploadOverlay extends StatelessWidget {
         return Column(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _PlayPauseButton(
-              isPlaying: value.isPlaying,
-              onToggle: () {
-                value.isPlaying ? controller.pause() : controller.play();
-              },
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _PlayPauseButton(
+                  isPlaying: value.isPlaying,
+                  onToggle: () {
+                    value.isPlaying ? controller.pause() : controller.play();
+                  },
+                ),
+                if (onToggleFullscreen != null)
+                  GestureDetector(
+                    onTap: onToggleFullscreen,
+                    child: Container(
+                      margin: EdgeInsets.all(8.r),
+                      width: 38.r,
+                      height: 38.r,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withAlpha(200),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        isFullscreen
+                            ? Icons.fullscreen_exit_rounded
+                            : Icons.fullscreen_rounded,
+                        color: const Color(0xFF0F172A),
+                        size: 22.r,
+                      ),
+                    ),
+                  ),
+              ],
             ),
             _SeekBar(
               position: position,
               duration: duration,
               progress: progress,
+              maxWatchedPosition: maxWatchedPosition,
               onSeek: (v) {
                 if (duration.inMilliseconds == 0) return;
-                final target = Duration(
-                  milliseconds: (duration.inMilliseconds * v).round(),
-                );
-                controller.seekTo(target);
+                final targetMs = (duration.inMilliseconds * v).round();
+                final maxMs = maxWatchedPosition.inMilliseconds;
+                // Clamp seek forward to maxWatchedPosition
+                final allowedMs = (targetMs > maxMs && maxMs > 0) ? maxMs : targetMs;
+                controller.seekTo(Duration(milliseconds: allowedMs));
               },
             ),
             SizedBox(height: 4.h),
@@ -98,12 +137,14 @@ class _SeekBar extends StatelessWidget {
     required this.duration,
     required this.progress,
     required this.onSeek,
+    this.maxWatchedPosition = Duration.zero,
   });
 
   final Duration position;
   final Duration duration;
   final double progress;
   final ValueChanged<double> onSeek;
+  final Duration maxWatchedPosition;
 
   @override
   Widget build(BuildContext context) {
@@ -119,14 +160,26 @@ class _SeekBar extends StatelessWidget {
           Expanded(
             child: SliderTheme(
               data: SliderThemeData(
-                trackHeight: 2,
-                activeTrackColor: NotebookColors.green,
-                inactiveTrackColor: Colors.white.withAlpha(100),
-                thumbColor: NotebookColors.green,
+                trackHeight: 2.5,
+                activeTrackColor: const Color(0xFF10B981),
+                inactiveTrackColor: Colors.white.withAlpha(80),
+                thumbColor: const Color(0xFF10B981),
                 thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
                 overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
               ),
-              child: Slider(value: progress, onChanged: onSeek),
+              child: Slider(
+                value: progress,
+                onChanged: (v) {
+                  if (duration.inMilliseconds == 0) return;
+                  final targetMs = (duration.inMilliseconds * v).round();
+                  final maxMs = maxWatchedPosition.inMilliseconds;
+                  if (targetMs > maxMs && maxMs > 0) {
+                    onSeek(maxMs / duration.inMilliseconds);
+                  } else {
+                    onSeek(v);
+                  }
+                },
+              ),
             ),
           ),
           Text(

@@ -9,7 +9,20 @@ enum UserRole {
   @JsonValue('teacher')
   teacher,
   @JsonValue('student')
-  student,
+  student;
+
+  static UserRole fromString(String? role) {
+    switch (role?.toLowerCase()) {
+      case 'super_admin':
+      case 'superadmin':
+        return UserRole.superAdmin;
+      case 'teacher':
+        return UserRole.teacher;
+      case 'student':
+      default:
+        return UserRole.student;
+    }
+  }
 }
 
 @freezed

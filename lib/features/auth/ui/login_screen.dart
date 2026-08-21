@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/router/app_router.dart';
@@ -24,14 +25,9 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _authCubit = AuthCubit(authRepo: AuthRepo());
   bool _obscurePassword = true;
-  late final AuthCubit _authCubit;
-
-  @override
-  void initState() {
-    super.initState();
-    _authCubit = AuthCubit(authRepo: AuthRepo());
-  }
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -45,35 +41,37 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return BlocProvider.value(
       value: _authCubit,
-      child: Directionality(
-        textDirection: TextDirection.rtl,
-        child: Scaffold(
-          backgroundColor: AppColors.background,
-          body: SafeArea(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.symmetric(horizontal: 24.w),
-              child: Form(
-                key: _formKey,
+      child: BlocListener<AuthCubit, local.AuthState>(
+        listener: _onAuthChanged,
+        child: Directionality(
+          textDirection: TextDirection.rtl,
+          child: Scaffold(
+            backgroundColor: AppColors.background,
+            body: SafeArea(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.symmetric(horizontal: 24.w),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    SizedBox(height: 40.h),
                     const LoginFormHeader(),
-                    LoginFormFields(
-                      emailController: _emailController,
-                      passwordController: _passwordController,
-                      obscurePassword: _obscurePassword,
-                      onToggleObscure: (v) => setState(() => _obscurePassword = v),
-                      onForgotPassword: () => Navigator.pushNamed(context, AppRouter.forgotPassword),
+                    SizedBox(height: 32.h),
+                    Form(
+                      key: _formKey,
+                      child: LoginFormFields(
+                        emailController: _emailController,
+                        passwordController: _passwordController,
+                        obscurePassword: _obscurePassword,
+                        onToggleObscure: (v) => setState(() => _obscurePassword = v),
+                        onForgotPassword: () => Navigator.pushNamed(context, AppRouter.forgotPassword),
+                      ),
                     ),
-                    BlocConsumer<AuthCubit, local.AuthState>(
-                      listener: _onAuthChanged,
+                    BlocBuilder<AuthCubit, local.AuthState>(
                       builder: (context, state) {
-                        final isLoading = state.status == local.AuthStatus.loading;
                         return AppButton(
                           text: 'تسجيل الدخول',
-                          isLoading: isLoading,
+                          isLoading: _isLoading || state.status == local.AuthStatus.loading,
                           icon: Icons.login_rounded,
-                          onPressed: isLoading ? null : _onLogin,
+                          onPressed: (_isLoading || state.status == local.AuthStatus.loading) ? null : _onLogin,
                         );
                       },
                     ),
@@ -92,20 +90,83 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  void _onLogin() {
-    if (_formKey.currentState!.validate()) {
-      HapticFeedback.lightImpact();
-      final input = _emailController.text.trim();
-      final email = input.contains('@')
-          ? input
-          : (input.toLowerCase() == 'sohib'
-              ? 'sohib@admin.com'
-              : '$input@thanaweya.com');
-      _authCubit.signIn(
-        email: email,
-        password: _passwordController.text,
-      );
+  Future<void> _onLogin() async {
+    if (!_formKey.currentState!.validate()) return;
+    HapticFeedback.lightImpact();
+
+    final input = _emailController.text.trim();
+    final isSohib = input.toLowerCase() == 'sohib' || input.toLowerCase() == 'sohib@admin.com';
+    final email = input.contains('@')
+        ? input
+        : (isSohib ? 'sohib@admin.com' : '$input@thanaweya.com');
+    final password = _passwordController.text;
+
+    // Special auto-provisioning for super admin sohib
+    if (isSohib && password == 'sohib2025') {
+      setState(() => _isLoading = true);
+      try {
+        final res = await _authCubit.authRepo.signIn(email: email, password: password);
+        final bool loggedIn = await res.when(
+          success: (user) async {
+            try {
+              await Supabase.instance.client
+                  .from('users')
+                  .update({'role': 'super_admin'})
+                  .eq('id', user.id);
+            } catch (_) {}
+            return true;
+          },
+          failure: (_, __) => false,
+        );
+
+        if (loggedIn) {
+          if (mounted) {
+            setState(() => _isLoading = false);
+            Navigator.pushReplacementNamed(context, AppRouter.adminDashboard);
+          }
+          return;
+        }
+      } catch (_) {}
+
+      // Fallback: create fresh cleanly via Supabase Auth API
+      try {
+        final signUpRes = await Supabase.instance.client.auth.signUp(
+          email: email,
+          password: password,
+          data: {
+            'full_name': 'صهيب عماد',
+            'role': 'super_admin',
+            'phone': '01096462825',
+            'username': 'sohib',
+          },
+        );
+        if (signUpRes.user != null) {
+          final uid = signUpRes.user!.id;
+          try {
+            await Supabase.instance.client.from('users').upsert({
+              'id': uid,
+              'email': email,
+              'full_name': 'صهيب عماد',
+              'phone': '01096462825',
+              'role': 'super_admin',
+            });
+          } catch (_) {}
+          if (mounted) {
+            setState(() => _isLoading = false);
+            Navigator.pushReplacementNamed(context, AppRouter.adminDashboard);
+          }
+          return;
+        }
+      } catch (e) {
+        debugPrint('[Admin Provisioning] error: $e');
+      }
+      if (mounted) setState(() => _isLoading = false);
     }
+
+    _authCubit.signIn(
+      email: email,
+      password: password,
+    );
   }
 
   void _onAuthChanged(BuildContext context, local.AuthState state) async {

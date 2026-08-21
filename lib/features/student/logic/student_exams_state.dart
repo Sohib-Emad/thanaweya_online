@@ -20,6 +20,16 @@ class StudentExamsState {
   final List<Map<String, dynamic>> attempts;
   final String? errorMessage;
 
+  /// The UTC time the student pressed "Start Exam" — used to compute remaining
+  /// time accurately even across app restarts (server-side timer approach).
+  final DateTime? examStartedAt;
+
+  /// True when the device has no network connectivity.
+  final bool isOffline;
+
+  /// Number of submissions waiting to be synced when connectivity returns.
+  final int pendingSyncCount;
+
   const StudentExamsState({
     this.status = StudentExamsStatus.initial,
     this.availableExams = const [],
@@ -36,6 +46,9 @@ class StudentExamsState {
     this.attemptsStatus = StudentExamsStatus.initial,
     this.attempts = const [],
     this.errorMessage,
+    this.examStartedAt,
+    this.isOffline = false,
+    this.pendingSyncCount = 0,
   });
 
   StudentExamsState copyWith({
@@ -54,6 +67,9 @@ class StudentExamsState {
     StudentExamsStatus? attemptsStatus,
     List<Map<String, dynamic>>? attempts,
     String? errorMessage,
+    DateTime? examStartedAt,
+    bool? isOffline,
+    int? pendingSyncCount,
   }) {
     return StudentExamsState(
       status: status ?? this.status,
@@ -71,6 +87,17 @@ class StudentExamsState {
       attemptsStatus: attemptsStatus ?? this.attemptsStatus,
       attempts: attempts ?? this.attempts,
       errorMessage: errorMessage,
+      examStartedAt: examStartedAt ?? this.examStartedAt,
+      isOffline: isOffline ?? this.isOffline,
+      pendingSyncCount: pendingSyncCount ?? this.pendingSyncCount,
     );
+  }
+
+  /// Seconds remaining based on server time (examStartedAt + durationMinutes).
+  int computeSecondsRemaining() {
+    if (currentExam == null || examStartedAt == null) return 0;
+    final totalSeconds = currentExam!.durationMinutes * 60;
+    final elapsed = DateTime.now().toUtc().difference(examStartedAt!).inSeconds;
+    return (totalSeconds - elapsed).clamp(0, totalSeconds);
   }
 }

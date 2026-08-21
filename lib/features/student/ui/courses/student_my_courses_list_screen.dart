@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:thanaweya_online/core/services/student_realtime_service.dart';
 
 import '../../../../core/router/app_router.dart';
 import 'package:thanaweya_online/core/theme/notebook_theme.dart';
@@ -35,6 +36,13 @@ class _StudentMyCoursesListScreenState
     super.initState();
     _coursesCubit = StudentCoursesCubit(repo: StudentCoursesRepo());
     _loadMyCourses();
+
+    StudentRealtimeService.instance.addCoursesListener(_onRealtimeCourses);
+  }
+
+  void _onRealtimeCourses() {
+    if (!mounted) return;
+    _loadMyCourses();
   }
 
   @override
@@ -60,6 +68,7 @@ class _StudentMyCoursesListScreenState
 
   @override
   void dispose() {
+    StudentRealtimeService.instance.removeCoursesListener(_onRealtimeCourses);
     _searchController.dispose();
     _coursesCubit.close();
     super.dispose();

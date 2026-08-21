@@ -32,6 +32,8 @@ class ExamBody extends StatelessWidget {
     final options = question.options;
     final letters = ['أ', 'ب', 'ج', 'د', 'هـ', 'و'];
     final isEssay = question.questionType == QuestionType.essay;
+    final isUrgent = secondsRemaining <= 300; // last 5 minutes
+    final (imageUrl, cleanText) = _parseQuestionContent(question);
 
     return PopScope(
       canPop: false,
@@ -46,8 +48,10 @@ class ExamBody extends StatelessWidget {
         child: Column(
           children: [
             ExamMonitoringBanner(message: context.l10n.monitoringBanner),
-            _buildTimerRow(context, currentIndex, questions.length),
-            _buildProgressBar(currentIndex, questions.length),
+            // Offline warning banner
+            if (state.isOffline) _OfflineBanner(),
+            _buildTimerRow(context, currentIndex, questions.length, isUrgent),
+            _buildProgressBar(currentIndex, questions.length, isUrgent),
             SizedBox(height: 12.h),
             QuestionNavigatorGrid(
               totalQuestions: questions.length,
@@ -67,8 +71,18 @@ class ExamBody extends StatelessWidget {
                     NotebookCard(
                       ruled: true,
                       ruledStartY: 40,
-                      child: Text(question.text,
-                          style: NotebookText.body(15.sp).copyWith(height: 1.5)),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (cleanText.isNotEmpty)
+                            Text(
+                              cleanText,
+                              style: NotebookText.body(15.sp).copyWith(height: 1.5),
+                            ),
+                          if (imageUrl != null && imageUrl.isNotEmpty)
+                            QuestionImageView(imageUrl: imageUrl),
+                        ],
+                      ),
                     ),
                     SizedBox(height: 16.h),
                     if (isEssay)
@@ -110,14 +124,18 @@ class ExamBody extends StatelessWidget {
     );
   }
 
-  Widget _buildTimerRow(BuildContext context, int currentIndex, int total) {
+  Widget _buildTimerRow(
+      BuildContext context, int currentIndex, int total, bool isUrgent) {
     return Padding(
       padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 8.h),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           ExamTimerChip(
-              secondsRemaining: secondsRemaining, formattedTime: formattedTime),
+            secondsRemaining: secondsRemaining,
+            formattedTime: formattedTime,
+            isUrgent: isUrgent,
+          ),
           Text(context.l10n.questionOf(currentIndex + 1, total),
               style: NotebookText.strong(13.sp)),
         ],
@@ -125,7 +143,7 @@ class ExamBody extends StatelessWidget {
     );
   }
 
-  Widget _buildProgressBar(int currentIndex, int total) {
+  Widget _buildProgressBar(int currentIndex, int total, bool isUrgent) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 20.w),
       child: ClipRRect(
@@ -134,8 +152,76 @@ class ExamBody extends StatelessWidget {
           value: (currentIndex + 1) / total,
           minHeight: 6.h,
           backgroundColor: NotebookColors.ink.withAlpha(22),
-          valueColor: AlwaysStoppedAnimation(NotebookColors.green),
+          valueColor: AlwaysStoppedAnimation(
+            isUrgent ? NotebookColors.marginRed : NotebookColors.green,
+          ),
         ),
+      ),
+    );
+  }
+
+  static (String?, String) _parseQuestionContent(QuestionModel question) {
+    if (question.imageUrl != null && question.imageUrl!.trim().isNotEmpty) {
+      return (question.imageUrl!.trim(), question.text);
+    }
+
+    final raw = question.text;
+
+    // 1. Markdown image syntax: ![alt](https://...)
+    final mdRegex = RegExp(r'!\[.*?\]\((https?://[^\s\)]+)\)');
+    final mdMatch = mdRegex.firstMatch(raw);
+    if (mdMatch != null) {
+      final imgUrl = mdMatch.group(1);
+      final cleanText = raw.replaceFirst(mdMatch.group(0)!, '').trim();
+      return (imgUrl, cleanText);
+    }
+
+    // 2. Custom [image:URL] or [img:URL] tag
+    final tagRegex = RegExp(
+      r'\[(?:image|img|صورة):\s*(https?://[^\]]+)\]',
+      caseSensitive: false,
+    );
+    final tagMatch = tagRegex.firstMatch(raw);
+    if (tagMatch != null) {
+      final imgUrl = tagMatch.group(1)?.trim();
+      final cleanText = raw.replaceFirst(tagMatch.group(0)!, '').trim();
+      return (imgUrl, cleanText);
+    }
+
+    // 3. Direct URL ending in image extension
+    final urlRegex = RegExp(
+      r'(https?://[^\s]+\.(?:png|jpg|jpeg|webp|gif|svg)(?:\?[^\s]*)?)',
+      caseSensitive: false,
+    );
+    final urlMatch = urlRegex.firstMatch(raw);
+    if (urlMatch != null) {
+      final imgUrl = urlMatch.group(1);
+      final cleanText = raw.replaceFirst(urlMatch.group(0)!, '').trim();
+      return (imgUrl, cleanText);
+    }
+
+    return (null, raw);
+  }
+}
+
+/// Shown when the device has no internet connectivity during the exam.
+class _OfflineBanner extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 7.h),
+      color: const Color(0xFFD97706),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.wifi_off_rounded, color: Colors.white, size: 14.r),
+          SizedBox(width: 6.w),
+          Text(
+            'أنت غير متصل بالإنترنت — إجاباتك محفوظة محلياً',
+            style: NotebookText.strong(10.sp, color: Colors.white),
+          ),
+        ],
       ),
     );
   }

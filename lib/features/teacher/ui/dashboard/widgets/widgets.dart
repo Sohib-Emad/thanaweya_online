@@ -9,3 +9,5 @@ export 'teacher_overview_metrics_grid.dart';
 export 'teacher_overview_tab.dart';
 export 'teacher_quick_action_btn.dart';
 export 'teacher_quick_actions_bar.dart';
+export 'teacher_recent_content_section.dart';
+

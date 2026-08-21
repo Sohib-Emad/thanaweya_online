@@ -5,7 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:thanaweya_online/core/theme/teacher_desk_theme.dart';
 
 /// A single lesson progress row showing title, watch status, view count badge,
-/// and an optional "grant extra views" button.
+/// and an optional "grant extra views" button with native icons.
 class ProgressRow extends StatelessWidget {
   final Map<String, dynamic> row;
   final VoidCallback? onGrantViews;
@@ -54,34 +54,51 @@ class ProgressRow extends StatelessWidget {
   }
 
   Widget _textColumn(bool completed, int watched, int duration, String title) {
+    final (statusIcon, statusText, statusColor) = _progressInfo(completed, watched, duration);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(title, style: DeskText.body(13.5.sp), maxLines: 1, overflow: TextOverflow.ellipsis),
         SizedBox(height: 2.h),
-        Text(_progressText(completed, watched, duration),
-            style: GoogleFonts.cairo(
-              fontSize: 10.5.sp,
-              fontWeight: completed || watched > 0 ? FontWeight.w700 : FontWeight.w500,
-              color: completed ? const Color(0xFF059669) : watched > 0 ? const Color(0xFF0284C7) : DeskColors.muted,
-            )),
+        Row(
+          children: [
+            Icon(statusIcon, size: 13.r, color: statusColor),
+            SizedBox(width: 4.w),
+            Expanded(
+              child: Text(
+                statusText,
+                style: GoogleFonts.cairo(
+                  fontSize: 10.5.sp,
+                  fontWeight: completed || watched > 0 ? FontWeight.w700 : FontWeight.w500,
+                  color: statusColor,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }
 
-  String _progressText(bool completed, int watched, int duration) {
-    if (completed) return '✅ تم إكمال المحاضرة بنجاح (100%)';
-    if (watched <= 0) return '⚪ لم يبدأ المشاهدة بعد';
+  (IconData, String, Color) _progressInfo(bool completed, int watched, int duration) {
+    if (completed) {
+      return (Icons.check_circle_rounded, 'تم إكمال المحاضرة بنجاح (100%)', const Color(0xFF059669));
+    }
+    if (watched <= 0) {
+      return (Icons.play_circle_outline_rounded, 'لم يبدأ المشاهدة بعد', DeskColors.muted);
+    }
     final wMin = (watched / 60).ceil();
     final tMin = (duration / 60).ceil();
     if (tMin > 0 && tMin >= wMin) {
       final rem = tMin - wMin;
       final pct = ((watched / duration) * 100).round();
-      return '⏳ سمع $wMin د من $tMin د • متبقي $rem د ($pct%)';
+      return (Icons.timelapse_rounded, 'سمع $wMin د من $tMin د • متبقي $rem د ($pct%)', const Color(0xFF0284C7));
     }
     final m = watched ~/ 60;
     final s = watched % 60;
-    return '⏳ سمع ${m > 0 ? '$m د ' : ''}${s > 0 ? '$s ث' : ''}';
+    return (Icons.timelapse_rounded, 'سمع ${m > 0 ? '$m د ' : ''}${s > 0 ? '$s ث' : ''}', const Color(0xFF0284C7));
   }
 
   Widget _viewBadge(bool exhausted, int count, int max) {
@@ -93,10 +110,24 @@ class ProgressRow extends StatelessWidget {
         borderRadius: BorderRadius.circular(8.r),
         border: Border.all(color: color.withAlpha(40)),
       ),
-      child: Text(
-        exhausted ? '⚠️ استنفد المشاهدات ($count / $max)' : '👀 المشاهدات: $count / $max',
-        style: GoogleFonts.cairo(fontSize: 10.5.sp, fontWeight: FontWeight.w700,
-            color: exhausted ? const Color(0xFFB91C1C) : const Color(0xFF0284C7)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            exhausted ? Icons.warning_amber_rounded : Icons.visibility_rounded,
+            size: 13.r,
+            color: color,
+          ),
+          SizedBox(width: 4.w),
+          Text(
+            exhausted ? 'استنفد المشاهدات ($count / $max)' : 'المشاهدات: $count / $max',
+            style: GoogleFonts.cairo(
+              fontSize: 10.5.sp,
+              fontWeight: FontWeight.w700,
+              color: exhausted ? const Color(0xFFB91C1C) : const Color(0xFF0284C7),
+            ),
+          ),
+        ],
       ),
     );
   }

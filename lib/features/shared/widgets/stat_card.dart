@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:thanaweya_online/core/constants/app_colors.dart';
 
 import '../../../core/constants/app_text_styles.dart';
 import 'app_card.dart';
@@ -9,6 +10,7 @@ class StatCard extends StatelessWidget {
   final String value;
   final IconData icon;
   final Color color;
+  final String? subtitle;
 
   const StatCard({
     super.key,
@@ -16,6 +18,7 @@ class StatCard extends StatelessWidget {
     required this.value,
     required this.icon,
     required this.color,
+    this.subtitle,
   });
 
   @override
@@ -34,7 +37,23 @@ class StatCard extends StatelessWidget {
           ),
           SizedBox(width: 14.w),
           Expanded(
-            child: Text(title, style: AppTextStyles.body2),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(title, style: AppTextStyles.body2),
+                if (subtitle != null) ...[
+                  SizedBox(height: 2.h),
+                  Text(
+                    subtitle!,
+                    style: AppTextStyles.caption.copyWith(
+                      color: AppColors.textSecondary,
+                      fontSize: 11.sp,
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
           Text(
             value,

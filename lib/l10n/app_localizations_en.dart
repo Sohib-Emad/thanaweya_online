@@ -997,7 +997,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get inviteLink =>
-      'Join Thanaweya Online: https://thanaweya.online/invite';
+      'Join Thanaweya Online: https://thanaweya-online-website.vercel.app/';
 
   @override
   String get inviteCopied => 'Invite link copied successfully';

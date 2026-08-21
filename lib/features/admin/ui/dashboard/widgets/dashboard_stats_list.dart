@@ -5,7 +5,7 @@ import 'package:thanaweya_online/features/shared/widgets/stat_card.dart';
 
 import '../../../../../core/constants/app_colors.dart';
 
-/// Renders the three stat cards for the admin dashboard.
+/// Renders the primary stat cards for the admin dashboard.
 class DashboardStatsList extends StatelessWidget {
   final Map<String, dynamic> stats;
 
@@ -37,15 +37,25 @@ class DashboardStatsList extends StatelessWidget {
         ),
         GestureDetector(
           onTap: () =>
-              Navigator.pushNamed(context, AppRouter.adminPlatformReports),
+              Navigator.pushNamed(context, AppRouter.adminStudents),
           child: StatCard(
-            title: 'إجمالي الطلاب',
+            title: 'طلاب المعلمين والاشتراكات (فتح/قفل)',
             value: (stats['total_students'] ?? 0).toString(),
             icon: Icons.school_rounded,
             color: AppColors.studentPrimary,
           ),
         ),
-        SizedBox(height: 24.h),
+        GestureDetector(
+          onTap: () =>
+              Navigator.pushNamed(context, AppRouter.adminActiveCodes),
+          child: StatCard(
+            title: 'الأكواد النشطة للمعلمين (استعراض وتوليد)',
+            value: 'إدارة الأكواد',
+            icon: Icons.vpn_key_rounded,
+            color: const Color(0xFF16A34A),
+          ),
+        ),
+        SizedBox(height: 12.h),
       ],
     );
   }

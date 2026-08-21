@@ -31,7 +31,7 @@ class AuthCubit extends Cubit<AuthState> {
       password: password,
       fullName: fullName,
       phone: phone,
-      role: UserRole.values.byName(role),
+      role: UserRole.fromString(role),
     );
 
     result.when(
@@ -39,34 +39,22 @@ class AuthCubit extends Cubit<AuthState> {
         emit(state.copyWith(status: AuthStatus.authenticated));
       },
       failure: (message, _) {
-        emit(state.copyWith(
-          status: AuthStatus.error,
-          errorMessage: message,
-        ));
+        emit(state.copyWith(status: AuthStatus.error, errorMessage: message));
       },
     );
   }
 
-  Future<void> signIn({
-    required String email,
-    required String password,
-  }) async {
+  Future<void> signIn({required String email, required String password}) async {
     emit(state.copyWith(status: AuthStatus.loading));
 
-    final result = await authRepo.signIn(
-      email: email,
-      password: password,
-    );
+    final result = await authRepo.signIn(email: email, password: password);
 
     result.when(
       success: (_) {
         emit(state.copyWith(status: AuthStatus.authenticated));
       },
       failure: (message, _) {
-        emit(state.copyWith(
-          status: AuthStatus.error,
-          errorMessage: message,
-        ));
+        emit(state.copyWith(status: AuthStatus.error, errorMessage: message));
       },
     );
   }
@@ -93,10 +81,7 @@ class AuthCubit extends Cubit<AuthState> {
         emit(state.copyWith(status: AuthStatus.authenticated));
       },
       failure: (message, _) {
-        emit(state.copyWith(
-          status: AuthStatus.error,
-          errorMessage: message,
-        ));
+        emit(state.copyWith(status: AuthStatus.error, errorMessage: message));
       },
     );
   }
@@ -111,37 +96,24 @@ class AuthCubit extends Cubit<AuthState> {
         emit(state.copyWith(status: AuthStatus.unauthenticated));
       },
       failure: (message, _) {
-        emit(state.copyWith(
-          status: AuthStatus.error,
-          errorMessage: message,
-        ));
+        emit(state.copyWith(status: AuthStatus.error, errorMessage: message));
       },
     );
   }
 
-  Future<void> verifyOtp({
-    required String email,
-    required String token,
-  }) async {
+  Future<void> verifyOtp({required String email, required String token}) async {
     emit(state.copyWith(status: AuthStatus.loading));
 
-    final result = await authRepo.verifyOtp(
-      email: email,
-      token: token,
-    );
+    final result = await authRepo.verifyOtp(email: email, token: token);
 
     result.when(
       success: (_) {
-        emit(state.copyWith(
-          status: AuthStatus.authenticated,
-          isVerified: true,
-        ));
+        emit(
+          state.copyWith(status: AuthStatus.authenticated, isVerified: true),
+        );
       },
       failure: (message, _) {
-        emit(state.copyWith(
-          status: AuthStatus.error,
-          errorMessage: message,
-        ));
+        emit(state.copyWith(status: AuthStatus.error, errorMessage: message));
       },
     );
   }

@@ -61,16 +61,20 @@ class DailymotionUtils {
   }
 
   /// Returns the direct iframe embed URL for Dailymotion.
-  static String getEmbedUrl(String urlOrId, {bool autoplay = true}) {
+  static String getEmbedUrl(String urlOrId,
+      {bool autoplay = true, int startSeconds = 0}) {
     final id = extractVideoId(urlOrId) ?? urlOrId.trim();
     final auto = autoplay ? 1 : 0;
-    return 'https://www.dailymotion.com/embed/video/$id?autoplay=$auto&ui-logo=0&ui-start-screen-info=0&sharing-enable=0';
+    final startParam = startSeconds > 0 ? '&start=$startSeconds' : '';
+    return 'https://www.dailymotion.com/embed/video/$id?autoplay=$auto&api=postMessage&ui-logo=0&ui-start-screen-info=0&sharing-enable=0$startParam';
   }
 
   /// Generates the HTML player page for InAppWebView embedding with fullscreen and responsive sizing.
-  static String getEmbedHtml(String urlOrId, {bool autoplay = true}) {
+  static String getEmbedHtml(String urlOrId,
+      {bool autoplay = true, int startSeconds = 0}) {
     final id = extractVideoId(urlOrId) ?? urlOrId.trim();
     final auto = autoplay ? 1 : 0;
+    final startParam = startSeconds > 0 ? '&start=$startSeconds' : '';
     return '''
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -110,11 +114,29 @@ class DailymotionUtils {
 <body>
   <div class="video-container">
     <iframe
-      src="https://www.dailymotion.com/embed/video/$id?autoplay=$auto&ui-logo=0&ui-start-screen-info=0&sharing-enable=0&queue-autoplay-next=0"
+      id="dm-player"
+      src="https://www.dailymotion.com/embed/video/$id?autoplay=$auto&api=postMessage&ui-logo=0&ui-start-screen-info=0&sharing-enable=0&queue-autoplay-next=0$startParam"
       allow="autoplay; fullscreen; picture-in-picture; web-share; encrypted-media"
       allowfullscreen>
     </iframe>
   </div>
+  <script>
+    window.addEventListener('message', function(e) {
+      try {
+        var data = e.data;
+        if (typeof data === 'string') {
+          try { data = JSON.parse(data); } catch(_) {}
+        }
+        if (data) {
+          var time = data.time || data.currentTime;
+          var dur = data.duration;
+          if (time !== undefined && window.flutter_inappwebview && window.flutter_inappwebview.callHandler) {
+            window.flutter_inappwebview.callHandler('onDailymotionProgress', time, dur || 0);
+          }
+        }
+      } catch(err) {}
+    });
+  </script>
 </body>
 </html>
 ''';

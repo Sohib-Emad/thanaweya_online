@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:thanaweya_online/core/services/teacher_realtime_service.dart';
 import 'package:thanaweya_online/core/theme/teacher_desk_theme.dart';
 import 'package:thanaweya_online/core/utils/formatters.dart';
 import 'package:thanaweya_online/features/shared/models/exam_model.dart';
@@ -127,6 +128,7 @@ class _ExamEditSheetState extends State<ExamEditSheet> {
     } else {
       widget.cubit.updateExam(examId: exam.id, title: title, durationMinutes: duration, startAt: _startAt, endAt: _endAt, courseId: _selectedCourseId, lessonId: _lessonTouched ? _selectedLessonId : null, clearLesson: _lessonTouched && _selectedLessonId == null, isPublished: exam.isPublished);
     }
+    TeacherRealtimeService.instance.notifyExamsChanged();
     Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(backgroundColor: DeskColors.primaryDeep, content: Text(exam == null ? 'تم إنشاء الاختبار في مكتبك' : 'تم حفظ تعديلات الاختبار', style: DeskText.strong(12.sp))));
   }

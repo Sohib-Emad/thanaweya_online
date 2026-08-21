@@ -7,10 +7,14 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:thanaweya_online/core/router/app_router.dart';
 import 'package:thanaweya_online/core/theme/teacher_desk_theme.dart';
+import 'package:thanaweya_online/features/shared/models/course_model.dart';
 import 'package:thanaweya_online/features/teacher/data/repos/teacher_courses_repo.dart';
 import 'package:thanaweya_online/features/teacher/logic/teacher_courses_cubit.dart';
 import 'package:thanaweya_online/features/teacher/ui/courses/course_list_header.dart';
 import 'package:thanaweya_online/features/teacher/ui/courses/widgets/widgets.dart';
+
+import 'package:thanaweya_online/core/router/route_observer.dart';
+import 'package:thanaweya_online/core/services/teacher_realtime_service.dart';
 
 /// Screen for listing and managing teacher's courses.
 class CoursesListScreen extends StatefulWidget {
@@ -20,14 +24,33 @@ class CoursesListScreen extends StatefulWidget {
   State<CoursesListScreen> createState() => _CoursesListScreenState();
 }
 
-class _CoursesListScreenState extends State<CoursesListScreen> {
+class _CoursesListScreenState extends State<CoursesListScreen> with RouteAware {
   final _cubit = TeacherCoursesCubit(repo: TeacherCoursesRepo());
   final _searchController = TextEditingController();
   String _searchQuery = '';
   int _filterIndex = 0;
 
   @override
-  void initState() { super.initState(); _loadCourses(); }
+  void initState() {
+    super.initState();
+    _loadCourses();
+    TeacherRealtimeService.instance.addCoursesListener(_onRealtimeCourses);
+  }
+
+  void _onRealtimeCourses() {
+    if (!mounted) return;
+    _loadCourses();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute) appRouteObserver.subscribe(this, route);
+  }
+
+  @override
+  void didPopNext() => _loadCourses();
 
   Future<void> _loadCourses() async {
     String? userId = Supabase.instance.client.auth.currentUser?.id ??
@@ -46,8 +69,25 @@ class _CoursesListScreenState extends State<CoursesListScreen> {
     }
   }
 
+  void _openCreateCourseSheet() {
+    HapticFeedback.lightImpact();
+    CreateCourseSheet.show(
+      context,
+      onCourseCreated: () {
+        _loadCourses();
+        TeacherRealtimeService.instance.notifyCoursesChanged();
+      },
+    );
+  }
+
   @override
-  void dispose() { _cubit.close(); _searchController.dispose(); super.dispose(); }
+  void dispose() {
+    TeacherRealtimeService.instance.removeCoursesListener(_onRealtimeCourses);
+    appRouteObserver.unsubscribe(this);
+    _cubit.close();
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +95,7 @@ class _CoursesListScreenState extends State<CoursesListScreen> {
       textDirection: TextDirection.rtl,
       child: Scaffold(
         backgroundColor: const Color(0xFFF8FAFC),
-        appBar: DeskTopBar(title: 'الكورسات والدورات', subtitle: '管理和تنسيق المحتوى التعليمي والدروس', automaticallyImplyBack: true),
+        appBar: DeskTopBar(title: 'الكورسات والدورات', subtitle: 'إدارة وتنسيق المحتوى التعليمي والدروس', automaticallyImplyBack: true),
         body: BlocBuilder<TeacherCoursesCubit, TeacherCoursesState>(
           bloc: _cubit,
           builder: (context, state) {
@@ -70,17 +110,44 @@ class _CoursesListScreenState extends State<CoursesListScreen> {
             if (state.courses.isEmpty) {
               return Center(child: DeskEmptyNote(
                 message: 'لا توجد دورات مسجلة بعد', subMessage: 'اضغط على زر + لإنشاء أول كورس',
-                icon: Icons.menu_book_outlined, actionLabel: 'إنشاء دورة جديدة الآن', onAction: () {}));
+                icon: Icons.menu_book_outlined, actionLabel: 'إنشاء دورة جديدة الآن', onAction: _openCreateCourseSheet));
             }
             return _buildCourseList(context, state);
           },
         ),
         floatingActionButton: FloatingActionButton.extended(
-          heroTag: null, onPressed: () { HapticFeedback.lightImpact(); },
-          backgroundColor: const Color(0xFF0284C7), foregroundColor: Colors.white, elevation: 4,
+          heroTag: null,
+          onPressed: _openCreateCourseSheet,
+          backgroundColor: const Color(0xFF0284C7),
+          foregroundColor: Colors.white,
+          elevation: 4,
           icon: const Icon(Icons.add_rounded, size: 22),
           label: Text('+ إنشاء دورة جديدة', style: GoogleFonts.cairo(fontSize: 13.sp, fontWeight: FontWeight.w800)),
         ),
+      ),
+    );
+  }
+
+  void _openEditModal(CourseModel course) {
+    HapticFeedback.lightImpact();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => EditCourseModal(
+        course: course,
+        coursesRepo: TeacherCoursesRepo(),
+        onShowSnack: (msg) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              backgroundColor: DeskColors.primaryDeep,
+              content: Text(msg, style: GoogleFonts.cairo(fontWeight: FontWeight.w700)),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        },
+        onCourseUpdated: (_) => _loadCourses(),
       ),
     );
   }
@@ -122,7 +189,7 @@ class _CoursesListScreenState extends State<CoursesListScreen> {
                       return CourseCard(
                         course: course, lessonCount: lessonCount,
                         onTap: () { HapticFeedback.lightImpact(); Navigator.pushNamed(context, AppRouter.teacherCourseDetails, arguments: course); },
-                        onEdit: () {},
+                        onEdit: () => _openEditModal(course),
                         onDelete: () async {
                           final confirmed = await showConfirmDeleteCourseDialog(context, course);
                           if (confirmed == true) _cubit.deleteCourse(course.id);

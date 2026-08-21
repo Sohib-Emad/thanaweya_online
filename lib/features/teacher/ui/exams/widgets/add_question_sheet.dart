@@ -39,15 +39,18 @@ class _AddQuestionSheetState extends State<AddQuestionSheet> {
 
   @override
   void dispose() {
-    for (final c in [_questionCtrl, _opt1, _opt2, _opt3, _opt4, _pointsCtrl]) c.dispose();
+    for (final c in [_questionCtrl, _opt1, _opt2, _opt3, _opt4, _pointsCtrl]) {
+      c.dispose();
+    }
     super.dispose();
   }
 
   void _setType(String value) {
-    setState(() {
-      _type = value;
-      if (value == 'true_false') { _opt1.text = 'صواب (صح)'; _opt2.text = 'خطأ (غير صحيح)'; }
-    });
+    _type = value;
+    if (value == 'true_false') {
+      _opt1.text = 'صواب (صح)';
+      _opt2.text = 'خطأ (غير صحيح)';
+    }
   }
 
   void _save() {
@@ -92,10 +95,12 @@ class _AddQuestionSheetState extends State<AddQuestionSheet> {
                   SizedBox(height: 10.h),
                   ImageAttachmentField(
                     pickedImage: _pickedImage,
-                    onPick: () => setSheetState(() async {
+                    onPick: () async {
                       final f = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 85);
-                      if (f != null) _pickedImage = File(f.path);
-                    }),
+                      if (f != null) {
+                        setSheetState(() => _pickedImage = File(f.path));
+                      }
+                    },
                     onClear: () => setSheetState(() => _pickedImage = null),
                   ),
                   SizedBox(height: 14.h),
