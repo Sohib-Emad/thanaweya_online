@@ -56,8 +56,15 @@ class ActivationCodeData {
       if (isUsed && usedBy != null && usedBy.isNotEmpty && usedBy != userId) {
         return ApiResult.failure('هذا الكود مستخدم من قبل');
       }
-      final targetTeacherId = (codeRow['teacher_id'] as String?) ?? teacherId ?? '';
-      final targetCourseId = (codeRow['course_id'] as String?) ?? courseId;
+      String targetTeacherId = (codeRow['teacher_id'] as String?) ?? (teacherId ?? '');
+      String? targetCourseId = (codeRow['course_id'] as String?) ?? courseId;
+      if (targetCourseId != null && targetCourseId.isEmpty) targetCourseId = null;
+      if (targetTeacherId.isEmpty && targetCourseId != null) {
+        try {
+          final c = await _client.from('courses').select('teacher_id').eq('id', targetCourseId).maybeSingle();
+          if (c != null) targetTeacherId = c['teacher_id'] as String? ?? '';
+        } catch (_) {}
+      }
       // Check expiration
       final expiresAtStr = codeRow['expires_at'] as String?;
       if (expiresAtStr != null) {

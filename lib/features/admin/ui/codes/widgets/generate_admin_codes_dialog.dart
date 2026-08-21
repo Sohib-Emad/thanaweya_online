@@ -115,6 +115,7 @@ class _GenerateAdminCodesDialogState extends State<GenerateAdminCodesDialog> {
               SizedBox(height: 6.h),
               DropdownButtonFormField<String>(
                 value: _selectedTeacherId,
+                isExpanded: true,
                 items: widget.teachers.map((t) {
                   final tid = t['id'] as String? ?? '';
                   final users = t['users'] as Map<String, dynamic>? ?? {};
@@ -123,7 +124,10 @@ class _GenerateAdminCodesDialogState extends State<GenerateAdminCodesDialog> {
 
                   return DropdownMenuItem<String>(
                     value: tid,
-                    child: Text('$name ($sub)'),
+                    child: Text(
+                      '$name ($sub)',
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   );
                 }).toList(),
                 onChanged: (val) {
@@ -162,17 +166,24 @@ class _GenerateAdminCodesDialogState extends State<GenerateAdminCodesDialog> {
               else
                 DropdownButtonFormField<String?>(
                   value: _selectedCourseId,
+                  isExpanded: true,
                   items: [
                     const DropdownMenuItem<String?>(
                       value: null,
-                      child: Text('كافة كورسات المعلم (اشتراك عام)'),
+                      child: Text(
+                        'كافة كورسات المعلم (اشتراك عام)',
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                     ..._courses.map((c) {
                       final cid = c['id'] as String? ?? '';
                       final title = c['title'] as String? ?? 'كورس';
                       return DropdownMenuItem<String?>(
                         value: cid,
-                        child: Text(title),
+                        child: Text(
+                          title,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       );
                     }),
                   ],

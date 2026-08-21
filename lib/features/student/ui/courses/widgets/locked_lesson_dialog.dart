@@ -16,7 +16,9 @@ void showLockedLessonDialog({
 }) {
   HapticFeedback.heavyImpact();
   final teachers = course['teachers'] as Map<String, dynamic>? ?? {};
-  final teacherId = teachers['id'] as String? ?? '';
+  final teacherId = (teachers['id'] as String? ?? '').isNotEmpty
+      ? teachers['id'] as String
+      : (course['teacher_id'] as String? ?? '');
   final price = (course['price'] as num?)?.toDouble();
   final l10n = context.l10n;
 

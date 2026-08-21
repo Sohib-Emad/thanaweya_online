@@ -20,6 +20,7 @@ class SubscriptionsData {
     String gateway = 'paymob',
   }) async {
     final userId = _userId;
+    final cleanCourseId = (courseId != null && courseId.isNotEmpty) ? courseId : null;
     try {
       try {
         final res = await _client.rpc(
@@ -27,7 +28,7 @@ class SubscriptionsData {
           params: {
             'p_teacher_id': teacherId,
             'p_amount': amount,
-            'p_course_id': courseId,
+            if (cleanCourseId != null) 'p_course_id': cleanCourseId,
             'p_gateway': gateway,
           },
         );
@@ -41,13 +42,13 @@ class SubscriptionsData {
             await _client.from('subscriptions').upsert({
               'student_id': userId,
               'teacher_id': teacherId,
-              'course_id': courseId,
+              if (cleanCourseId != null) 'course_id': cleanCourseId,
               'status': 'active',
               'starts_at': DateTime.now().toIso8601String(),
               'expires_at': DateTime.now()
                   .add(const Duration(days: 365))
                   .toIso8601String(),
-            }, onConflict: 'student_id,teacher_id');
+            }, onConflict: cleanCourseId != null ? 'student_id,course_id' : 'student_id,teacher_id');
           } catch (_) {}
         }
 
@@ -55,7 +56,7 @@ class SubscriptionsData {
           await _client.from('payments').insert({
             'payer_id': userId,
             'payer_type': 'student_subscription',
-            'course_id': courseId,
+            if (cleanCourseId != null) 'course_id': cleanCourseId,
             'amount': amount,
             'payment_gateway': gateway,
             'status': 'success',
@@ -80,17 +81,20 @@ class SubscriptionsData {
     try {
       final uid = _userId ?? studentId;
       if (uid.isEmpty) return ApiResult.failure('يجب تسجيل الدخول أولاً');
+      if (teacherId.isEmpty) return ApiResult.failure('معرف المعلم غير صالح');
+
+      final cleanCourseId = (courseId != null && courseId.isNotEmpty) ? courseId : null;
 
       await _client.from('subscriptions').upsert({
         'student_id': uid,
         'teacher_id': teacherId,
-        'course_id': courseId,
+        if (cleanCourseId != null) 'course_id': cleanCourseId,
         'status': 'active',
         'starts_at': DateTime.now().toIso8601String(),
         'expires_at': DateTime.now()
             .add(const Duration(days: 365))
             .toIso8601String(),
-      }, onConflict: 'student_id,teacher_id');
+      }, onConflict: cleanCourseId != null ? 'student_id,course_id' : 'student_id,teacher_id');
       return const ApiResult.success(null);
     } catch (e) {
       return ApiErrorHandler.handleException(e);

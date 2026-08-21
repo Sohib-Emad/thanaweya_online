@@ -101,9 +101,14 @@ class StudentPaymentsCubit extends Cubit<StudentPaymentsState> {
   Future<bool> subscribeFree({
     required String studentId,
     required String teacherId,
+    String? courseId,
   }) async {
     emit(state.copyWith(isSaving: true, errorMessage: null));
-    final result = await _repo.subscribeFree(studentId: studentId, teacherId: teacherId);
+    final result = await _repo.subscribeFree(
+      studentId: studentId,
+      teacherId: teacherId,
+      courseId: courseId,
+    );
     var ok = false;
     result.when(
       success: (_) { ok = true; emit(state.copyWith(isSaving: false)); },

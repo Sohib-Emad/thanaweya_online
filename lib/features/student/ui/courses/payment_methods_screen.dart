@@ -32,8 +32,39 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
   bool _isProcessing = false;
   final _codeController = TextEditingController();
   final _cubit = StudentPaymentsCubit(repo: StudentPaymentsRepo());
+  late String _teacherId;
+  late String _courseTitle;
+  double? _price;
 
-  bool get _isFree => widget.price == null || widget.price! <= 0;
+  bool get _isFree => _price == null || _price! <= 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _teacherId = widget.teacherId;
+    _courseTitle = widget.courseTitle;
+    _price = widget.price;
+    if (_teacherId.isEmpty && widget.courseId.isNotEmpty) {
+      _fetchCourseDetails();
+    }
+  }
+
+  Future<void> _fetchCourseDetails() async {
+    try {
+      final res = await Supabase.instance.client
+          .from('courses')
+          .select('id, title, price, teacher_id')
+          .eq('id', widget.courseId)
+          .maybeSingle();
+      if (res != null && mounted) {
+        setState(() {
+          if (_teacherId.isEmpty) _teacherId = res['teacher_id'] as String? ?? '';
+          if (_courseTitle.isEmpty) _courseTitle = res['title'] as String? ?? '';
+          _price ??= (res['price'] as num?)?.toDouble();
+        });
+      }
+    } catch (_) {}
+  }
 
   @override
   void dispose() {
@@ -82,7 +113,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
     if (code.isEmpty) { _showSnack('يرجى كتابة أو لصق أو مسح كود التفعيل أولاً'); return; }
     HapticFeedback.mediumImpact();
     setState(() => _isProcessing = true);
-    final error = await _cubit.redeemActivationCode(code, courseId: widget.courseId, teacherId: widget.teacherId);
+    final error = await _cubit.redeemActivationCode(code, courseId: widget.courseId, teacherId: _teacherId);
     if (!mounted) return;
     setState(() => _isProcessing = false);
     error == null ? _onSuccess('تم تفعيل الكورس بنجاح باستخدام كود المدرس!') : _showSnack(error);
@@ -93,7 +124,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
     if (userId == null) { _showSnack('يرجى تسجيل الدخول أولاً'); return; }
     HapticFeedback.mediumImpact();
     setState(() => _isProcessing = true);
-    final ok = await _cubit.subscribeFree(studentId: userId, teacherId: widget.teacherId);
+    final ok = await _cubit.subscribeFree(studentId: userId, teacherId: _teacherId, courseId: widget.courseId);
     if (!mounted) return;
     setState(() => _isProcessing = false);
     ok ? _onSuccess('تم تفعيل الكورس المجاني بنجاح!') : _showSnack('فشل التسجيل في الكورس، يرجى المحاولة مرة أخرى');
