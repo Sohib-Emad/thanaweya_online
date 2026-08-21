@@ -65,7 +65,7 @@ class CourseCard extends StatelessWidget {
           children: [
             Container(
               width: double.infinity,
-              height: 92.h,
+              height: 88.h,
               clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
                 color: NotebookColors.ink,
@@ -80,14 +80,14 @@ class CourseCard extends StatelessWidget {
                     )
                   : CoverPlaceholder(color: color),
             ),
-            SizedBox(height: 10.h),
+            SizedBox(height: 7.h),
             Row(
               children: [
                 if (sanitizedSubject.isNotEmpty)
                   Container(
                     padding: EdgeInsets.symmetric(
-                      horizontal: 8.w,
-                      vertical: 3.h,
+                      horizontal: 7.w,
+                      vertical: 2.5.h,
                     ),
                     decoration: BoxDecoration(
                       color: NotebookColors.green,
@@ -146,22 +146,22 @@ class CourseCard extends StatelessWidget {
                 ),
               ],
             ),
-            SizedBox(height: 6.h),
+            SizedBox(height: 5.h),
             Text(
               teacherLine,
-              style: NotebookText.note(11.sp),
+              style: NotebookText.note(10.5.sp),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            SizedBox(height: 4.h),
+            SizedBox(height: 3.h),
             Text(
               title,
-              style: NotebookText.heading(13.sp),
+              style: NotebookText.heading(12.5.sp),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
-            SizedBox(height: 5.h),
-            Container(width: 44.w, height: 3.h, color: color),
+            SizedBox(height: 4.h),
+            Container(width: 40.w, height: 2.5.h, color: color),
             const Spacer(),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -171,7 +171,7 @@ class CourseCard extends StatelessWidget {
                     child: Text(
                       Formatters.formatEgp(price!.toDouble()),
                       style: NotebookText.strong(
-                        24.sp,
+                        18.sp,
                         color: NotebookColors.marginRed,
                       ),
                       maxLines: 1,
@@ -181,11 +181,11 @@ class CourseCard extends StatelessWidget {
                 else
                   Text(
                     context.l10n.continueCourse,
-                    style: NotebookText.note(14.sp),
+                    style: NotebookText.note(13.sp),
                   ),
                 Container(
-                  width: 35.r,
-                  height: 35.r,
+                  width: 32.r,
+                  height: 32.r,
                   decoration: BoxDecoration(
                     color: NotebookColors.green,
                     shape: BoxShape.circle,

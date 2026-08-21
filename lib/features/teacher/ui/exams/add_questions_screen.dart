@@ -185,14 +185,17 @@ class _AddQuestionsScreenState extends State<AddQuestionsScreen> {
                         bloc: _cubit,
                         builder: (context, state) => QuestionsListSection(
                           questions: state.questions
-                              .map((q) => {
-                                    'id': q.id,
-                                    'text': q.text,
-                                    'type': q.questionType.name,
-                                    'points': q.points,
-                                  })
+                              .map(
+                                (q) => {
+                                  'id': q.id,
+                                  'text': q.text,
+                                  'type': q.questionType.name,
+                                  'points': q.points,
+                                },
+                              )
                               .toList(),
-                          isLoading: state.questionsStatus ==
+                          isLoading:
+                              state.questionsStatus ==
                               TeacherExamsStatus.loading,
                           onDeleteQuestion: (id) async {
                             if (await showDeleteQuestionDialog(context)) {

@@ -19,16 +19,18 @@ class StudentLeaderboardState {
     this.errorMessage,
   });
 
+  // Show all students (including those with 0 points)
+  bool get hasEntries => entries.isNotEmpty;
+
+  // Keep hasPoints for backward compat but don't use it to gate rendering
   bool get hasPoints => entries.any((e) => e.totalScore > 0);
 
-  List<LeaderboardEntry> get entriesWithPoints =>
-      entries.where((e) => e.totalScore > 0).toList();
+  // Top 3 from ALL entries (sorted by score already)
+  List<LeaderboardEntry> get topThree => entries.take(3).toList();
 
-  List<LeaderboardEntry> get topThree =>
-      entriesWithPoints.take(3).toList();
-
+  // Rest of leaderboard after top 3
   List<LeaderboardEntry> get restOfLeaderboard =>
-      entries.length > topThree.length ? entries.sublist(topThree.length) : const [];
+      entries.length > 3 ? entries.sublist(3) : const [];
 
   StudentLeaderboardState copyWith({
     LeaderboardStatus? status,

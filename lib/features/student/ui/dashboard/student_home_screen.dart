@@ -187,7 +187,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                 Padding(padding: EdgeInsets.symmetric(horizontal: 24.w), child: NotebookEmptyNote(message: l10n.noCoursesMatch))
               else
                 SizedBox(
-                  height: 250.h,
+                  height: 265.h,
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal, padding: EdgeInsets.symmetric(horizontal: 24.w),
                     itemCount: _enrolledCourses.length, separatorBuilder: (_, _) => SizedBox(width: 14.w),
