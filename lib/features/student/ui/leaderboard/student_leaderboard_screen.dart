@@ -132,8 +132,8 @@ class _StudentLeaderboardScreenState extends State<StudentLeaderboardScreen> {
       );
     }
 
-    // If no entries at all, show empty state
-    if (state.entries.isEmpty) {
+    // If no entries or all students have 0 points, show empty state
+    if (state.entries.isEmpty || !state.hasPoints) {
       return RefreshIndicator(
         onRefresh: () async => _cubit.loadLeaderboard(),
         color: const Color(0xFF0284C7),

@@ -19,18 +19,22 @@ class StudentLeaderboardState {
     this.errorMessage,
   });
 
-  // Show all students (including those with 0 points)
-  bool get hasEntries => entries.isNotEmpty;
-
-  // Keep hasPoints for backward compat but don't use it to gate rendering
+  // Whether at least one student has points
   bool get hasPoints => entries.any((e) => e.totalScore > 0);
 
-  // Top 3 from ALL entries (sorted by score already)
-  List<LeaderboardEntry> get topThree => entries.take(3).toList();
+  // Students who have scored points (> 0)
+  List<LeaderboardEntry> get entriesWithPoints =>
+      entries.where((e) => e.totalScore > 0).toList();
 
-  // Rest of leaderboard after top 3
-  List<LeaderboardEntry> get restOfLeaderboard =>
-      entries.length > 3 ? entries.sublist(3) : const [];
+  // Only students with points can appear on the honor podium (Top 3)
+  List<LeaderboardEntry> get topThree =>
+      entriesWithPoints.take(3).toList();
+
+  // The rest of the students (not on the podium)
+  List<LeaderboardEntry> get restOfLeaderboard {
+    final topIds = topThree.map((e) => e.studentId).toSet();
+    return entries.where((e) => !topIds.contains(e.studentId)).toList();
+  }
 
   StudentLeaderboardState copyWith({
     LeaderboardStatus? status,

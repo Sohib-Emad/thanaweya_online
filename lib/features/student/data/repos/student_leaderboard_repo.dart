@@ -45,8 +45,9 @@ class LeaderboardEntry {
 class StudentLeaderboardRepo {
   final SupabaseClient _client = Supabase.instance.client;
 
-  /// Fetches ALL students registered on the platform ranked by score,
-  /// including teacher names and students with lower/zero points.
+  /// Fetches ALL students registered on the platform ranked by score.
+  /// Uses `get_leaderboard` RPC (SECURITY DEFINER) to bypass RLS.
+  /// Falls back to partial data if the RPC is not deployed yet.
   Future<ApiResult<List<LeaderboardEntry>>> getLeaderboard({
     String timeframe = 'all_time',
   }) async {
@@ -59,93 +60,65 @@ class StudentLeaderboardRepo {
         sinceDate = now.subtract(const Duration(days: 30));
       }
 
-      // ─── 1. Fetch All Students ──────────────────────────────────────────
-      final studentsMap = <String, Map<String, dynamic>>{};
+      // ─── Primary: RPC call (bypasses RLS, returns all students) ─────────
       try {
-        final studentsData = await _client.from('students').select(
-              'id, grade_level, bonus_points, users(id, full_name, avatar_url)',
-            );
+        final rpcResult = await _client.rpc(
+          'get_leaderboard',
+          params: {'p_since': sinceDate?.toIso8601String()},
+        );
 
-        for (final s in (studentsData as List)) {
-          final sId = s['id']?.toString();
-          if (sId == null || sId.isEmpty) continue;
+        final rows = rpcResult as List;
+        debugPrint('[StudentLeaderboardRepo] RPC returned ${rows.length} students');
 
-          final u = s['users'] as Map<String, dynamic>?;
-          final fullName = u?['full_name']?.toString().trim() ?? '';
-          final avatarUrl = u?['avatar_url']?.toString();
-          final gradeLevel = s['grade_level']?.toString();
-          final bonus = (s['bonus_points'] as num?)?.toInt() ?? 0;
-
-          studentsMap[sId] = {
-            'student_id': sId,
-            'full_name': fullName.isEmpty ? 'طالب' : fullName,
-            'avatar_url': avatarUrl,
-            'grade_level': gradeLevel,
-            'teacher_name': null,
-            'total_score': bonus,
-            'exams_completed': 0,
-          };
+        final entries = <LeaderboardEntry>[];
+        for (int i = 0; i < rows.length; i++) {
+          final row = Map<String, dynamic>.from(rows[i] as Map);
+          entries.add(LeaderboardEntry.fromMap(row, i + 1));
         }
-      } catch (e) {
-        debugPrint('[StudentLeaderboardRepo] Direct join query error: $e');
-        // Fallback: fetch students and users separately
-        try {
-          final sList = await _client.from('students').select('id, grade_level, bonus_points');
-          final uList = await _client.from('users').select('id, full_name, avatar_url');
-          final usersById = {for (final u in (uList as List)) (u['id']?.toString() ?? ''): u};
+        return ApiResult.success(entries);
+      } catch (rpcError) {
+        debugPrint('[StudentLeaderboardRepo] RPC failed, using fallback: $rpcError');
+      }
 
-          for (final s in (sList as List)) {
-            final sId = s['id']?.toString();
-            if (sId == null || sId.isEmpty) continue;
-            final u = usersById[sId];
-            final fullName = u?['full_name']?.toString().trim() ?? '';
-            final bonus = (s['bonus_points'] as num?)?.toInt() ?? 0;
-            studentsMap[sId] = {
-              'student_id': sId,
+      // ─── Fallback: Build from own data + exam_submissions ────────────────
+      final studentsMap = <String, Map<String, dynamic>>{};
+
+      // Add current user (readable via RLS)
+      final currentUid = _client.auth.currentUser?.id ??
+          _client.auth.currentSession?.user.id;
+      if (currentUid != null) {
+        try {
+          final myStudent = await _client
+              .from('students')
+              .select('id, grade_level, bonus_points')
+              .eq('id', currentUid)
+              .maybeSingle();
+          if (myStudent != null) {
+            final myUser = await _client
+                .from('users')
+                .select('id, full_name, avatar_url')
+                .eq('id', currentUid)
+                .maybeSingle();
+            final fullName = (myUser?['full_name'] as String?)?.trim() ?? '';
+            studentsMap[currentUid] = {
+              'student_id': currentUid,
               'full_name': fullName.isEmpty ? 'طالب' : fullName,
-              'avatar_url': u?['avatar_url']?.toString(),
-              'grade_level': s['grade_level']?.toString(),
+              'avatar_url': myUser?['avatar_url']?.toString(),
+              'grade_level': myStudent['grade_level']?.toString(),
               'teacher_name': null,
-              'total_score': bonus,
+              'total_score': (myStudent['bonus_points'] as num?)?.toInt() ?? 0,
               'exams_completed': 0,
             };
           }
         } catch (_) {}
       }
 
-      // ─── 2. Fetch Teachers for Subscribed Students ───────────────────────
-      try {
-        final subs = await _client
-            .from('subscriptions')
-            .select('student_id, teacher_id, teachers(users(full_name))');
-
-        for (final sub in (subs as List)) {
-          final sId = sub['student_id']?.toString();
-          if (sId == null || !studentsMap.containsKey(sId)) continue;
-
-          final tObj = sub['teachers'] as Map<String, dynamic>?;
-          final uObj = tObj?['users'] as Map<String, dynamic>?;
-          final tName = uObj?['full_name']?.toString().trim();
-
-          if (tName != null && tName.isNotEmpty) {
-            final existing = studentsMap[sId]!['teacher_name'] as String?;
-            if (existing == null) {
-              studentsMap[sId]!['teacher_name'] = 'أ. $tName';
-            } else if (!existing.contains(tName)) {
-              studentsMap[sId]!['teacher_name'] = '$existing، أ. $tName';
-            }
-          }
-        }
-      } catch (e) {
-        debugPrint('[StudentLeaderboardRepo] Subscriptions fetch note: $e');
-      }
-
-      // ─── 3. Fetch and Aggregate Exam Scores (completed only) ─────────────
+      // Aggregate exam submissions (all authenticated can read submissions)
       try {
         var query = _client
             .from('exam_submissions')
             .select('student_id, score, submitted_at')
-            .not('submitted_at', 'is', null); // ← skip in-progress rows
+            .not('submitted_at', 'is', null);
 
         if (sinceDate != null) {
           query = query.gte('submitted_at', sinceDate.toIso8601String());
@@ -155,21 +128,49 @@ class StudentLeaderboardRepo {
         for (final sub in (submissions as List)) {
           final sId = sub['student_id']?.toString();
           if (sId == null || sId.isEmpty) continue;
-
           final score = (sub['score'] as num?)?.toInt() ?? 0;
 
           if (studentsMap.containsKey(sId)) {
-            final sEntry = studentsMap[sId]!;
-            sEntry['total_score'] = (sEntry['total_score'] as int) + score;
-            sEntry['exams_completed'] =
-                (sEntry['exams_completed'] as int) + 1;
+            studentsMap[sId]!['total_score'] =
+                (studentsMap[sId]!['total_score'] as int) + score;
+            studentsMap[sId]!['exams_completed'] =
+                (studentsMap[sId]!['exams_completed'] as int) + 1;
+          } else {
+            studentsMap[sId] = {
+              'student_id': sId,
+              'full_name': 'طالب',
+              'avatar_url': null,
+              'grade_level': null,
+              'teacher_name': null,
+              'total_score': score,
+              'exams_completed': 1,
+            };
           }
         }
       } catch (e) {
-        debugPrint('[StudentLeaderboardRepo] Submissions fetch note: $e');
+        debugPrint('[StudentLeaderboardRepo] Submissions fallback error: $e');
       }
 
-      // ─── 4. Sort All Students (Highest to Lowest) ────────────────────────
+      // Fetch teacher names from subscriptions
+      try {
+        final subs = await _client
+            .from('subscriptions')
+            .select('student_id, teachers(users(full_name))');
+        for (final sub in (subs as List)) {
+          final sId = sub['student_id']?.toString();
+          if (sId == null || !studentsMap.containsKey(sId)) continue;
+          final tObj = sub['teachers'] as Map<String, dynamic>?;
+          final uObj = tObj?['users'] as Map<String, dynamic>?;
+          final tName = uObj?['full_name']?.toString().trim();
+          if (tName != null && tName.isNotEmpty) {
+            final existing = studentsMap[sId]!['teacher_name'] as String?;
+            studentsMap[sId]!['teacher_name'] = existing == null
+                ? 'أ. $tName'
+                : (existing.contains(tName) ? existing : '$existing، أ. $tName');
+          }
+        }
+      } catch (_) {}
+
       final sortedList = studentsMap.values.toList()
         ..sort((a, b) {
           final scoreComp =
@@ -178,16 +179,15 @@ class StudentLeaderboardRepo {
           final examComp = (b['exams_completed'] as int)
               .compareTo(a['exams_completed'] as int);
           if (examComp != 0) return examComp;
-          return (a['full_name'] as String)
-              .compareTo(b['full_name'] as String);
+          return (a['full_name'] as String).compareTo(b['full_name'] as String);
         });
 
-      // ─── 5. Map with Sequential Ranks ────────────────────────────────────
       final entries = <LeaderboardEntry>[];
       for (int i = 0; i < sortedList.length; i++) {
         entries.add(LeaderboardEntry.fromMap(sortedList[i], i + 1));
       }
 
+      debugPrint('[StudentLeaderboardRepo] Fallback loaded: ${entries.length} students');
       return ApiResult.success(entries);
     } catch (e) {
       debugPrint('[StudentLeaderboardRepo] Error fetching leaderboard: $e');
@@ -195,3 +195,4 @@ class StudentLeaderboardRepo {
     }
   }
 }
+

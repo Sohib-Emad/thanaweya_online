@@ -231,9 +231,9 @@ CREATE TABLE IF NOT EXISTS public.activation_codes (
 -- Payments
 CREATE TABLE IF NOT EXISTS public.payments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  payer_id UUID NOT NULL REFERENCES public.users(id),
+  payer_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
   payer_type payer_type NOT NULL,
-  plan_id UUID REFERENCES public.subscription_plans(id),
+  plan_id UUID REFERENCES public.subscription_plans(id) ON DELETE SET NULL,
   course_id UUID REFERENCES public.courses(id) ON DELETE SET NULL,
   amount NUMERIC(10,2) NOT NULL,
   payment_gateway payment_gateway NOT NULL,
@@ -996,3 +996,59 @@ SELECT * FROM (VALUES
   ('باقة السنة', 'yearly'::billing_period, 599.99, 3)
 ) AS v(name, billing_period, price, display_order)
 WHERE NOT EXISTS (SELECT 1 FROM public.subscription_plans LIMIT 1);
+
+-- ============================================================
+-- LEADERBOARD RPC (SECURITY DEFINER - bypasses RLS)
+-- Run this in Supabase SQL Editor to enable full leaderboard.
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION public.get_leaderboard(
+  p_since TIMESTAMPTZ DEFAULT NULL
+)
+RETURNS TABLE (
+  student_id UUID,
+  full_name  TEXT,
+  avatar_url TEXT,
+  grade_level TEXT,
+  teacher_name TEXT,
+  total_score BIGINT,
+  exams_completed BIGINT
+)
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT
+    s.id                                  AS student_id,
+    u.full_name,
+    u.avatar_url,
+    s.grade_level::TEXT,
+    (
+      SELECT string_agg(DISTINCT 'أ. ' || tu.full_name, '، ')
+      FROM   public.subscriptions sub
+      JOIN   public.teachers t ON t.id = sub.teacher_id
+      JOIN   public.users tu   ON tu.id = t.id
+      WHERE  sub.student_id = s.id
+    )                                     AS teacher_name,
+    COALESCE(s.bonus_points, 0) +
+      COALESCE((
+        SELECT SUM(es.score)
+        FROM   public.exam_submissions es
+        WHERE  es.student_id = s.id
+          AND  es.submitted_at IS NOT NULL
+          AND  (p_since IS NULL OR es.submitted_at >= p_since)
+      ), 0)                               AS total_score,
+    COALESCE((
+      SELECT COUNT(*)
+      FROM   public.exam_submissions es
+      WHERE  es.student_id = s.id
+        AND  es.submitted_at IS NOT NULL
+        AND  (p_since IS NULL OR es.submitted_at >= p_since)
+    ), 0)                                 AS exams_completed
+  FROM public.students s
+  JOIN public.users    u ON u.id = s.id
+  ORDER BY total_score DESC, exams_completed DESC, u.full_name ASC;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.get_leaderboard(TIMESTAMPTZ) TO authenticated;
+
