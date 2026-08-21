@@ -28,15 +28,36 @@ class AuthSession {
         return const ApiResult.failure('بيانات الدخول غير صحيحة');
       }
 
-      debugPrint('[AuthRepo] signIn success: userId=${response.user!.id}');
-
       final user = response.user!;
+
+      // Verify that user profile exists in database
+      Map<String, dynamic>? userProfile;
+      try {
+        userProfile = await Supabase.instance.client
+            .from('users')
+            .select('id, email, full_name, phone, role')
+            .eq('id', user.id)
+            .maybeSingle();
+      } catch (_) {}
+
+      if (userProfile == null) {
+        debugPrint('[AuthRepo] User ${user.id} authenticated with Supabase Auth but row does not exist in public.users');
+        try {
+          await auth.signOut();
+        } catch (_) {}
+        return const ApiResult.failure('الحساب غير موجود أو تم حذفه من النظام');
+      }
+
+      debugPrint('[AuthRepo] signIn success: userId=${user.id}');
+
       final userModel = UserModel(
         id: user.id,
-        email: user.email ?? '',
-        fullName: user.userMetadata?['full_name'] ?? '',
-        phone: user.userMetadata?['phone'] ?? '',
-        role: UserRole.fromString(user.userMetadata?['role']),
+        email: (userProfile['email'] as String?) ?? (user.email ?? ''),
+        fullName: (userProfile['full_name'] as String?) ??
+            (user.userMetadata?['full_name'] ?? ''),
+        phone: (userProfile['phone'] as String?) ??
+            (user.userMetadata?['phone'] ?? ''),
+        role: UserRole.fromString(userProfile['role'] ?? user.userMetadata?['role']),
         createdAt: DateTime.parse(user.createdAt),
         updatedAt: DateTime.parse(user.updatedAt ?? user.createdAt),
       );

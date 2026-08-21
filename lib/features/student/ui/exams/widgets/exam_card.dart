@@ -32,61 +32,104 @@ class ExamCard extends StatelessWidget {
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
             if (subject.isNotEmpty)
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
-                decoration: BoxDecoration(color: const Color(0xFF0284C7), borderRadius: BorderRadius.circular(6.r)),
-                child: Text(subject, style: GoogleFonts.cairo(fontSize: 10.sp, fontWeight: FontWeight.w800, color: Colors.white)),
+              Flexible(
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0284C7),
+                    borderRadius: BorderRadius.circular(6.r),
+                  ),
+                  child: Text(
+                    subject,
+                    style: GoogleFonts.cairo(
+                      fontSize: 10.sp,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               ),
             if (teacherName.isNotEmpty && teacherName != subject) ...[
               SizedBox(width: 6.w),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
-                decoration: BoxDecoration(color: const Color(0xFF059669).withAlpha(18), borderRadius: BorderRadius.circular(6.r)),
-                child: Text('أ/ $teacherName', style: GoogleFonts.cairo(fontSize: 10.sp, fontWeight: FontWeight.w700, color: const Color(0xFF059669))),
+              Flexible(
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF059669).withAlpha(18),
+                    borderRadius: BorderRadius.circular(6.r),
+                  ),
+                  child: Text(
+                    'أ/ $teacherName',
+                    style: GoogleFonts.cairo(
+                      fontSize: 10.sp,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF059669),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               ),
             ],
-            const Spacer(),
-            Icon(locked ? Icons.lock_rounded : Icons.quiz_rounded,
-                color: locked ? NotebookColors.marginRed : const Color(0xFF0284C7), size: 20.r),
+            SizedBox(width: 8.w),
+            Icon(
+              locked ? Icons.lock_rounded : Icons.quiz_rounded,
+              color: locked ? NotebookColors.marginRed : const Color(0xFF0284C7),
+              size: 20.r,
+            ),
           ]),
           SizedBox(height: 8.h),
           Text(title, style: NotebookText.heading(14.5.sp), maxLines: 1, overflow: TextOverflow.ellipsis),
           SizedBox(height: 4.h),
-          Row(children: [
-            Icon(Icons.timer_outlined, size: 13.r, color: NotebookColors.pencil),
-            SizedBox(width: 4.w),
-            Text(context.l10n.examDurationLabel(duration), style: NotebookText.note(11.sp)),
-            if (qCount > 0) ...[
-              SizedBox(width: 10.w),
-              Icon(Icons.help_outline_rounded, size: 13.r, color: NotebookColors.pencil),
-              SizedBox(width: 4.w),
-              Text('$qCount سؤال', style: NotebookText.note(11.sp)),
-            ],
-            SizedBox(width: 10.w),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 1.5.h),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF59E0B).withAlpha(20),
-                borderRadius: BorderRadius.circular(6.r),
-                border: Border.all(color: const Color(0xFFF59E0B).withAlpha(80)),
-              ),
-              child: Row(
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 10.w,
+            runSpacing: 4.h,
+            children: [
+              Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.stars_rounded, size: 12.r, color: const Color(0xFFD97706)),
-                  SizedBox(width: 2.w),
-                  Text(
-                    '+20 نقطة',
-                    style: GoogleFonts.cairo(
-                      fontSize: 9.5.sp,
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFFD97706),
-                    ),
-                  ),
+                  Icon(Icons.timer_outlined, size: 13.r, color: NotebookColors.pencil),
+                  SizedBox(width: 4.w),
+                  Text(context.l10n.examDurationLabel(duration), style: NotebookText.note(11.sp)),
                 ],
               ),
-            ),
-          ]),
+              if (qCount > 0)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.help_outline_rounded, size: 13.r, color: NotebookColors.pencil),
+                    SizedBox(width: 4.w),
+                    Text('$qCount سؤال', style: NotebookText.note(11.sp)),
+                  ],
+                ),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 1.5.h),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF59E0B).withAlpha(20),
+                  borderRadius: BorderRadius.circular(6.r),
+                  border: Border.all(color: const Color(0xFFF59E0B).withAlpha(80)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.stars_rounded, size: 12.r, color: const Color(0xFFD97706)),
+                    SizedBox(width: 2.w),
+                    Text(
+                      '+20 نقطة',
+                      style: GoogleFonts.cairo(
+                        fontSize: 9.5.sp,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFFD97706),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
           SizedBox(height: 14.h),
           Wrap(alignment: WrapAlignment.spaceBetween, crossAxisAlignment: WrapCrossAlignment.center,
               spacing: 8.w, runSpacing: 8.h, children: [

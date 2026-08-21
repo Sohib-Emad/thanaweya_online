@@ -46,17 +46,9 @@ class StudentCoursesSubscribedTeachersRepo {
       final codeData = await _client
           .from('activation_codes')
           .select('teacher_id, created_at, expires_at')
-          .or('used_by.eq.$studentId,used_by_student_id.eq.$studentId');
+          .eq('used_by', studentId);
       _addCodeTeachers(codeData, ids, subMap);
-    } catch (_) {
-      try {
-        final codeData = await _client
-            .from('activation_codes')
-            .select('teacher_id, created_at, expires_at')
-            .eq('used_by', studentId);
-        _addCodeTeachers(codeData, ids, subMap);
-      } catch (_) {}
-    }
+    } catch (_) {}
   }
 
   void _addCodeTeachers(

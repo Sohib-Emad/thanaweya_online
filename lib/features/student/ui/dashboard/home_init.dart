@@ -25,7 +25,8 @@ Future<void> loadStudentHomeData({
     onNameLoaded(user.userMetadata?['full_name']?.toString().split(' ').first ?? 'طالب');
   }
   if (userId != null) {
-    await _ensureProfile(userId);
+    final isValid = await _verifyProfile(userId);
+    if (!isValid) return;
     if (isMounted()) {
       cubit.loadSubscribedTeachers(userId);
       cubit.loadMyCourses(userId);
@@ -38,28 +39,19 @@ Future<void> loadStudentHomeData({
   }
 }
 
-Future<void> _ensureProfile(String uid) async {
+Future<bool> _verifyProfile(String uid) async {
   try {
     final c = Supabase.instance.client;
-    final u = c.auth.currentUser;
-    if (u == null) return;
-    if (await c.from('users').select('id').eq('id', uid).maybeSingle() == null) {
-      await c.from('users').insert({
-        'id': uid,
-        'email': u.email ?? '',
-        'full_name': u.userMetadata?['full_name']?.toString() ?? 'طالب',
-        'phone': u.userMetadata?['phone']?.toString() ?? '01000000000',
-        'role': u.userMetadata?['role']?.toString() ?? 'student',
-      });
+    final userRow =
+        await c.from('users').select('id').eq('id', uid).maybeSingle();
+    if (userRow == null) {
+      debugPrint('[StudentHome] Account deleted in database. Signing out...');
+      await c.auth.signOut();
+      return false;
     }
-    if (await c.from('students').select('id').eq('id', uid).maybeSingle() == null) {
-      await c.from('students').insert({
-        'id': uid,
-        'grade_level': 'first',
-        'parent_phone': '01000000000',
-      });
-    }
+    return true;
   } catch (e) {
-    debugPrint('[StudentHome] Profile error: $e');
+    debugPrint('[StudentHome] Profile check error: $e');
+    return true;
   }
 }

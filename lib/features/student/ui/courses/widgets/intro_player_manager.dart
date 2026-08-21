@@ -31,7 +31,11 @@ class IntroPlayerManager {
       final videoId = YoutubePlayer.convertUrlToId(url) ?? url.trim();
       youtubeController = YoutubePlayerController(
         initialVideoId: videoId,
-        flags: const YoutubePlayerFlags(autoPlay: false, mute: false),
+        flags: const YoutubePlayerFlags(
+          autoPlay: false,
+          mute: false,
+          enableCaption: false,
+        ),
       );
     } else {
       try {

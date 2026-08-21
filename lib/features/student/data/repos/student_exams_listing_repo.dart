@@ -15,7 +15,8 @@ class StudentExamsListingRepo {
     String studentId,
   ) async {
     try {
-      final uid = _client.auth.currentUser?.id ??
+      final uid =
+          _client.auth.currentUser?.id ??
           _client.auth.currentSession?.user.id ??
           studentId;
       if (uid.isEmpty) return const ApiResult.success([]);
@@ -36,45 +37,54 @@ class StudentExamsListingRepo {
       final courseTitles = await _enrichment.resolveCourseTitles(examsData);
       final attemptsMap = await _enrichment.getAttemptsCounts(uid, examsData);
 
-      final result = examsData.map((exam) {
-        final examId = exam['id'] as String? ?? '';
-        final tId = exam['teacher_id'] as String? ?? '';
-        final cId = exam['course_id'] as String? ?? '';
-        final allowRetake = exam['allow_retake'] as bool? ?? false;
-        final maxAttempts = (exam['max_attempts'] as num?)?.toInt() ?? (allowRetake ? 3 : 1);
-        final attemptsUsed = attemptsMap[examId] ?? 0;
+      final result =
+          examsData.map((exam) {
+            final examId = exam['id'] as String? ?? '';
+            final tId = exam['teacher_id'] as String? ?? '';
+            final cId = exam['course_id'] as String? ?? '';
+            final allowRetake = exam['allow_retake'] as bool? ?? false;
+            final maxAttempts =
+                (exam['max_attempts'] as num?)?.toInt() ??
+                (allowRetake ? 3 : 1);
+            final attemptsUsed = attemptsMap[examId] ?? 0;
 
-        final now = DateTime.now().toUtc();
-        final startAtStr = exam['start_at'] as String?;
-        final endAtStr = exam['end_at'] as String?;
-        final startAt = startAtStr != null ? DateTime.tryParse(startAtStr)?.toUtc() : null;
-        final endAt = endAtStr != null ? DateTime.tryParse(endAtStr)?.toUtc() : null;
+            final now = DateTime.now().toUtc();
+            final startAtStr = exam['start_at'] as String?;
+            final endAtStr = exam['end_at'] as String?;
+            final startAt = startAtStr != null
+                ? DateTime.tryParse(startAtStr)?.toUtc()
+                : null;
+            final endAt = endAtStr != null
+                ? DateTime.tryParse(endAtStr)?.toUtc()
+                : null;
 
-        String examStatus = 'available';
-        if (startAt != null && now.isBefore(startAt)) {
-          examStatus = 'upcoming';
-        } else if (endAt != null && now.isAfter(endAt)) {
-          examStatus = 'expired';
-        } else if (attemptsUsed >= maxAttempts) {
-          examStatus = 'completed';
-        }
+            String examStatus = 'available';
+            if (startAt != null && now.isBefore(startAt)) {
+              examStatus = 'upcoming';
+            } else if (endAt != null && now.isAfter(endAt)) {
+              examStatus = 'expired';
+            } else if (attemptsUsed >= maxAttempts) {
+              examStatus = 'completed';
+            }
 
-        return {
-          ...exam,
-          'teacher_name': teacherNames[tId] ?? 'المعلم',
-          'course_title': courseTitles[cId] ?? '',
-          'subject_name': courseTitles[cId]?.isNotEmpty == true
-              ? courseTitles[cId]!
-              : (teacherNames[tId] ?? ''),
-          'max_attempts': maxAttempts,
-          'attempts_used': attemptsUsed,
-          'questions_count': questionCountMap[examId] ?? 0,
-          'is_subscribed': teacherIdSet.contains(tId),
-          'exam_status': examStatus,
-        };
-      }).toList()
-        ..sort((a, b) =>
-            (b['created_at'] as String? ?? '').compareTo(a['created_at'] as String? ?? ''));
+            return {
+              ...exam,
+              'teacher_name': teacherNames[tId] ?? 'المعلم',
+              'course_title': courseTitles[cId] ?? '',
+              'subject_name': courseTitles[cId]?.isNotEmpty == true
+                  ? courseTitles[cId]!
+                  : (teacherNames[tId] ?? ''),
+              'max_attempts': maxAttempts,
+              'attempts_used': attemptsUsed,
+              'questions_count': questionCountMap[examId] ?? 0,
+              'is_subscribed': teacherIdSet.contains(tId),
+              'exam_status': examStatus,
+            };
+          }).toList()..sort(
+            (a, b) => (b['created_at'] as String? ?? '').compareTo(
+              a['created_at'] as String? ?? '',
+            ),
+          );
 
       return ApiResult.success(result);
     } catch (_) {
@@ -104,26 +114,22 @@ class StudentExamsListingRepo {
           .from('payments')
           .select('course_id')
           .eq('payer_id', uid)
-          .inFilter('status', ['success', 'completed']);
+          .eq('status', 'success');
       for (final p in payRes) {
         final cId = p['course_id'] as String?;
         if (cId != null && cId.isNotEmpty) courseIds.add(cId);
       }
     } catch (_) {}
-    for (final field in ['used_by_student_id', 'used_by']) {
-      try {
-        final codeRes = await _client
-            .from('activation_codes')
-            .select('teacher_id, course_id')
-            .eq(field, uid);
-        for (final c in codeRes) {
-          final tId = c['teacher_id'] as String?;
-          final cId = c['course_id'] as String?;
-          if (tId != null && tId.isNotEmpty) teacherIds.add(tId);
-          if (cId != null && cId.isNotEmpty) courseIds.add(cId);
-        }
-      } catch (_) {}
-    }
+    try {
+      final codeRes = await _client
+          .from('activation_codes')
+          .select('course_id')
+          .eq('used_by', uid);
+      for (final c in codeRes) {
+        final cId = c['course_id'] as String?;
+        if (cId != null && cId.isNotEmpty) courseIds.add(cId);
+      }
+    } catch (_) {}
     try {
       final progData = await _client
           .from('lesson_progress')

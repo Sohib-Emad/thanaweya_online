@@ -302,6 +302,7 @@ mixin VideoPlayerMixin<T extends StatefulWidget> on State<T> {
           flags: YoutubePlayerFlags(
             autoPlay: true,
             startAt: startSec,
+            enableCaption: false,
             disableDragSeek: true,
             useHybridComposition: true,
           ),

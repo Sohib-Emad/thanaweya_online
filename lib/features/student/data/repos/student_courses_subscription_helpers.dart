@@ -10,8 +10,10 @@ class StudentCoursesSubscriptionHelpers {
     String? targetTeacherId,
   ) async {
     try {
-      final subRes =
-          await _client.from('subscriptions').select('*').eq('student_id', uid);
+      final subRes = await _client
+          .from('subscriptions')
+          .select('*')
+          .eq('student_id', uid);
       for (final sub in subRes) {
         final status = (sub['status'] as String?)?.toLowerCase();
         if (status != 'active' && status != 'completed') continue;
@@ -46,22 +48,8 @@ class StudentCoursesSubscriptionHelpers {
       codeRes = await _client
           .from('activation_codes')
           .select('*')
-          .or('used_by.eq.$uid,used_by_student_id.eq.$uid');
-    } catch (_) {
-      try {
-        codeRes = await _client
-            .from('activation_codes')
-            .select('*')
-            .eq('used_by', uid);
-      } catch (_) {
-        try {
-          codeRes = await _client
-              .from('activation_codes')
-              .select('*')
-              .eq('used_by_student_id', uid);
-        } catch (_) {}
-      }
-    }
+          .eq('used_by', uid);
+    } catch (_) {}
     for (final code in codeRes) {
       final expiresAtStr = code['expires_at'] as String?;
       if (expiresAtStr != null) {

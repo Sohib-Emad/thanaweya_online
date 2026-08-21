@@ -91,6 +91,34 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
 
     // 3. Authenticated User Flow
     if (user != null && Supabase.instance.client.auth.currentSession != null && role != null) {
+      // Verify user actually exists in the database
+      Map<String, dynamic>? userRow;
+      try {
+        userRow = await Supabase.instance.client
+            .from('users')
+            .select('id, role')
+            .eq('id', user.id)
+            .maybeSingle();
+      } catch (_) {}
+
+      if (userRow == null) {
+        // User was deleted from the database!
+        debugPrint('[SplashScreen] User ${user.id} not found in database. Signing out...');
+        try {
+          await Supabase.instance.client.auth.signOut();
+        } catch (_) {}
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('الحساب غير موجود أو تم حذفه من النظام'),
+            backgroundColor: Color(0xFFDC2626),
+            duration: Duration(seconds: 4),
+          ),
+        );
+        Navigator.pushReplacementNamed(context, AppRouter.onboarding);
+        return;
+      }
+
       if (role == UserRole.teacher) {
         final result = await TeacherProfileRepo().getApprovalStatus(user.id);
         if (!mounted) return;

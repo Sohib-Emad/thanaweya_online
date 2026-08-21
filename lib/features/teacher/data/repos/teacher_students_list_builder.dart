@@ -35,11 +35,11 @@ class TeacherStudentsListBuilder {
     try {
       final codes = await _client
           .from('activation_codes')
-          .select('used_by, used_by_student_id, used_at')
+          .select('used_by, used_at')
           .eq('teacher_id', teacherId)
           .eq('is_used', true);
       for (final c in codes) {
-        final sId = (c['used_by_student_id'] ?? c['used_by']) as String?;
+        final sId = c['used_by'] as String?;
         if (sId != null && sId.isNotEmpty) {
           ids.add(sId);
           statusMap.putIfAbsent(sId, () => 'active');
@@ -59,8 +59,7 @@ class TeacherStudentsListBuilder {
         if (sId != null && sId.isNotEmpty) {
           ids.add(sId);
           statusMap.putIfAbsent(sId, () => 'active');
-          dateMap.putIfAbsent(
-              sId, () => item['submitted_at'] as String? ?? '');
+          dateMap.putIfAbsent(sId, () => item['submitted_at'] as String? ?? '');
         }
       }
     } catch (_) {}
@@ -69,7 +68,9 @@ class TeacherStudentsListBuilder {
     try {
       final progData = await _client
           .from('lesson_progress')
-          .select('student_id, last_watched_at, lessons!inner(courses!inner(teacher_id))')
+          .select(
+            'student_id, last_watched_at, lessons!inner(courses!inner(teacher_id))',
+          )
           .eq('lessons.courses.teacher_id', teacherId);
       for (final item in progData) {
         final sId = item['student_id'] as String?;
@@ -77,7 +78,9 @@ class TeacherStudentsListBuilder {
           ids.add(sId);
           statusMap.putIfAbsent(sId, () => 'active');
           dateMap.putIfAbsent(
-              sId, () => item['last_watched_at'] as String? ?? '');
+            sId,
+            () => item['last_watched_at'] as String? ?? '',
+          );
         }
       }
     } catch (_) {}
@@ -121,7 +124,9 @@ class TeacherStudentsListBuilder {
         final sid = sc['student_id'] as String? ?? '';
         final courseMap = sc['courses'] as Map<String, dynamic>?;
         final stage = courseMap?['stage'] as String? ?? '';
-        if (sid.isNotEmpty && stage.isNotEmpty && !studentGradesMap.containsKey(sid)) {
+        if (sid.isNotEmpty &&
+            stage.isNotEmpty &&
+            !studentGradesMap.containsKey(sid)) {
           studentGradesMap[sid] = stage;
         }
       }
@@ -130,10 +135,10 @@ class TeacherStudentsListBuilder {
     try {
       final actCodes = await _client
           .from('activation_codes')
-          .select('used_by, used_by_student_id, courses(stage)')
-          .or('used_by.in.(${studentIds.join(",")}),used_by_student_id.in.(${studentIds.join(",")})');
+          .select('used_by, courses(stage)')
+          .inFilter('used_by', studentIds);
       for (final ac in actCodes) {
-        final sid = (ac['used_by_student_id'] ?? ac['used_by']) as String? ?? '';
+        final sid = ac['used_by'] as String? ?? '';
         final courseMap = ac['courses'] as Map<String, dynamic>?;
         final stage = courseMap?['stage'] as String? ?? '';
         if (sid.isNotEmpty && stage.isNotEmpty && !studentGradesMap.containsKey(sid)) {
@@ -148,7 +153,9 @@ class TeacherStudentsListBuilder {
 
     try {
       var teacherCourses = await _client
-          .from('courses').select('id, stage').eq('teacher_id', teacherId);
+          .from('courses')
+          .select('id, stage')
+          .eq('teacher_id', teacherId);
       if (teacherCourses.isEmpty) {
         try {
           final tRow = await _client
@@ -162,7 +169,9 @@ class TeacherStudentsListBuilder {
           }
           if (actualTid != null && actualTid != teacherId) {
             teacherCourses = await _client
-                .from('courses').select('id, stage').eq('teacher_id', actualTid);
+                .from('courses')
+                .select('id, stage')
+                .eq('teacher_id', actualTid);
           }
         } catch (_) {}
       }
@@ -175,13 +184,19 @@ class TeacherStudentsListBuilder {
       }
 
       final courseIds = teacherCourses
-          .map((c) => c['id'] as String?).whereType<String>().toList();
+          .map((c) => c['id'] as String?)
+          .whereType<String>()
+          .toList();
       if (courseIds.isNotEmpty) {
         final tLessons = await _client
-            .from('lessons').select('id').inFilter('course_id', courseIds);
+            .from('lessons')
+            .select('id')
+            .inFilter('course_id', courseIds);
         teacherLessonsCount = tLessons.length;
         final lessonIds = tLessons
-            .map((l) => l['id'] as String?).whereType<String>().toList();
+            .map((l) => l['id'] as String?)
+            .whereType<String>()
+            .toList();
         if (lessonIds.isNotEmpty && studentIds.isNotEmpty) {
           final progRows = await _client
               .from('lesson_progress')
@@ -190,7 +205,8 @@ class TeacherStudentsListBuilder {
               .inFilter('lesson_id', lessonIds);
           for (final p in progRows) {
             final sId = p['student_id'] as String? ?? '';
-            final isDone = p['is_completed'] == true ||
+            final isDone =
+                p['is_completed'] == true ||
                 p['is_completed'] == 1 ||
                 p['is_completed'] == 'true' ||
                 (p['watched_seconds'] as num? ?? 0) > 0 ||
@@ -216,12 +232,14 @@ class TeacherStudentsListBuilder {
       final percent = total > 0 ? ((done / total) * 100).round() : 0;
 
       final sMeta = Map<String, dynamic>.from(studentsMap[sid] ?? {});
-      final effectiveGrade = (sMeta['grade_level'] as String?)?.isNotEmpty == true
+      final effectiveGrade =
+          (sMeta['grade_level'] as String?)?.isNotEmpty == true
           ? sMeta['grade_level'] as String
           : studentGradesMap[sid] ?? teacherDefaultStage;
       sMeta['grade_level'] = effectiveGrade;
 
-      final effectiveParentPhone = (sMeta['parent_phone'] as String?)?.isNotEmpty == true
+      final effectiveParentPhone =
+          (sMeta['parent_phone'] as String?)?.isNotEmpty == true
           ? sMeta['parent_phone'] as String
           : studentParentPhoneMap[sid] ?? '';
       sMeta['parent_phone'] = effectiveParentPhone;

@@ -14,7 +14,8 @@ class StudentCoursesMyCoursesRepo {
     String studentId,
   ) async {
     try {
-      final uid = _client.auth.currentUser?.id ??
+      final uid =
+          _client.auth.currentUser?.id ??
           _client.auth.currentSession?.user.id ??
           studentId;
       if (uid.isEmpty) return const ApiResult.success([]);
@@ -24,7 +25,11 @@ class StudentCoursesMyCoursesRepo {
       if (teacherIdSet.isEmpty && courseIdSet.isEmpty) {
         return const ApiResult.success([]);
       }
-      return await _enricher.buildMyCoursesResult(uid, teacherIdSet, courseIdSet);
+      return await _enricher.buildMyCoursesResult(
+        uid,
+        teacherIdSet,
+        courseIdSet,
+      );
     } catch (_) {
       return const ApiResult.success([]);
     }
@@ -54,26 +59,24 @@ class StudentCoursesMyCoursesRepo {
           .from('payments')
           .select('course_id')
           .eq('payer_id', uid)
-          .inFilter('status', ['success', 'completed']);
+          .eq('status', 'success');
       for (final p in payData) {
         final cId = p['course_id'] as String?;
         if (cId != null && cId.isNotEmpty) courseIds.add(cId);
       }
     } catch (_) {}
-    for (final field in ['used_by_student_id', 'used_by']) {
-      try {
-        final codeData = await _client
-            .from('activation_codes')
-            .select('teacher_id, course_id')
-            .eq(field, uid);
-        for (final c in codeData) {
-          final tId = c['teacher_id'] as String?;
-          final cId = c['course_id'] as String?;
-          if (tId != null && tId.isNotEmpty) teacherIds.add(tId);
-          if (cId != null && cId.isNotEmpty) courseIds.add(cId);
-        }
-      } catch (_) {}
-    }
+    try {
+      final codeData = await _client
+          .from('activation_codes')
+          .select('teacher_id, course_id')
+          .eq('used_by', uid);
+      for (final c in codeData) {
+        final tId = c['teacher_id'] as String?;
+        final cId = c['course_id'] as String?;
+        if (tId != null && tId.isNotEmpty) teacherIds.add(tId);
+        if (cId != null && cId.isNotEmpty) courseIds.add(cId);
+      }
+    } catch (_) {}
     try {
       final progData = await _client
           .from('lesson_progress')

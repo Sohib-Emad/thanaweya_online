@@ -11,11 +11,14 @@ class AdminStudentsRepo {
   /// Fetches a lightweight list of all approved teachers for filtering.
   Future<ApiResult<List<Map<String, dynamic>>>> getTeachersForFilter() async {
     try {
-      final data = await _client.from('teachers').select('''
+      final data = await _client
+          .from('teachers')
+          .select('''
             id, stage,
             users!inner(id, full_name, email),
             subjects(id, name_ar)
-          ''').order('created_at', ascending: false);
+          ''')
+          .order('created_at', ascending: false);
       return ApiResult.success(List<Map<String, dynamic>>.from(data));
     } catch (e) {
       debugPrint('[AdminStudentsRepo] getTeachersForFilter error: $e');
@@ -50,11 +53,11 @@ class AdminStudentsRepo {
         try {
           final codesData = await _client
               .from('activation_codes')
-              .select('used_by, used_by_student_id')
+              .select('used_by')
               .eq('teacher_id', teacherId)
               .eq('is_used', true);
           for (final c in codesData) {
-            final sId = (c['used_by_student_id'] ?? c['used_by']) as String?;
+            final sId = c['used_by'] as String?;
             if (sId != null && sId.isNotEmpty) filteredStudentIds.add(sId);
           }
         } catch (_) {}
@@ -109,7 +112,9 @@ class AdminStudentsRepo {
       for (final sub in subscriptionsData) {
         final sid = sub['student_id'] as String? ?? '';
         if (sid.isNotEmpty) {
-          studentSubsMap.putIfAbsent(sid, () => []).add(Map<String, dynamic>.from(sub as Map));
+          studentSubsMap
+              .putIfAbsent(sid, () => [])
+              .add(Map<String, dynamic>.from(sub as Map));
         }
       }
 
@@ -144,7 +149,9 @@ class AdminStudentsRepo {
     try {
       final courses = await _client
           .from('courses')
-          .select('id, teacher_id, title, description, cover_image_url, price, is_published, created_at')
+          .select(
+            'id, teacher_id, title, description, cover_image_url, price, is_published, created_at',
+          )
           .eq('teacher_id', teacherId)
           .order('order', ascending: true);
       return ApiResult.success(List<Map<String, dynamic>>.from(courses));
@@ -162,7 +169,9 @@ class AdminStudentsRepo {
     try {
       final courses = await _client
           .from('courses')
-          .select('id, teacher_id, title, description, cover_image_url, price, is_published')
+          .select(
+            'id, teacher_id, title, description, cover_image_url, price, is_published',
+          )
           .eq('teacher_id', teacherId)
           .order('order', ascending: true);
 
@@ -185,7 +194,7 @@ class AdminStudentsRepo {
           .from('payments')
           .select('course_id, status')
           .eq('payer_id', studentId)
-          .inFilter('status', ['success', 'completed']);
+          .eq('status', 'success');
 
       final paidCourseIds = <String>{};
       for (final p in (payData as List)) {
@@ -197,7 +206,7 @@ class AdminStudentsRepo {
       final codeData = await _client
           .from('activation_codes')
           .select('course_id')
-          .or('used_by.eq.$studentId,used_by_student_id.eq.$studentId');
+          .eq('used_by', studentId);
 
       final codeCourseIds = <String>{};
       for (final c in (codeData as List)) {
@@ -211,7 +220,8 @@ class AdminStudentsRepo {
         final sub = subByCourse[cid];
         final subStatus = (sub?['status'] as String?)?.toLowerCase();
 
-        final isExplicitlyUnlocked = subStatus == 'active' ||
+        final isExplicitlyUnlocked =
+            subStatus == 'active' ||
             subStatus == 'completed' ||
             paidCourseIds.contains(cid) ||
             codeCourseIds.contains(cid);
@@ -220,7 +230,8 @@ class AdminStudentsRepo {
           ...c,
           'is_unlocked': isExplicitlyUnlocked,
           'subscription_id': sub?['id'],
-          'subscription_status': subStatus ?? (isExplicitlyUnlocked ? 'active' : 'none'),
+          'subscription_status':
+              subStatus ?? (isExplicitlyUnlocked ? 'active' : 'none'),
         });
       }
 
@@ -238,28 +249,52 @@ class AdminStudentsRepo {
     required String courseId,
   }) async {
     try {
-      // Check existing subscription for this specific course
-      final existing = await _client
+      // 1. Check existing subscription for this specific course
+      final existingCourseSub = await _client
           .from('subscriptions')
           .select('id, status')
           .eq('student_id', studentId)
           .eq('course_id', courseId)
           .maybeSingle();
 
-      if (existing != null) {
-        await _client.from('subscriptions').update({
-          'status': 'active',
-          'starts_at': DateTime.now().toIso8601String(),
-          'expires_at': null,
-        }).eq('id', existing['id']);
+      if (existingCourseSub != null) {
+        await _client
+            .from('subscriptions')
+            .update({
+              'status': 'active',
+              'starts_at': DateTime.now().toIso8601String(),
+              'expires_at': null,
+            })
+            .eq('id', existingCourseSub['id']);
       } else {
-        await _client.from('subscriptions').insert({
-          'student_id': studentId,
-          'teacher_id': teacherId,
-          'course_id': courseId,
-          'status': 'active',
-          'starts_at': DateTime.now().toIso8601String(),
-        });
+        // 2. Check if a legacy subscription exists without a course_id attached
+        final existingGeneralSub = await _client
+            .from('subscriptions')
+            .select('id, status')
+            .eq('student_id', studentId)
+            .eq('teacher_id', teacherId)
+            .isFilter('course_id', null)
+            .maybeSingle();
+
+        if (existingGeneralSub != null) {
+          await _client
+              .from('subscriptions')
+              .update({
+                'course_id': courseId,
+                'status': 'active',
+                'starts_at': DateTime.now().toIso8601String(),
+                'expires_at': null,
+              })
+              .eq('id', existingGeneralSub['id']);
+        } else {
+          await _client.from('subscriptions').insert({
+            'student_id': studentId,
+            'teacher_id': teacherId,
+            'course_id': courseId,
+            'status': 'active',
+            'starts_at': DateTime.now().toIso8601String(),
+          });
+        }
       }
 
       return const ApiResult.success(null);

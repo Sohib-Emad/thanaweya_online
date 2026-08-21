@@ -164,7 +164,7 @@ class TeacherStudentsLessonsListBuilder {
           .from('activation_codes')
           .select('course_id')
           .eq('teacher_id', teacherId)
-          .or('used_by_student_id.eq.$studentId,used_by.eq.$studentId');
+          .eq('used_by', studentId);
       for (final c in codes) {
         final cid = c['course_id'] as String?;
         if (cid != null && cid.isNotEmpty) ids.add(cid);
@@ -175,7 +175,7 @@ class TeacherStudentsLessonsListBuilder {
           .from('payments')
           .select('course_id')
           .or('user_id.eq.$studentId,student_id.eq.$studentId,payer_id.eq.$studentId')
-          .inFilter('status', ['success', 'completed', 'active']);
+          .eq('status', 'success');
       for (final p in pays) {
         final cid = p['course_id'] as String?;
         if (cid != null && cid.isNotEmpty) ids.add(cid);
