@@ -172,8 +172,9 @@ class _LoginScreenState extends State<LoginScreen> {
   void _onAuthChanged(BuildContext context, local.AuthState state) async {
     switch (state.status) {
       case local.AuthStatus.authenticated:
-        final user = _authCubit.authRepo.getCurrentUserModel();
+        final user = state.user ?? _authCubit.authRepo.getCurrentUserModel();
         if (user == null) return;
+        debugPrint('[LoginScreen] Authenticated as role=${user.role.name}');
         if (user.role == UserRole.teacher) {
           final result = await TeacherProfileRepo().getApprovalStatus(user.id);
           final approved = result.when(

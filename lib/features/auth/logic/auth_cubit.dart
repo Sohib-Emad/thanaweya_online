@@ -50,8 +50,8 @@ class AuthCubit extends Cubit<AuthState> {
     final result = await authRepo.signIn(email: email, password: password);
 
     result.when(
-      success: (_) {
-        emit(state.copyWith(status: AuthStatus.authenticated));
+      success: (user) {
+        emit(state.copyWith(status: AuthStatus.authenticated, user: user));
       },
       failure: (message, _) {
         emit(state.copyWith(status: AuthStatus.error, errorMessage: message));

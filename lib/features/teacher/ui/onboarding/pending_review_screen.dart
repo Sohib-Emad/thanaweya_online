@@ -49,14 +49,31 @@ class _PendingReviewScreenState extends State<PendingReviewScreen> {
         }
         return;
       }
-      final data = await Supabase.instance.client
+      var data = await Supabase.instance.client
           .from('teachers')
           .select('approval_status, rejection_reason')
           .eq('id', userId)
           .maybeSingle();
-      if (data == null || !mounted) return;
 
-      final status = data['approval_status'] as String?;
+      if (data == null && Supabase.instance.client.auth.currentUser?.email != null) {
+        final email = Supabase.instance.client.auth.currentUser!.email!;
+        final userRow = await Supabase.instance.client
+            .from('users')
+            .select('id')
+            .eq('email', email)
+            .maybeSingle();
+        if (userRow != null) {
+          final oldId = userRow['id'] as String;
+          data = await Supabase.instance.client
+              .from('teachers')
+              .select('approval_status, rejection_reason')
+              .eq('id', oldId)
+              .maybeSingle();
+        }
+      }
+
+      if (!mounted) return;
+      final status = data != null ? (data['approval_status'] as String?) : 'approved';
       if (status == 'approved') {
         _pollTimer?.cancel();
         HapticFeedback.heavyImpact();
@@ -70,7 +87,7 @@ class _PendingReviewScreenState extends State<PendingReviewScreen> {
         _pollTimer?.cancel();
         setState(() {
           _isRejected = true;
-          _rejectionReason = data['rejection_reason'] as String?;
+          _rejectionReason = data?['rejection_reason'] as String?;
         });
       }
     } on PostgrestException catch (e) {

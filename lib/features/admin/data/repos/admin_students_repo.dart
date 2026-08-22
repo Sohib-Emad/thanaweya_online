@@ -150,12 +150,14 @@ class AdminStudentsRepo {
   /// Sets or updates a student's password directly from the Admin panel.
   Future<ApiResult<void>> updateUserPassword(
     String userId,
-    String newPassword,
-  ) async {
+    String newPassword, {
+    String? email,
+  }) async {
     try {
       final res = await _client.rpc('admin_set_user_password', params: {
         'p_user_id': userId,
         'p_new_password': newPassword,
+        if (email != null && email.isNotEmpty) 'p_email': email,
       });
       final map = res as Map<String, dynamic>?;
       if (map?['ok'] == true) {

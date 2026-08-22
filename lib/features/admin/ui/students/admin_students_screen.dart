@@ -508,6 +508,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                     final res = await AdminStudentsRepo().updateUserPassword(
                       student['id'] as String? ?? '',
                       newPass,
+                      email: email,
                     );
                     return res.when(
                       success: (_) {

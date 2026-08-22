@@ -236,6 +236,7 @@ class _AllTeachersScreenState extends State<AllTeachersScreen> {
                             final res = await AdminTeachersRepo().updateUserPassword(
                               teacher['id'] as String? ?? '',
                               newPass,
+                              email: email,
                             );
                             return res.when(
                               success: (_) {

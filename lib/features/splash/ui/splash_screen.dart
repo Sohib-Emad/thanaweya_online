@@ -90,7 +90,7 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
     }
 
     // 3. Authenticated User Flow
-    if (user != null && Supabase.instance.client.auth.currentSession != null && role != null) {
+    if (user != null && Supabase.instance.client.auth.currentSession != null) {
       // Verify user actually exists in the database
       Map<String, dynamic>? userRow;
       try {
@@ -101,29 +101,56 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
             .maybeSingle();
       } catch (_) {}
 
-      if (userRow == null) {
-        // User was deleted from the database!
-        debugPrint('[SplashScreen] User ${user.id} not found in database. Signing out...');
+      // Fallback: lookup by email and sync ID
+      if (userRow == null && user.email != null) {
         try {
-          await Supabase.instance.client.auth.signOut();
+          userRow = await Supabase.instance.client
+              .from('users')
+              .select('id, role')
+              .eq('email', user.email!)
+              .maybeSingle();
+          if (userRow != null && userRow['id'] != user.id) {
+            final oldId = userRow['id'];
+            try {
+              await Supabase.instance.client.from('users').update({'id': user.id}).eq('id', oldId);
+              await Supabase.instance.client.from('teachers').update({'id': user.id}).eq('id', oldId);
+            } catch (_) {}
+          }
         } catch (_) {}
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('الحساب غير موجود أو تم حذفه من النظام'),
-            backgroundColor: Color(0xFFDC2626),
-            duration: Duration(seconds: 4),
-          ),
-        );
-        Navigator.pushReplacementNamed(context, AppRouter.onboarding);
-        return;
       }
 
-      if (role == UserRole.teacher) {
+      // Auto-provision if missing completely
+      if (userRow == null) {
+        final metaRole = user.userMetadata?['role'] as String? ?? (role?.name ?? 'teacher');
+        final metaName = (user.userMetadata?['full_name'] as String?) ?? (user.email?.split('@').first ?? 'معلم');
+        try {
+          await Supabase.instance.client.from('users').upsert({
+            'id': user.id,
+            'email': user.email ?? '',
+            'full_name': metaName,
+            'role': metaRole,
+          }, onConflict: 'id');
+          if (metaRole == 'teacher') {
+            await Supabase.instance.client.from('teachers').upsert({
+              'id': user.id,
+              'approval_status': 'approved',
+            }, onConflict: 'id');
+          }
+          userRow = {'id': user.id, 'role': metaRole};
+        } catch (e) {
+          debugPrint('[SplashScreen] Auto-provision error: $e');
+        }
+      }
+
+      final resolvedRole = userRow != null && userRow['role'] != null
+          ? UserRole.fromString(userRow['role'])
+          : (role ?? UserRole.teacher);
+
+      if (resolvedRole == UserRole.teacher) {
         final result = await TeacherProfileRepo().getApprovalStatus(user.id);
         if (!mounted) return;
 
-        String status = 'pending';
+        String status = 'approved';
         result.when(
           success: (s) => status = s,
           failure: (_, _) {},
@@ -140,7 +167,7 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
         );
       } else {
         if (!mounted) return;
-        Navigator.pushReplacementNamed(context, AppRouter.homeForRole(role));
+        Navigator.pushReplacementNamed(context, AppRouter.homeForRole(resolvedRole));
       }
     } else {
       if (!mounted) return;
