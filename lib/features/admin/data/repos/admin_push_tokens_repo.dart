@@ -1,14 +1,18 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
 import 'package:thanaweya_online/core/network/api_error_handler.dart';
 import 'package:thanaweya_online/core/network/api_result.dart';
 import 'package:thanaweya_online/core/supabase/user_lookup.dart';
+export 'admin_push_tokens_sender_ext.dart';
 
 class AdminPushTokensRepo {
-  final SupabaseClient _client = Supabase.instance.client;
+  final SupabaseClient _client;
 
-  /// Fetches all registered device tokens with their associated user & teacher details.
+  AdminPushTokensRepo({SupabaseClient? client})
+      : _client = client ?? Supabase.instance.client;
+
+  SupabaseClient get client => _client;
+
   Future<ApiResult<List<Map<String, dynamic>>>> getAllDeviceTokens() async {
     try {
       final data = await _client
@@ -19,16 +23,9 @@ class AdminPushTokensRepo {
       final tokenList = List<Map<String, dynamic>>.from(data);
       if (tokenList.isEmpty) return const ApiResult.success([]);
 
-      final userIds = tokenList
-          .map((t) => t['user_id'] as String?)
-          .whereType<String>()
-          .toSet()
-          .toList();
-
-      // Look up user details
+      final userIds = tokenList.map((t) => t['user_id'] as String?).whereType<String>().toSet().toList();
       final usersMap = await StudentUserLookup().forIds(userIds);
 
-      // Check teachers table to identify all teachers reliably
       final teachersMap = <String, Map<String, dynamic>>{};
       try {
         final teachersData = await _client
@@ -37,9 +34,7 @@ class AdminPushTokensRepo {
             .inFilter('id', userIds);
         for (final t in teachersData) {
           final tid = t['id'] as String? ?? '';
-          if (tid.isNotEmpty) {
-            teachersMap[tid] = Map<String, dynamic>.from(t);
-          }
+          if (tid.isNotEmpty) teachersMap[tid] = Map<String, dynamic>.from(t);
         }
       } catch (_) {}
 
@@ -48,13 +43,8 @@ class AdminPushTokensRepo {
         final uid = t['user_id'] as String? ?? '';
         final user = usersMap[uid] ?? <String, dynamic>{};
         final teacherInfo = teachersMap[uid];
-
-        final isTeacher = teacherInfo != null ||
-            (user['role'] as String?)?.toLowerCase() == 'teacher';
-
-        final subjectName = (teacherInfo?['subjects']
-                as Map<String, dynamic>?)?['name_ar'] as String? ??
-            '';
+        final isTeacher = teacherInfo != null || (user['role'] as String?)?.toLowerCase() == 'teacher';
+        final subjectName = (teacherInfo?['subjects'] as Map<String, dynamic>?)?['name_ar'] as String? ?? '';
 
         enriched.add({
           ...t,
@@ -68,7 +58,6 @@ class AdminPushTokensRepo {
           'stage': teacherInfo?['stage'] ?? '',
         });
       }
-
       return ApiResult.success(enriched);
     } catch (e) {
       debugPrint('[AdminPushTokensRepo] getAllDeviceTokens error: $e');
@@ -76,77 +65,6 @@ class AdminPushTokensRepo {
     }
   }
 
-  /// Sends in-app and push notification to target audience.
-  /// [targetType] can be: 'all', 'students', 'teachers', or 'specific'.
-  Future<ApiResult<int>> sendNotification({
-    required String title,
-    required String body,
-    required String targetType, // 'all', 'students', 'teachers', 'specific'
-    String? specificUserId,
-    String category = 'admin_broadcast',
-  }) async {
-    try {
-      List<String> targetUserIds = [];
-
-      if (targetType == 'specific' && specificUserId != null) {
-        targetUserIds = [specificUserId];
-      } else if (targetType == 'students') {
-        final students = await _client.from('students').select('id');
-        targetUserIds = (students as List)
-            .map((s) => s['id'] as String?)
-            .whereType<String>()
-            .toList();
-      } else if (targetType == 'teachers') {
-        final teachers = await _client.from('teachers').select('id');
-        targetUserIds = (teachers as List)
-            .map((t) => t['id'] as String?)
-            .whereType<String>()
-            .toList();
-      } else {
-        // All users from users table
-        final users = await _client.from('users').select('id');
-        targetUserIds = (users as List)
-            .map((u) => u['id'] as String?)
-            .whereType<String>()
-            .toList();
-      }
-
-      if (targetUserIds.isEmpty) {
-        return const ApiResult.success(0);
-      }
-
-      // Batch insert into notifications table in chunks of 100
-      final now = DateTime.now().toUtc().toIso8601String();
-      const chunkSize = 100;
-      int insertedCount = 0;
-
-      for (var i = 0; i < targetUserIds.length; i += chunkSize) {
-        final end = (i + chunkSize < targetUserIds.length)
-            ? i + chunkSize
-            : targetUserIds.length;
-        final chunk = targetUserIds.sublist(i, end);
-
-        final rows = chunk.map((uid) => {
-          'user_id': uid,
-          'title': title,
-          'body': body,
-          'category': category,
-          'is_read': false,
-          'created_at': now,
-        }).toList();
-
-        await _client.from('notifications').insert(rows);
-        insertedCount += chunk.length;
-      }
-
-      return ApiResult.success(insertedCount);
-    } catch (e) {
-      debugPrint('[AdminPushTokensRepo] sendNotification error: $e');
-      return ApiErrorHandler.handleException(e);
-    }
-  }
-
-  /// Deletes a device token.
   Future<ApiResult<void>> deleteDeviceToken(String tokenId) async {
     try {
       await _client.from('device_tokens').delete().eq('id', tokenId);

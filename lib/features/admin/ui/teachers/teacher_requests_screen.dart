@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-
 import 'package:thanaweya_online/core/constants/app_colors.dart';
 import 'package:thanaweya_online/core/constants/app_strings.dart';
 import 'package:thanaweya_online/features/admin/data/repos/admin_teachers_repo.dart';
@@ -40,22 +39,12 @@ class _TeacherRequestsScreenState extends State<TeacherRequestsScreen> {
         body: BlocBuilder<AdminTeachersCubit, AdminTeachersState>(
           bloc: _cubit,
           builder: (context, state) {
-            if (state.status == AdminTeachersStatus.loading) {
-              return const Center(child: CircularProgressIndicator());
-            }
+            if (state.status == AdminTeachersStatus.loading) return const Center(child: CircularProgressIndicator());
             if (state.status == AdminTeachersStatus.error) {
-              return EmptyStateView(
-                icon: Icons.error_outline,
-                iconColor: AppColors.error,
-                message: state.errorMessage ?? 'حدث خطأ',
-              );
+              return EmptyStateView(icon: Icons.error_outline, iconColor: AppColors.error, message: state.errorMessage ?? 'حدث خطأ');
             }
             if (state.pendingTeachers.isEmpty) {
-              return const EmptyStateView(
-                icon: Icons.check_circle_outline,
-                iconColor: AppColors.textTertiary,
-                message: AppStrings.noData,
-              );
+              return const EmptyStateView(icon: Icons.check_circle_outline, iconColor: AppColors.textTertiary, message: AppStrings.noData);
             }
             return RefreshIndicator(
               onRefresh: () => _cubit.loadPendingTeachers(),
@@ -66,28 +55,18 @@ class _TeacherRequestsScreenState extends State<TeacherRequestsScreen> {
                   final teacher = state.pendingTeachers[index];
                   final users = teacher['users'] as Map<String, dynamic>? ?? {};
                   final name = users['full_name'] as String? ?? '';
-                  final initials = name.isNotEmpty ? name[0] : 'م';
-                  final phone = users['phone'] as String? ?? '';
-                  final subjects = teacher['subjects'] as Map<String, dynamic>? ?? {};
                   final teacherId = teacher['id'] as String? ?? '';
-                  final plan = teacher['selected_plan'] as String?;
-                  final amount = teacher['subscription_amount'] as num?;
-                  final receiptUrl = teacher['payment_receipt_url'] as String?;
-                  final idFrontUrl = teacher['id_card_front_url'] as String?;
-                  final idBackUrl = teacher['id_card_back_url'] as String?;
-                  final proofUrl = teacher['teacher_proof_url'] as String?;
-
                   return TeacherRequestCard(
                     name: name,
-                    initials: initials,
-                    subject: subjects['name_ar'] as String? ?? '',
-                    phone: phone,
-                    plan: plan,
-                    amount: amount,
-                    receiptUrl: receiptUrl,
-                    idFrontUrl: idFrontUrl,
-                    idBackUrl: idBackUrl,
-                    proofUrl: proofUrl,
+                    initials: name.isNotEmpty ? name[0] : 'م',
+                    subject: (teacher['subjects'] as Map<String, dynamic>?)?['name_ar'] as String? ?? '',
+                    phone: users['phone'] as String? ?? '',
+                    plan: teacher['selected_plan'] as String?,
+                    amount: teacher['subscription_amount'] as num?,
+                    receiptUrl: teacher['payment_receipt_url'] as String?,
+                    idFrontUrl: teacher['id_card_front_url'] as String?,
+                    idBackUrl: teacher['id_card_back_url'] as String?,
+                    proofUrl: teacher['teacher_proof_url'] as String?,
                     onApprove: () {
                       HapticFeedback.lightImpact();
                       _cubit.approveTeacher(teacherId);

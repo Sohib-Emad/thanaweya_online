@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/router/app_router.dart';
 import '../../data/repos/admin_dashboard_repo.dart';
@@ -30,6 +29,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     super.dispose();
   }
 
+  void _onNavTap(int index) {
+    switch (index) {
+      case 1: Navigator.pushNamed(context, AppRouter.adminAllTeachers); break;
+      case 2: Navigator.pushNamed(context, AppRouter.adminManageSubjects); break;
+      case 3: Navigator.pushNamed(context, AppRouter.adminSubscriptionPlans); break;
+      case 4: Navigator.pushNamed(context, AppRouter.adminPlatformReports); break;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Directionality(
@@ -43,37 +51,22 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               return RefreshIndicator(
                 onRefresh: () => _cubit.loadDashboard(),
                 child: CustomScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(
-                    parent: BouncingScrollPhysics(),
-                  ),
+                  physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
                   slivers: [
                     SliverToBoxAdapter(
-                      child: Padding(
-                        padding: EdgeInsets.fromLTRB(24.w, 20.h, 24.w, 0),
-                        child: const DashboardHeader(),
-                      ),
+                      child: Padding(padding: EdgeInsets.fromLTRB(24.w, 20.h, 24.w, 0), child: const DashboardHeader()),
                     ),
                     SliverToBoxAdapter(child: SizedBox(height: 24.h)),
                     if (state.status == AdminDashboardStatus.loading)
-                      const SliverFillRemaining(
-                        child: Center(child: CircularProgressIndicator()),
-                      )
+                      const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
                     else ...[
-                      SliverToBoxAdapter(
-                        child: DashboardStatsList(stats: state.stats),
-                      ),
+                      SliverToBoxAdapter(child: DashboardStatsList(stats: state.stats)),
                       SliverToBoxAdapter(child: SizedBox(height: 16.h)),
-                      const SliverToBoxAdapter(
-                        child: AdminQuickActionsGrid(),
-                      ),
+                      const SliverToBoxAdapter(child: AdminQuickActionsGrid()),
                       SliverToBoxAdapter(child: SizedBox(height: 16.h)),
-                      const SliverToBoxAdapter(
-                        child: AdminSystemModesCard(),
-                      ),
+                      const SliverToBoxAdapter(child: AdminSystemModesCard()),
                       SliverToBoxAdapter(child: SizedBox(height: 16.h)),
-                      SliverToBoxAdapter(
-                        child: RecentTeachersList(teachers: state.recentTeachers),
-                      ),
+                      SliverToBoxAdapter(child: RecentTeachersList(teachers: state.recentTeachers)),
                     ],
                     SliverToBoxAdapter(child: SizedBox(height: 100.h)),
                   ],
@@ -82,25 +75,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             },
           ),
         ),
-        bottomNavigationBar: DashboardBottomNav(
-          currentIndex: 0,
-          onTap: (index) {
-            switch (index) {
-              case 1:
-                Navigator.pushNamed(context, AppRouter.adminAllTeachers);
-                break;
-              case 2:
-                Navigator.pushNamed(context, AppRouter.adminManageSubjects);
-                break;
-              case 3:
-                Navigator.pushNamed(context, AppRouter.adminSubscriptionPlans);
-                break;
-              case 4:
-                Navigator.pushNamed(context, AppRouter.adminPlatformReports);
-                break;
-            }
-          },
-        ),
+        bottomNavigationBar: DashboardBottomNav(currentIndex: 0, onTap: _onNavTap),
       ),
     );
   }

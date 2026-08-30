@@ -1,82 +1,316 @@
-# تعليمات الريفاكتور (Refactor Guidelines)
+# Refactor + Unit Test + Widget Extraction Guide
+## 1. قاعدة الـ 100 سطر
 
-## القواعد الأساسية اللي طلبتها
+```
+if (file.lines > 100) → فصّل
+```
 
-1. **حد أقصى 150 سطر لكل ملف** داخل أي فيتشر (Feature). لو أي ملف عدى 150 سطر، لازم يتقسم لملفات أصغر.
-2. **كل ويدجت في الشاشة تتفصل في ملف لوحدها**. يعني مفيش `Widget` مكتوب جوه ملف الشاشة نفسه (لا كـ method زي `_buildHeader()` ولا كـ class داخلي)، كل ويدجت له ملف مستقل باسمه.
+| نوع الملف | بيتفصل إزاي |
+|---|---|
+| Cubit | cubit في ملف / state في ملف |
+| Repository impl | كل method group في extension |
+| Page | كل section → widget منفصل |
+| Widget كبير | sub-widgets في `widgets/` folder |
 
 ---
 
-## قواعد إضافية مقترحة (زودتها عشان الريفاكتور يبقى منظم فعلاً)
+## 2. هيكل الـ Unit Tests
 
-### 1. هيكلة الفولدرات لكل فيتشر
 ```
-lib/features/feature_name/
-├── presentation/
-│   ├── screens/
-│   │   └── feature_screen.dart
-│   ├── widgets/
-│   │   ├── feature_header.dart
-│   │   ├── feature_card.dart
-│   │   └── ...
-│   ├── controllers/ (أو cubit/bloc/provider)
-│   └── state/
-├── domain/
-│   ├── entities/
-│   └── usecases/
-└── data/
-    ├── models/
-    └── repositories/
+test/
+└── features/
+    └── feature/
+        ├── data/
+        │   ├── datasources/  feature_datasource_test.dart
+        │   └── repositories/ feature_repository_test.dart
+        ├── domain/
+        │   └── usecases/     feature_usecases_test.dart
+        └── presentation/
+            └── cubit/        feature_cubit_test.dart
 ```
 
-### 2. تسمية الملفات والكلاسات
-- اسم الملف = `snake_case`، اسم الكلاس = `PascalCase`، ولازم يتطابقوا منطقيًا (مثلاً `product_card.dart` → `class ProductCard`).
-- كل ملف يحتوي **كلاس واحد رئيسي بس** (Single Responsibility).
-- ممنوع أكتر من `class` عام واحد في نفس الملف إلا لو ملف صغير جدًا لموديلات مرتبطة ببعض بشكل وثيق.
-
-### 3. فصل المنطق عن الشكل (UI vs Logic)
-- ممنوع أي `API call` أو `business logic` جوه الـ Widget مباشرة. لازم تكون في Controller/Cubit/Bloc/Provider.
-- الـ Widget يستقبل الداتا جاهزة (State) ويعرضها بس.
-
-### 4. الـ Barrel Files
-- كل فولدر `widgets/` يبقى له ملف `widgets.dart` بيعمل export لكل الويدجتس اللي جواه، عشان الاستيراد يبقى نضيف:
-  ```dart
-  export 'feature_header.dart';
-  export 'feature_card.dart';
-  ```
-
-### 5. الحد من التداخل (Nesting)
-- ممنوع أي `build()` method يتعدى مستوى تداخل (nesting) معين (مثلاً أكتر من 4-5 مستويات) — لو حصل كده، ده إشارة إن الجزء ده لازم يبقى Widget مستقل.
-
-### 6. الثوابت والقيم الجاهزة
-- ممنوع "Magic Numbers" أو "Magic Strings" جوه الويدجتس. كل القيم (padding, sizes, durations, texts) تتحط في ملفات `constants/` أو `app_theme.dart`.
-- الألوان والخطوط تُستخدم من `Theme.of(context)` مش Hardcoded.
-
-### 7. إعادة استخدام الكود (Reusability)
-- أي جزء UI اتكرر في أكتر من مكان (زرار، كارت، تكست فيلد) يتحول لـ Shared/Common Widget في فولدر `core/widgets/` مش يتكرر في كل فيتشر.
-
-### 8. التعليقات والتوثيق
-- كل ويدجت أو كلاس عام لازم يكون فوقه `///` doc comment قصير يشرح وظيفته.
-
-### 9. الاستيرادات (Imports)
-- ترتيب الاستيرادات: Dart/Flutter core → Packages خارجية → ملفات المشروع (Relative).
-- ممنوع Unused imports.
-
-### 10. الاختبارات
-- كل ويدجت جديدة (خصوصًا اللي فيها Logic بسيط زي conditions) يفضل يكون ليها Widget Test في `test/features/feature_name/`.
-
-### 11. حجم الفنكشنز (Methods)
-- أي method (مش بس ملفات) تتعدى 30-40 سطر تتراجع وتتقسم لـ methods أصغر بأسماء واضحة.
-
-### 12. الـ Immutability
-- استخدام `const` constructors لأي Widget مفيهاش state متغير، لتحسين الأداء.
+> الكود الكامل للتيستات → **[`feature_tests.dart`](./feature_tests.dart)**
 
 ---
 
-## خطوات تنفيذ الريفاكتور (مقترحة)
-1. اعمل جرد (Inventory) لكل الملفات اللي عدت 150 سطر.
-2. حدد كل الويدجتس المدمجة جوه الشاشات (سواء كـ private methods أو classes).
-3. افصل كل ويدجت في ملف مستقل مع الحفاظ على نفس الـ props والـ behavior.
-4. تأكد إن كل فيتشر بقى متبع نفس هيكلة الفولدرات (presentation/domain/data).
-5. شغل الـ Analyzer (`flutter analyze`) بعد كل تعديل للتأكد إن مفيش أخطاء.
-6. اعمل Test للتأكد إن الـ UI شغال زي قبل الريفاكتور بالظبط.
+## 3. هيكل الـ Widgets بعد الفصل
+
+```
+presentation/
+├── cubit/
+│   ├── feature_cubit.dart
+│   └── feature_state.dart        ← اتفصل من الـ cubit
+├── pages/
+│   └── feature_page.dart         ← بس بيعمل BlocBuilder + scaffold
+└── widgets/
+    ├── feature_list.dart          ← اللي بيعرض الـ list
+    ├── feature_list_item.dart     ← الـ item الواحد
+    ├── feature_empty_state.dart   ← لما مفيش data
+    ├── feature_error_widget.dart  ← لما يحصل error
+    └── feature_form.dart          ← form الـ create/edit
+```
+
+---
+
+## 4. قاعدة فصل الـ Widgets
+
+```dart
+// ✅ الـ page بس بتنظم — مفيش منطق جوّاها
+class FeaturePage extends StatelessWidget {
+  Widget build(context) => BlocBuilder<FeatureCubit, FeatureState>(
+    builder: (_, state) => Scaffold(
+      body: state.when(
+        initial: () => const SizedBox.shrink(),
+        loading: () => const CircularProgressIndicator(),
+        loaded:  (items) => FeatureList(items: items),   // widgets/feature_list.dart
+        error:   (msg)   => FeatureErrorWidget(msg),     // widgets/feature_error_widget.dart
+      ),
+      floatingActionButton: const FeatureForm(),         // widgets/feature_form.dart
+    ),
+  );
+}
+```
+
+> `feature_state.dart` بيتفصل من `feature_cubit.dart` بـ `part of`
+
+---
+
+## 5. Unit Test: ماذا نتيست؟
+
+| Layer | بنتيست إيه | Tool |
+|---|---|---|
+| Datasource | بترجع الداتا صح من Supabase | `mocktail` |
+| Repository | بتعمل map صح من model → entity | `mocktail` |
+| Usecases | بتستدعي الـ repo وترجع الـ result | `mocktail` |
+| Cubit | الـ states بتتبعت بالترتيب الصح | `bloc_test` |
+
+> **التيست الكامل في [`feature_tests.dart`](./feature_tests.dart)**
+
+---
+
+## 7. Checklist قبل ما تـ push
+
+```
+□ كل ملف < 100 سطر
+□ كل widget في widgets/ folder ليها ملفها
+□ feature_state.dart منفصل عن feature_cubit.dart
+□ cubit tests: success + failure لكل operation
+□ repository tests: Right و Left cases
+□ mock بـ mocktail — مفيش real Supabase في التيستات
+```
+
+// test/features/feature/presentation/cubit/feature_cubit_test.dart
+import 'package:bloc_test/bloc_test.dart';
+import 'package:dartz/dartz.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
+
+// ─── Mocks ───────────────────────────────────────────────────────────────────
+class MockGetAllFeaturesUsecase extends Mock implements GetAllFeaturesUsecase {}
+class MockCreateFeatureUsecase  extends Mock implements CreateFeatureUsecase  {}
+class MockUpdateFeatureUsecase  extends Mock implements UpdateFeatureUsecase  {}
+class MockDeleteFeatureUsecase  extends Mock implements DeleteFeatureUsecase  {}
+class MockFeatureRepository     extends Mock implements FeatureRepository     {}
+
+// ─── Fake Entities ───────────────────────────────────────────────────────────
+class FakeFeatureEntity extends Fake implements FeatureEntity {}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+final tEntity = FeatureEntity(id: '1', name: 'Test Feature');
+final tList   = [tEntity];
+const tFailure = ServerFailure('something went wrong');
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  CUBIT TESTS
+// ─────────────────────────────────────────────────────────────────────────────
+void main() {
+  late MockGetAllFeaturesUsecase mockGetAll;
+  late MockCreateFeatureUsecase  mockCreate;
+  late MockUpdateFeatureUsecase  mockUpdate;
+  late MockDeleteFeatureUsecase  mockDelete;
+  late FeatureCubit              cubit;
+
+  setUpAll(() => registerFallbackValue(FakeFeatureEntity()));
+
+  setUp(() {
+    mockGetAll = MockGetAllFeaturesUsecase();
+    mockCreate = MockCreateFeatureUsecase();
+    mockUpdate = MockUpdateFeatureUsecase();
+    mockDelete = MockDeleteFeatureUsecase();
+    cubit = FeatureCubit(
+      getAll: mockGetAll,
+      create: mockCreate,
+      update: mockUpdate,
+      delete: mockDelete,
+    );
+  });
+
+  tearDown(() => cubit.close());
+
+  // ── loadAll ────────────────────────────────────────────────────────────────
+  group('loadAll()', () {
+    blocTest<FeatureCubit, FeatureState>(
+      'emits [loading, loaded] on success',
+      build: () {
+        when(() => mockGetAll()).thenAnswer((_) async => Right(tList));
+        return cubit;
+      },
+      act: (c) => c.loadAll(),
+      expect: () => [
+        const FeatureState.loading(),
+        FeatureState.loaded(tList),
+      ],
+    );
+
+    blocTest<FeatureCubit, FeatureState>(
+      'emits [loading, error] on failure',
+      build: () {
+        when(() => mockGetAll()).thenAnswer((_) async => const Left(tFailure));
+        return cubit;
+      },
+      act: (c) => c.loadAll(),
+      expect: () => [
+        const FeatureState.loading(),
+        const FeatureState.error('something went wrong'),
+      ],
+    );
+  });
+
+  // ── create ─────────────────────────────────────────────────────────────────
+  group('create()', () {
+    blocTest<FeatureCubit, FeatureState>(
+      'emits [loading, loaded] after successful create + refresh',
+      build: () {
+        when(() => mockCreate(any())).thenAnswer((_) async => Right(tEntity));
+        when(() => mockGetAll()).thenAnswer((_) async => Right(tList));
+        return cubit;
+      },
+      act: (c) => c.create(tEntity),
+      expect: () => [
+        const FeatureState.loading(),
+        const FeatureState.loading(), // من الـ loadAll
+        FeatureState.loaded(tList),
+      ],
+    );
+
+    blocTest<FeatureCubit, FeatureState>(
+      'emits [loading, error] on create failure',
+      build: () {
+        when(() => mockCreate(any()))
+            .thenAnswer((_) async => const Left(tFailure));
+        return cubit;
+      },
+      act: (c) => c.create(tEntity),
+      expect: () => [
+        const FeatureState.loading(),
+        const FeatureState.error('something went wrong'),
+      ],
+    );
+  });
+
+  // ── update ─────────────────────────────────────────────────────────────────
+  group('update()', () {
+    blocTest<FeatureCubit, FeatureState>(
+      'emits [loading, loaded] after successful update + refresh',
+      build: () {
+        when(() => mockUpdate(any())).thenAnswer((_) async => Right(tEntity));
+        when(() => mockGetAll()).thenAnswer((_) async => Right(tList));
+        return cubit;
+      },
+      act: (c) => c.update(tEntity),
+      expect: () => [
+        const FeatureState.loading(),
+        const FeatureState.loading(),
+        FeatureState.loaded(tList),
+      ],
+    );
+
+    blocTest<FeatureCubit, FeatureState>(
+      'emits [loading, error] on update failure',
+      build: () {
+        when(() => mockUpdate(any()))
+            .thenAnswer((_) async => const Left(tFailure));
+        return cubit;
+      },
+      act: (c) => c.update(tEntity),
+      expect: () => [
+        const FeatureState.loading(),
+        const FeatureState.error('something went wrong'),
+      ],
+    );
+  });
+
+  // ── delete ─────────────────────────────────────────────────────────────────
+  group('delete()', () {
+    blocTest<FeatureCubit, FeatureState>(
+      'emits [loading, loaded] after successful delete + refresh',
+      build: () {
+        when(() => mockDelete(any())).thenAnswer((_) async => const Right(unit));
+        when(() => mockGetAll()).thenAnswer((_) async => Right(tList));
+        return cubit;
+      },
+      act: (c) => c.delete('1'),
+      expect: () => [
+        const FeatureState.loading(),
+        const FeatureState.loading(),
+        FeatureState.loaded(tList),
+      ],
+    );
+
+    blocTest<FeatureCubit, FeatureState>(
+      'emits [loading, error] on delete failure',
+      build: () {
+        when(() => mockDelete(any()))
+            .thenAnswer((_) async => const Left(tFailure));
+        return cubit;
+      },
+      act: (c) => c.delete('1'),
+      expect: () => [
+        const FeatureState.loading(),
+        const FeatureState.error('something went wrong'),
+      ],
+    );
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  //  REPOSITORY TESTS  →  test/features/feature/data/repositories/
+  // ─────────────────────────────────────────────────────────────────────────
+  group('FeatureRepositoryImpl', () {
+    late MockFeatureRemoteDatasource mockDatasource;
+    late FeatureRepositoryImpl       repo;
+
+    setUp(() {
+      mockDatasource = MockFeatureRemoteDatasource();
+      repo = FeatureRepositoryImpl(remote: mockDatasource);
+    });
+
+    test('getAll returns Right(list) on success', () async {
+      when(() => mockDatasource.getAll())
+          .thenAnswer((_) async => [FeatureModel.fromEntity(tEntity)]);
+      final result = await repo.getAll();
+      expect(result, Right(tList));
+    });
+
+    test('getAll returns Left(ServerFailure) on exception', () async {
+      when(() => mockDatasource.getAll())
+          .thenThrow(ServerException('error'));
+      final result = await repo.getAll();
+      expect(result, const Left(ServerFailure('error')));
+    });
+
+    test('create returns Right(entity) on success', () async {
+      when(() => mockDatasource.create(any()))
+          .thenAnswer((_) async => FeatureModel.fromEntity(tEntity));
+      final result = await repo.create(tEntity);
+      expect(result, Right(tEntity));
+    });
+
+    test('delete returns Right(unit) on success', () async {
+      when(() => mockDatasource.delete(any())).thenAnswer((_) async {});
+      final result = await repo.delete('1');
+      expect(result, const Right(unit));
+    });
+  });
+}
+
+

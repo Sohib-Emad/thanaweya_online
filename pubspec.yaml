@@ -53,6 +53,7 @@ dev_dependencies:
   freezed: ^2.5.8
   json_serializable: ^6.8.0
   flutter_native_splash: ^2.4.4
+  mocktail: ^1.0.5
 
 flutter_native_splash:
   color: "#FFFFFF"

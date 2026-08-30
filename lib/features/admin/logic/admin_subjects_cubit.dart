@@ -1,6 +1,8 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:thanaweya_online/features/admin/data/repos/admin_subjects_repo.dart';
 
+part 'admin_subjects_state.dart';
+
 class AdminSubjectsCubit extends Cubit<AdminSubjectsState> {
   final AdminSubjectsRepo _repo;
 
@@ -64,32 +66,6 @@ class AdminSubjectsCubit extends Cubit<AdminSubjectsState> {
     result.when(
       success: (_) => loadSubjects(),
       failure: (message, _) => emit(state.copyWith(errorMessage: message)),
-    );
-  }
-}
-
-enum AdminSubjectsStatus { initial, loading, loaded, error }
-
-class AdminSubjectsState {
-  final AdminSubjectsStatus status;
-  final List<Map<String, dynamic>> subjects;
-  final String? errorMessage;
-
-  const AdminSubjectsState({
-    this.status = AdminSubjectsStatus.initial,
-    this.subjects = const [],
-    this.errorMessage,
-  });
-
-  AdminSubjectsState copyWith({
-    AdminSubjectsStatus? status,
-    List<Map<String, dynamic>>? subjects,
-    String? errorMessage,
-  }) {
-    return AdminSubjectsState(
-      status: status ?? this.status,
-      subjects: subjects ?? this.subjects,
-      errorMessage: errorMessage,
     );
   }
 }
