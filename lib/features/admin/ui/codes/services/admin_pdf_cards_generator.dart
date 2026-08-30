@@ -145,7 +145,7 @@ class AdminPdfCardsGenerator {
     final price = (card['price'] as num?)?.toDouble() ??
         ((course['price'] as num?)?.toDouble() ?? 0.0);
 
-    final double qrSize = isCompact ? 44.0 : 50.0;
+    final double qrSize = isCompact ? 46.0 : 56.0;
     final double pad = isCompact ? 6.0 : 8.0;
 
     pw.TextStyle boldStyle(double size, {PdfColor? color, double? letterSpacing}) {

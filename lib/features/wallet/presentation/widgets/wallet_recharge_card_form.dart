@@ -43,9 +43,12 @@ class _WalletRechargeCardFormState extends State<WalletRechargeCardForm> {
     HapticFeedback.selectionClick();
     final scanned = await QrScannerSheet.show(context);
     if (scanned != null && scanned.trim().isNotEmpty) {
+      final clean = scanned.trim().toUpperCase();
       setState(() {
-        _codeController.text = scanned.trim().toUpperCase();
+        _codeController.text = clean;
       });
+      HapticFeedback.mediumImpact();
+      widget.onRecharge(clean);
     }
   }
 

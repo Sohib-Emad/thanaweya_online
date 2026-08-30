@@ -5,17 +5,20 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:qr_code_scanner_plus/qr_code_scanner_plus.dart';
 
-/// Interactive camera bottom sheet to scan printed activation QR codes using native scanner.
+/// Full-screen high-performance camera scanner to scan printed voucher QR codes.
+/// Uses fixed full-screen viewport to prevent Android surface-resize camera drops.
 class QrScannerSheet extends StatefulWidget {
   const QrScannerSheet({super.key});
 
+  /// Opens the scanner as a dedicated full-screen page for maximum camera stability.
   static Future<String?> show(BuildContext context) {
     HapticFeedback.mediumImpact();
-    return showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => const QrScannerSheet(),
+    return Navigator.push<String>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const QrScannerSheet(),
+        fullscreenDialog: true,
+      ),
     );
   }
 
@@ -23,24 +26,41 @@ class QrScannerSheet extends StatefulWidget {
   State<QrScannerSheet> createState() => _QrScannerSheetState();
 }
 
-class _QrScannerSheetState extends State<QrScannerSheet> {
+class _QrScannerSheetState extends State<QrScannerSheet> with SingleTickerProviderStateMixin {
   final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
   QRViewController? _controller;
   bool _hasScanned = false;
   bool _isFlashOn = false;
+  late AnimationController _animController;
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+  }
 
   @override
   void reassemble() {
     super.reassemble();
     if (Platform.isAndroid) {
       _controller?.pauseCamera();
-    } else if (Platform.isIOS) {
-      _controller?.resumeCamera();
     }
+    _controller?.resumeCamera();
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
   }
 
   void _onQRViewCreated(QRViewController controller) {
     _controller = controller;
+    controller.resumeCamera();
+
     controller.scannedDataStream.listen((scanData) {
       if (_hasScanned) return;
       final String? rawValue = scanData.code;
@@ -72,148 +92,229 @@ class _QrScannerSheetState extends State<QrScannerSheet> {
     });
   }
 
+  Future<void> _refocus() async {
+    HapticFeedback.selectionClick();
+    await _controller?.pauseCamera();
+    await _controller?.resumeCamera();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Container(
-        height: 0.78.sh,
-        decoration: BoxDecoration(
-          color: const Color(0xFF0F172A),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28.r)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withAlpha(80),
-              blurRadius: 20,
-              offset: const Offset(0, -5),
+    final scanSize = 250.r;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFF0B0F19),
+      body: Stack(
+        alignment: Alignment.center,
+        children: [
+          // 1. Native Camera Preview (Full Screen)
+          GestureDetector(
+            onTap: _refocus,
+            child: QRView(
+              key: qrKey,
+              onQRViewCreated: _onQRViewCreated,
+              formatsAllowed: const [
+                BarcodeFormat.qrcode,
+                BarcodeFormat.code128,
+                BarcodeFormat.code39,
+              ],
             ),
-          ],
-        ),
-        child: Column(
-          children: [
-            SizedBox(height: 12.h),
-            // Handle Bar
-            Container(
-              width: 44.w,
-              height: 5.h,
-              decoration: BoxDecoration(
-                color: const Color(0xFF334155),
-                borderRadius: BorderRadius.circular(10.r),
+          ),
+
+          // 2. Dark Vignette / Overlay outside cutout
+          ColorFiltered(
+            colorFilter: ColorFilter.mode(
+              Colors.black.withAlpha(180),
+              BlendMode.srcOut,
+            ),
+            child: Stack(
+              children: [
+                Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.transparent,
+                  ),
+                  child: Center(
+                    child: Container(
+                      width: scanSize,
+                      height: scanSize,
+                      decoration: BoxDecoration(
+                        color: Colors.black,
+                        borderRadius: BorderRadius.circular(24.r),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // 3. Viewfinder Reticle with glowing corners
+          Center(
+            child: SizedBox(
+              width: scanSize,
+              height: scanSize,
+              child: Stack(
+                children: [
+                  // Animated Scanning Laser Line
+                  AnimatedBuilder(
+                    animation: _animController,
+                    builder: (context, child) {
+                      return Positioned(
+                        top: _animController.value * (scanSize - 20),
+                        left: 10,
+                        right: 10,
+                        child: Container(
+                          height: 3,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [
+                                Colors.transparent,
+                                Color(0xFF38BDF8),
+                                Color(0xFF0284C7),
+                                Colors.transparent,
+                              ],
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF38BDF8).withAlpha(180),
+                                blurRadius: 8,
+                                spreadRadius: 2,
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+
+                  // Corner Accents
+                  _buildCorner(top: 0, left: 0, isTop: true, isLeft: true),
+                  _buildCorner(top: 0, right: 0, isTop: true, isLeft: false),
+                  _buildCorner(bottom: 0, left: 0, isTop: false, isLeft: true),
+                  _buildCorner(bottom: 0, right: 0, isTop: false, isLeft: false),
+                ],
               ),
             ),
-            SizedBox(height: 14.h),
+          ),
 
-            // Top Header
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.w),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
+          // 4. Top App Bar
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 10.h,
+            left: 16.w,
+            right: 16.w,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
+                ),
+                Text(
+                  'مسح كود كارت الشحن',
+                  style: GoogleFonts.cairo(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(
+                    _isFlashOn ? Icons.flash_on_rounded : Icons.flash_off_rounded,
+                    color: _isFlashOn ? const Color(0xFFFBBF24) : Colors.white,
+                  ),
+                  onPressed: _toggleFlash,
+                ),
+              ],
+            ),
+          ),
+
+          // 5. Bottom Instructions & Manual Entry Button
+          Positioned(
+            bottom: 40.h,
+            left: 24.w,
+            right: 24.w,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0F172A).withAlpha(220),
+                    borderRadius: BorderRadius.circular(20.r),
+                    border: Border.all(color: const Color(0xFF334155)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Container(
-                        padding: EdgeInsets.all(8.r),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF0284C7).withAlpha(30),
-                          borderRadius: BorderRadius.circular(12.r),
+                      const Icon(Icons.qr_code_scanner_rounded, color: Color(0xFF38BDF8), size: 18),
+                      SizedBox(width: 8.w),
+                      Text(
+                        'ضع كود الـ QR داخل الإطار للمسح الفوري',
+                        style: GoogleFonts.cairo(
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
                         ),
-                        child: const Icon(
-                          Icons.qr_code_scanner_rounded,
-                          color: Color(0xFF38BDF8),
-                          size: 22,
-                        ),
-                      ),
-                      SizedBox(width: 10.w),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'مسح كود QR من الكارت',
-                            style: GoogleFonts.cairo(
-                              fontSize: 15.sp,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                            ),
-                          ),
-                          Text(
-                            'وجّه الكاميرا نحو كود الـ QR المطبوع على كارت الشحن',
-                            style: GoogleFonts.cairo(
-                              fontSize: 10.5.sp,
-                              color: const Color(0xFF94A3B8),
-                            ),
-                          ),
-                        ],
                       ),
                     ],
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.close_rounded, color: Colors.white),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(height: 16.h),
-
-            // Camera Viewfinder Box
-            Expanded(
-              child: Container(
-                margin: EdgeInsets.symmetric(horizontal: 20.w),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20.r),
-                  border: Border.all(color: const Color(0xFF38BDF8), width: 2),
                 ),
-                clipBehavior: Clip.antiAlias,
-                child: QRView(
-                  key: qrKey,
-                  onQRViewCreated: _onQRViewCreated,
-                  overlay: QrScannerOverlayShape(
-                    borderColor: const Color(0xFF38BDF8),
-                    borderRadius: 16,
-                    borderLength: 30,
-                    borderWidth: 5,
-                    cutOutSize: 220.r,
+                SizedBox(height: 16.h),
+                OutlinedButton.icon(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.keyboard_rounded, color: Colors.white70, size: 18),
+                  label: Text(
+                    'كتابة الكود يدوياً',
+                    style: GoogleFonts.cairo(
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: Colors.black.withAlpha(120),
+                    side: const BorderSide(color: Color(0xFF475569), width: 1.2),
+                    padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
                   ),
                 ),
-              ),
+              ],
             ),
-            SizedBox(height: 16.h),
+          ),
+        ],
+      ),
+    );
+  }
 
-            // Controls (Torch Toggle)
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: _toggleFlash,
-                    icon: Icon(
-                      _isFlashOn ? Icons.flash_on_rounded : Icons.flash_off_rounded,
-                      color: _isFlashOn ? const Color(0xFFFBBF24) : Colors.white,
-                      size: 18,
-                    ),
-                    label: Text(
-                      _isFlashOn ? 'إطفاء الكشاف' : 'تشغيل الكشاف',
-                      style: GoogleFonts.cairo(
-                        fontSize: 12.sp,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1E293B),
-                      foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12.r),
-                        side: const BorderSide(color: Color(0xFF334155)),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(height: 10.h),
-          ],
+  Widget _buildCorner({
+    double? top,
+    double? bottom,
+    double? left,
+    double? right,
+    required bool isTop,
+    required bool isLeft,
+  }) {
+    return Positioned(
+      top: top,
+      bottom: bottom,
+      left: left,
+      right: right,
+      child: Container(
+        width: 28.r,
+        height: 28.r,
+        decoration: BoxDecoration(
+          border: Border(
+            top: isTop ? const BorderSide(color: Color(0xFF38BDF8), width: 4) : BorderSide.none,
+            bottom: !isTop ? const BorderSide(color: Color(0xFF38BDF8), width: 4) : BorderSide.none,
+            left: isLeft ? const BorderSide(color: Color(0xFF38BDF8), width: 4) : BorderSide.none,
+            right: !isLeft ? const BorderSide(color: Color(0xFF38BDF8), width: 4) : BorderSide.none,
+          ),
+          borderRadius: BorderRadius.only(
+            topLeft: isTop && isLeft ? Radius.circular(20.r) : Radius.zero,
+            topRight: isTop && !isLeft ? Radius.circular(20.r) : Radius.zero,
+            bottomLeft: !isTop && isLeft ? Radius.circular(20.r) : Radius.zero,
+            bottomRight: !isTop && !isLeft ? Radius.circular(20.r) : Radius.zero,
+          ),
         ),
       ),
     );
