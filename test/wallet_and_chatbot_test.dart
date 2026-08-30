@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:thanaweya_online/core/services/app_system_config_repo.dart';
 import 'package:thanaweya_online/features/wallet/domain/entities/wallet_transaction_entity.dart';
 import 'package:thanaweya_online/features/wallet/data/models/wallet_model.dart';
 import 'package:thanaweya_online/features/wallet/data/models/wallet_transaction_model.dart';
@@ -103,6 +104,45 @@ void main() {
       expect(cubit.state.isBotTyping, false);
 
       await cubit.close();
+    });
+  });
+
+  group('AppSystemConfig Version Enforcement Tests', () {
+    test('isVersionOlder handles versions, build numbers, and patch digits accurately', () {
+      expect(AppSystemConfigRepo.isVersionOlder('1.0.0', '1.0.1'), true);
+      expect(AppSystemConfigRepo.isVersionOlder('1.0.1', '1.0.0'), false);
+      expect(AppSystemConfigRepo.isVersionOlder('1.0.1', '1.0.1'), false);
+      expect(AppSystemConfigRepo.isVersionOlder('1.0.1+2', '1.0.1'), false);
+      expect(AppSystemConfigRepo.isVersionOlder('1.0.0+1', '1.0.1+2'), true);
+      expect(AppSystemConfigRepo.isVersionOlder('1.0.2', '1.0.1'), false);
+    });
+
+    test('isUpdateEnforced allows latest version even when force lock (update_mode) is ON', () {
+      const config = AppSystemConfig(
+        isUpdateRequired: true,
+        minVersion: '1.0.0',
+        latestVersion: '1.0.1',
+      );
+
+      // Latest version client (1.0.1) MUST NOT be blocked!
+      expect(config.isUpdateEnforced('1.0.1'), false);
+      expect(config.isUpdateEnforced('1.0.1+2'), false);
+      expect(config.isUpdateEnforced('1.0.2'), false);
+
+      // Old version client (1.0.0) MUST be blocked!
+      expect(config.isUpdateEnforced('1.0.0'), true);
+      expect(config.isUpdateEnforced('1.0.0+1'), true);
+    });
+
+    test('isUpdateEnforced respects minVersion when force lock is OFF', () {
+      const config = AppSystemConfig(
+        isUpdateRequired: false,
+        minVersion: '1.0.1',
+        latestVersion: '1.0.1',
+      );
+
+      expect(config.isUpdateEnforced('1.0.1'), false);
+      expect(config.isUpdateEnforced('1.0.0'), true);
     });
   });
 }

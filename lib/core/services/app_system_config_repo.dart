@@ -25,8 +25,30 @@ class AppSystemConfig {
 
   /// Checks whether update is enforced either via global switch or version comparison.
   bool isUpdateEnforced(String clientVersion) {
-    if (isUpdateRequired) return true;
-    return AppSystemConfigRepo.isVersionOlder(clientVersion, minVersion);
+    final cleanClient = clientVersion.split('+').first.replaceAll(RegExp(r'[^0-9.]'), '').trim();
+    final cleanMin = minVersion.split('+').first.replaceAll(RegExp(r'[^0-9.]'), '').trim();
+    final cleanLatest = latestVersion.split('+').first.replaceAll(RegExp(r'[^0-9.]'), '').trim();
+
+    // 1. If the client version is equal to or newer than latestVersion, NEVER block!
+    if (cleanLatest.isNotEmpty && !AppSystemConfigRepo.isVersionOlder(cleanClient, cleanLatest)) {
+      return false;
+    }
+
+    // 2. If update_mode (قفل النسخ القديمة إجبارياً) is active:
+    // Enforce update for anyone older than latestVersion (or minVersion if higher)
+    if (isUpdateRequired) {
+      final threshold = AppSystemConfigRepo.isVersionOlder(cleanLatest, cleanMin) ? cleanMin : cleanLatest;
+      if (threshold.isNotEmpty) {
+        return AppSystemConfigRepo.isVersionOlder(cleanClient, threshold);
+      }
+    }
+
+    // 3. If update_mode toggle is OFF, only enforce if strictly below minVersion
+    if (cleanMin.isNotEmpty && cleanMin != '0.0.0') {
+      return AppSystemConfigRepo.isVersionOlder(cleanClient, cleanMin);
+    }
+
+    return false;
   }
 
   AppSystemConfig copyWith({
@@ -68,8 +90,13 @@ class AppSystemConfigRepo {
   /// Helper to check if [clientVer] is strictly older than [requiredVer] (semver-like).
   static bool isVersionOlder(String clientVer, String requiredVer) {
     try {
-      final cParts = clientVer.split('.').map((e) => int.tryParse(e) ?? 0).toList();
-      final rParts = requiredVer.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+      String sanitize(String v) => v.split('+').first.replaceAll(RegExp(r'[^0-9.]'), '').trim();
+      final cClean = sanitize(clientVer);
+      final rClean = sanitize(requiredVer);
+      if (cClean.isEmpty || rClean.isEmpty) return false;
+
+      final cParts = cClean.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+      final rParts = rClean.split('.').map((e) => int.tryParse(e) ?? 0).toList();
 
       while (cParts.length < 3) {
         cParts.add(0);
