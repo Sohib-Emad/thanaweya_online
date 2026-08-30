@@ -12,12 +12,14 @@ class StudentCardItem extends StatelessWidget {
   final Map<String, dynamic> student;
   final VoidCallback onOpenCourses;
   final VoidCallback onGiftPoints;
+  final VoidCallback onCreditWallet;
 
   const StudentCardItem({
     super.key,
     required this.student,
     required this.onOpenCourses,
     required this.onGiftPoints,
+    required this.onCreditWallet,
   });
 
   String _formatGrade(String? grade) => switch (grade) {
@@ -35,6 +37,8 @@ class StudentCardItem extends StatelessWidget {
     final grade = _formatGrade(student['grade_level'] as String?);
     final subs = (student['subscriptions'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [];
     final sid = student['id'] as String? ?? '';
+    final walletBal = (student['wallet_balance'] as num?)?.toDouble() ?? 0.0;
+    final appVer = student['app_version'] as String? ?? '1.0.0';
 
     return Container(
       decoration: BoxDecoration(
@@ -46,6 +50,45 @@ class StudentCardItem extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           StudentCardHeader(name: name, grade: grade, subsCount: subs.length),
+          SizedBox(height: 8.h),
+
+          // شريط رصيد الخزنة وإصدار التطبيق
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 7.h),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(10.r),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.account_balance_wallet_rounded, size: 16, color: Color(0xFF16A34A)),
+                    SizedBox(width: 5.w),
+                    Text(
+                      'الخزنة: ${walletBal.toStringAsFixed(2)} ج.م',
+                      style: GoogleFonts.cairo(fontSize: 12.sp, fontWeight: FontWeight.w800, color: const Color(0xFF16A34A)),
+                    ),
+                  ],
+                ),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(6.r),
+                    border: Border.all(color: const Color(0xFFBFDBFE)),
+                  ),
+                  child: Text(
+                    'إصدار: v$appVer',
+                    style: GoogleFonts.cairo(fontSize: 10.5.sp, fontWeight: FontWeight.bold, color: const Color(0xFF0284C7)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
           SizedBox(height: 10.h),
           const Divider(height: 1),
           SizedBox(height: 8.h),
@@ -67,16 +110,23 @@ class StudentCardItem extends StatelessWidget {
             children: [
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: onOpenCourses, icon: const Icon(Icons.lock_open_rounded, size: 17),
-                  label: Text('إدارة الكورسات (فتح/قفل)', style: GoogleFonts.cairo(fontSize: 12.sp, fontWeight: FontWeight.w800)),
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.adminPrimary, foregroundColor: Colors.white, padding: EdgeInsets.symmetric(vertical: 9.h), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)), elevation: 0),
+                  onPressed: onOpenCourses, icon: const Icon(Icons.lock_open_rounded, size: 16),
+                  label: Text('الكورسات', style: GoogleFonts.cairo(fontSize: 11.5.sp, fontWeight: FontWeight.w800)),
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.adminPrimary, foregroundColor: Colors.white, padding: EdgeInsets.symmetric(vertical: 8.h), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)), elevation: 0),
                 ),
               ),
-              SizedBox(width: 8.w),
+              SizedBox(width: 6.w),
               OutlinedButton.icon(
-                onPressed: onGiftPoints, icon: const Icon(Icons.stars_rounded, size: 17, color: Color(0xFFD97706)),
-                label: Text('منح نقاط 🎁', style: GoogleFonts.cairo(fontSize: 12.sp, fontWeight: FontWeight.w800, color: const Color(0xFFD97706))),
-                style: OutlinedButton.styleFrom(side: const BorderSide(color: Color(0xFFF59E0B)), padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 9.h), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r))),
+                onPressed: onCreditWallet,
+                icon: const Icon(Icons.account_balance_wallet_rounded, size: 16, color: Color(0xFF16A34A)),
+                label: Text('شحن 💳', style: GoogleFonts.cairo(fontSize: 11.5.sp, fontWeight: FontWeight.w800, color: const Color(0xFF16A34A))),
+                style: OutlinedButton.styleFrom(side: const BorderSide(color: Color(0xFF16A34A)), padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 8.h), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r))),
+              ),
+              SizedBox(width: 6.w),
+              OutlinedButton.icon(
+                onPressed: onGiftPoints, icon: const Icon(Icons.stars_rounded, size: 16, color: Color(0xFFD97706)),
+                label: Text('نقاط 🎁', style: GoogleFonts.cairo(fontSize: 11.5.sp, fontWeight: FontWeight.w800, color: const Color(0xFFD97706))),
+                style: OutlinedButton.styleFrom(side: const BorderSide(color: Color(0xFFF59E0B)), padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 8.h), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r))),
               ),
             ],
           ),

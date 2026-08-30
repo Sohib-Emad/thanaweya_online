@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:thanaweya_online/features/shared/models/user_model.dart';
+import 'package:thanaweya_online/features/shared/ui/no_internet_screen.dart';
 
 import '../../features/auth/ui/login_screen.dart';
 import '../../features/auth/ui/forgot_password_screen.dart';
@@ -13,7 +14,6 @@ import '../../features/shared/ui/force_update_screen.dart';
 import '../../features/shared/ui/teacher_banned_screen.dart';
 import '../../features/shared/ui/about_owner_screen.dart';
 import '../../features/student/ui/courses/course_filter_screen.dart';
-import '../../features/student/ui/courses/widgets/course_filters.dart';
 import 'teacher_routes.dart';
 import 'student_routes.dart';
 import 'admin_routes.dart';
@@ -35,6 +35,7 @@ class AppRouter {
   static const String forceUpdate = '/force-update';
   static const String teacherBanned = '/teacher-banned';
   static const String aboutOwner = '/about-owner';
+  static const String noInternet = '/no-internet';
 
   // ─── Re-exported Feature Route Names ────────────────────────────────────
   // Teacher
@@ -82,6 +83,7 @@ class AppRouter {
   static const String studentCurriculum = StudentRoutes.studentCurriculum;
   static const String studentCertificate = StudentRoutes.studentCertificate;
   static const String studentMyCourses = StudentRoutes.studentMyCourses;
+  static const String studentWallet = StudentRoutes.studentWallet;
   static const String studentTransactions = StudentRoutes.studentTransactions;
   static const String studentEReceipt = StudentRoutes.studentEReceipt;
   static const String studentReviews = StudentRoutes.studentReviews;
@@ -107,6 +109,7 @@ class AppRouter {
   static const String adminStudents = AdminRoutes.adminStudents;
   static const String adminActiveCodes = AdminRoutes.adminActiveCodes;
   static const String adminPushTokens = AdminRoutes.adminPushTokens;
+  static const String adminStudentVersions = AdminRoutes.adminStudentVersions;
 
   static String homeForRole(UserRole role) => switch (role) {
         UserRole.superAdmin => adminDashboard,
@@ -161,6 +164,8 @@ class AppRouter {
             banReason: settings.arguments as String?);
       case aboutOwner:
         return const AboutOwnerScreen();
+      case noInternet:
+        return const NoInternetScreen();
     }
     return TeacherRoutes.build(settings) ??
         StudentRoutes.build(settings) ??

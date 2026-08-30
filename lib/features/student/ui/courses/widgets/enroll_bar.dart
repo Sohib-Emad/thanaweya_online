@@ -23,8 +23,8 @@ class EnrollBar extends StatelessWidget {
         child: NotebookPrimaryButton(
           label: isSubscribed
               ? l10n.subscribedLabel
-              : 'تفعيل الكورس بكود المدرس',
-          icon: isSubscribed ? Icons.check_circle_rounded : Icons.vpn_key_rounded,
+              : 'الاشتراك الآن والدفع من الخزنة',
+          icon: isSubscribed ? Icons.check_circle_rounded : Icons.account_balance_wallet_rounded,
           onPressed: isSubscribed
               ? null
               : () {

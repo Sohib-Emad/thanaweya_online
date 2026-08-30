@@ -14,7 +14,7 @@ extension AdminStudentsRepoQuery on AdminStudentsRepo {
         if (filteredStudentIds.isEmpty) return const ApiResult.success([]);
       }
 
-      var query = client.from('students').select('id, grade_level, parent_phone, created_at');
+      var query = client.from('students').select('id, grade_level, parent_phone, wallet_balance, bonus_points, app_version, last_active_at, created_at');
       if (filteredStudentIds != null) query = query.inFilter('id', filteredStudentIds.toList());
 
       final studentsData = await query.order('created_at', ascending: false);
@@ -36,6 +36,10 @@ extension AdminStudentsRepoQuery on AdminStudentsRepo {
           'student_id': sid,
           'grade_level': st['grade_level'] ?? 'first',
           'parent_phone': st['parent_phone'] ?? '',
+          'wallet_balance': (st['wallet_balance'] as num?)?.toDouble() ?? 0.0,
+          'bonus_points': (st['bonus_points'] as num?)?.toInt() ?? 0,
+          'app_version': st['app_version']?.toString() ?? '1.0.0',
+          'last_active_at': st['last_active_at']?.toString() ?? '',
           'created_at': st['created_at'] ?? '',
           'users': user,
           'plain_password': plainPass,

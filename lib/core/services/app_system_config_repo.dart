@@ -9,15 +9,25 @@ class AppSystemConfig {
   final String updateMessage;
   final String updateUrl;
   final String supportPhone;
+  final String minVersion;
+  final String latestVersion;
 
   const AppSystemConfig({
     this.isMaintenanceMode = false,
     this.maintenanceMessage = 'التطبيق قيد أعمال الصيانة والتطوير حالياً، سنعود قريباً بإذن الله.',
     this.isUpdateRequired = false,
-    this.updateMessage = 'يتوفر إصدار جديد وأكثر استقراراً من التطبيق، يرجى التحديث للمتابعة.',
+    this.updateMessage = 'هذه النسخة ليست متاحة الآن، يرجى التحديث إلى أحدث إصدار للمتابعة.',
     this.updateUrl = 'https://play.google.com',
     this.supportPhone = '201096462825',
+    this.minVersion = '1.0.0',
+    this.latestVersion = '1.0.0',
   });
+
+  /// Checks whether update is enforced either via global switch or version comparison.
+  bool isUpdateEnforced(String clientVersion) {
+    if (isUpdateRequired) return true;
+    return AppSystemConfigRepo.isVersionOlder(clientVersion, minVersion);
+  }
 
   AppSystemConfig copyWith({
     bool? isMaintenanceMode,
@@ -26,6 +36,8 @@ class AppSystemConfig {
     String? updateMessage,
     String? updateUrl,
     String? supportPhone,
+    String? minVersion,
+    String? latestVersion,
   }) {
     return AppSystemConfig(
       isMaintenanceMode: isMaintenanceMode ?? this.isMaintenanceMode,
@@ -34,12 +46,16 @@ class AppSystemConfig {
       updateMessage: updateMessage ?? this.updateMessage,
       updateUrl: updateUrl ?? this.updateUrl,
       supportPhone: supportPhone ?? this.supportPhone,
+      minVersion: minVersion ?? this.minVersion,
+      latestVersion: latestVersion ?? this.latestVersion,
     );
   }
 }
 
 /// Repository for reading and updating global app maintenance and update modes.
 class AppSystemConfigRepo {
+  static const String currentAppVersion = '1.0.0';
+
   static final AppSystemConfigRepo _instance = AppSystemConfigRepo._internal();
   factory AppSystemConfigRepo() => _instance;
   AppSystemConfigRepo._internal();
@@ -48,6 +64,29 @@ class AppSystemConfigRepo {
   AppSystemConfig get cachedConfig => _cachedConfig;
 
   SupabaseClient get _client => Supabase.instance.client;
+
+  /// Helper to check if [clientVer] is strictly older than [requiredVer] (semver-like).
+  static bool isVersionOlder(String clientVer, String requiredVer) {
+    try {
+      final cParts = clientVer.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+      final rParts = requiredVer.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+
+      while (cParts.length < 3) {
+        cParts.add(0);
+      }
+      while (rParts.length < 3) {
+        rParts.add(0);
+      }
+
+      for (int i = 0; i < 3; i++) {
+        if (cParts[i] < rParts[i]) return true;
+        if (cParts[i] > rParts[i]) return false;
+      }
+      return false;
+    } catch (_) {
+      return false;
+    }
+  }
 
   /// Fetches latest system config from Supabase or returns cached fallback.
   Future<AppSystemConfig> fetchConfig() async {
@@ -71,6 +110,10 @@ class AppSystemConfigRepo {
               _cachedConfig.updateUrl,
           supportPhone: (val['support_phone'] as String?) ??
               _cachedConfig.supportPhone,
+          minVersion: (val['min_version'] as String?) ??
+              _cachedConfig.minVersion,
+          latestVersion: (val['latest_version'] as String?) ??
+              _cachedConfig.latestVersion,
         );
       }
     } catch (e) {
@@ -91,18 +134,22 @@ class AppSystemConfigRepo {
     return _saveToRemote();
   }
 
-  /// Updates force update mode state.
+  /// Updates force update mode and version requirements.
   Future<bool> setUpdateMode({
     required bool enabled,
     String? message,
     String? updateUrl,
     String? supportPhone,
+    String? minVersion,
+    String? latestVersion,
   }) async {
     _cachedConfig = _cachedConfig.copyWith(
       isUpdateRequired: enabled,
       updateMessage: message,
       updateUrl: updateUrl,
       supportPhone: supportPhone,
+      minVersion: minVersion,
+      latestVersion: latestVersion,
     );
     return _saveToRemote();
   }
@@ -118,6 +165,8 @@ class AppSystemConfigRepo {
           'update_message': _cachedConfig.updateMessage,
           'update_url': _cachedConfig.updateUrl,
           'support_phone': _cachedConfig.supportPhone,
+          'min_version': _cachedConfig.minVersion,
+          'latest_version': _cachedConfig.latestVersion,
         },
       };
       await _client.from('system_settings').upsert(payload);

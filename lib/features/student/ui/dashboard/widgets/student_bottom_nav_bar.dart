@@ -63,9 +63,9 @@ class StudentBottomNavBar extends StatelessWidget {
             },
           ),
           NavBarItem(
-            icon: Icons.emoji_events_outlined,
-            activeIcon: Icons.emoji_events_rounded,
-            label: 'المتفوقين',
+            icon: Icons.account_balance_wallet_outlined,
+            activeIcon: Icons.account_balance_wallet_rounded,
+            label: 'الخزنة',
             isSelected: currentIndex == 2,
             onTap: () {
               HapticFeedback.selectionClick();
@@ -73,9 +73,9 @@ class StudentBottomNavBar extends StatelessWidget {
             },
           ),
           NavBarItem(
-            icon: Icons.receipt_long_outlined,
-            activeIcon: Icons.receipt_long_rounded,
-            label: l10n.examsTab,
+            icon: Icons.emoji_events_outlined,
+            activeIcon: Icons.emoji_events_rounded,
+            label: 'المتفوقين',
             isSelected: currentIndex == 3,
             onTap: () {
               HapticFeedback.selectionClick();
@@ -83,13 +83,23 @@ class StudentBottomNavBar extends StatelessWidget {
             },
           ),
           NavBarItem(
-            icon: Icons.person_outline_rounded,
-            activeIcon: Icons.person_rounded,
-            label: l10n.profileTab,
+            icon: Icons.receipt_long_outlined,
+            activeIcon: Icons.receipt_long_rounded,
+            label: l10n.examsTab,
             isSelected: currentIndex == 4,
             onTap: () {
               HapticFeedback.selectionClick();
               onTabChanged(4);
+            },
+          ),
+          NavBarItem(
+            icon: Icons.person_outline_rounded,
+            activeIcon: Icons.person_rounded,
+            label: l10n.profileTab,
+            isSelected: currentIndex == 5,
+            onTap: () {
+              HapticFeedback.selectionClick();
+              onTabChanged(5);
             },
           ),
         ],

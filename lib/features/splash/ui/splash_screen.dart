@@ -78,8 +78,9 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
       return;
     }
 
-    // 2. If Force Update Mode is active and user is not Super Admin -> Force Update Screen
-    if (config.isUpdateRequired && role != UserRole.superAdmin) {
+    // 2. If Force Update is active or version older than required and user is not Super Admin -> Force Update Screen
+    final isEnforced = config.isUpdateEnforced(AppSystemConfigRepo.currentAppVersion);
+    if (isEnforced && role != UserRole.superAdmin) {
       if (!mounted) return;
       Navigator.pushReplacementNamed(
         context,
@@ -166,6 +167,14 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
           status == 'approved' ? AppRouter.teacherHome : AppRouter.teacherPending,
         );
       } else {
+        if (resolvedRole == UserRole.student) {
+          try {
+            await Supabase.instance.client.from('students').update({
+              'app_version': AppSystemConfigRepo.currentAppVersion,
+              'last_active_at': DateTime.now().toIso8601String(),
+            }).eq('id', user.id);
+          } catch (_) {}
+        }
         if (!mounted) return;
         Navigator.pushReplacementNamed(context, AppRouter.homeForRole(resolvedRole));
       }

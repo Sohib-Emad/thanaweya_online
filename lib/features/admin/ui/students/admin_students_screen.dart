@@ -9,6 +9,7 @@ import 'widgets/student_courses_sheet.dart';
 import 'widgets/students_search_filter_bar.dart';
 import 'widgets/student_card_item.dart';
 import 'widgets/student_gift_points_dialog.dart';
+import 'widgets/student_credit_wallet_dialog.dart';
 
 class AdminStudentsScreen extends StatefulWidget {
   final String? initialTeacherId;
@@ -89,6 +90,15 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
               builder: (_) => StudentCoursesSheet(student: s, teachers: state.teachers, initialTeacherId: _cubit.state.selectedTeacherId),
             ),
             onGiftPoints: () => showStudentGiftPointsDialog(context: context, student: s),
+            onCreditWallet: () => showDialog(
+              context: context,
+              builder: (_) => StudentCreditWalletDialog(
+                studentId: s['id'] ?? '',
+                studentName: (s['users'] as Map?)?['full_name'] ?? 'طالب',
+                currentBalance: (s['wallet_balance'] as num?)?.toDouble() ?? 0.0,
+                onCredited: (_) => _cubit.loadData(initialTeacherId: state.selectedTeacherId),
+              ),
+            ),
           );
         },
       ),

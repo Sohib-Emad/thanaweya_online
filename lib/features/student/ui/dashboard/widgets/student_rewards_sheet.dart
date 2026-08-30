@@ -241,17 +241,19 @@ class StudentRewardsSheet extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 6.w,
+                  runSpacing: 3.h,
                   children: [
                     Text(
                       'الهدية اليومية',
                       style: GoogleFonts.cairo(
-                        fontSize: 13.5.sp,
+                        fontSize: 13.sp,
                         fontWeight: FontWeight.w800,
                         color: const Color(0xFF0F172A),
                       ),
                     ),
-                    SizedBox(width: 6.w),
                     Container(
                       padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 1.h),
                       decoration: BoxDecoration(
@@ -261,7 +263,7 @@ class StudentRewardsSheet extends StatelessWidget {
                       child: Text(
                         '+5 نقاط',
                         style: GoogleFonts.cairo(
-                          fontSize: 10.sp,
+                          fontSize: 9.5.sp,
                           fontWeight: FontWeight.w800,
                           color: Colors.white,
                         ),

@@ -7,37 +7,36 @@ import '../../../../../core/theme/notebook_theme.dart';
 class PaymentActionButton extends StatelessWidget {
   final bool isFree;
   final bool isProcessing;
+  final String? label;
+  final IconData? icon;
   final VoidCallback? onPressed;
 
   const PaymentActionButton({
     super.key,
     required this.isFree,
     required this.isProcessing,
+    this.label,
+    this.icon,
     this.onPressed,
   });
 
   @override
   Widget build(BuildContext context) {
+    final defaultLabel = isFree ? 'التسجيل وبدء المشاهدة الآن' : 'الدفع من الخزنة والبدء فوراً';
+    final defaultIcon = isFree ? Icons.play_circle_fill_rounded : Icons.account_balance_wallet_rounded;
+
     return Positioned(
       left: 20.w,
       right: 20.w,
       bottom: 20.h,
       child: SafeArea(
-        child: isFree
-            ? NotebookPrimaryButton(
-                label: isProcessing
-                    ? 'جاري التسجيل...'
-                    : 'التسجيل وبدء المشاهدة الآن',
-                icon: Icons.play_circle_fill_rounded,
-                onPressed: onPressed,
-              )
-            : NotebookPrimaryButton(
-                label: isProcessing
-                    ? 'جاري تفعيل الكود...'
-                    : 'تفعيل الكورس والبدء فوراً',
-                icon: Icons.vpn_key_rounded,
-                onPressed: onPressed,
-              ),
+        child: NotebookPrimaryButton(
+          label: isProcessing
+              ? (isFree ? 'جاري التسجيل...' : 'جاري إتمام الدفع...')
+              : (label ?? defaultLabel),
+          icon: icon ?? defaultIcon,
+          onPressed: onPressed,
+        ),
       ),
     );
   }

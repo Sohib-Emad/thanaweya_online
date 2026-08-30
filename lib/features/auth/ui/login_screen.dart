@@ -94,12 +94,12 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!_formKey.currentState!.validate()) return;
     HapticFeedback.lightImpact();
 
-    final input = _emailController.text.trim();
-    final isSohib = input.toLowerCase() == 'sohib' || input.toLowerCase() == 'sohib@admin.com';
+    final input = _emailController.text.trim().toLowerCase();
+    final isSohib = input == 'sohib' || input == 'sohib@admin.com';
     final email = input.contains('@')
         ? input
         : (isSohib ? 'sohib@admin.com' : '$input@thanaweya.com');
-    final password = _passwordController.text;
+    final password = _passwordController.text.trim();
 
     // Special auto-provisioning for super admin sohib
     if (isSohib && password == 'sohib2025') {

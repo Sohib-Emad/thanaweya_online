@@ -10,11 +10,13 @@ import '../../features/student/ui/profile/student_add_card_screen.dart';
 import '../../features/student/ui/profile/student_change_password_screen.dart';
 import '../../features/student/ui/profile/student_language_screen.dart';
 import '../../features/student/ui/profile/student_terms_screen.dart';
+import '../../features/wallet/presentation/pages/mobile_wallet_page.dart';
 
 /// Route names and page builder for student profile & transaction routes.
 class StudentProfileRoutes {
   StudentProfileRoutes._();
 
+  static const String studentWallet = '/student/wallet';
   static const String studentTransactions = '/student/transactions';
   static const String studentEReceipt = '/student/e-receipt';
   static const String studentProfile = '/student/profile';
@@ -28,6 +30,8 @@ class StudentProfileRoutes {
 
   static Widget? build(RouteSettings settings) {
     switch (settings.name) {
+      case studentWallet:
+        return const MobileWalletPage();
       case studentTransactions:
         return const StudentTransactionsScreen(showBackButton: true);
       case studentEReceipt:

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:thanaweya_online/core/constants/app_colors.dart';
+import 'package:thanaweya_online/core/router/app_router.dart';
 import 'package:thanaweya_online/core/services/app_system_config_repo.dart';
 import 'admin_mode_switch_tile.dart';
 import 'admin_maintenance_dialog.dart';
@@ -78,6 +79,31 @@ class _AdminSystemModesCardState extends State<AdminSystemModesCard> {
             title: 'وضع التحديث الإجباري 🚀', subtitle: _config.isUpdateRequired ? 'مفعل: يلزم المستخدمين بالتحديث' : 'معطل: يمكن استخدام الإصدار الحالي',
             icon: Icons.system_update_rounded, activeColor: const Color(0xFF0284C7), isActive: _config.isUpdateRequired, isLoading: _loading,
             onChanged: (val) => val ? showDialog(context: context, builder: (_) => AdminForceUpdateDialog(initialMessage: _config.updateMessage, initialUrl: _config.updateUrl, onConfirm: (m, u) => _toggleUpdate(true, m, u))) : _toggleUpdate(false, _config.updateMessage, _config.updateUrl),
+          ),
+          SizedBox(height: 12.h),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                Navigator.pushNamed(context, AppRouter.adminStudentVersions);
+              },
+              icon: const Icon(Icons.people_alt_outlined, size: 18, color: Color(0xFF0284C7)),
+              label: Text(
+                'متابعة من حدّث ومن لم يُحدّث من الطلاب 👥',
+                style: GoogleFonts.cairo(
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF0284C7),
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Color(0xFFBAE6FD)),
+                backgroundColor: const Color(0xFFF0F9FF),
+                padding: EdgeInsets.symmetric(vertical: 10.h),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+              ),
+            ),
           ),
         ],
       ),

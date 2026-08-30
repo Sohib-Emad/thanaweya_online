@@ -9,6 +9,7 @@ import '../../../../../core/theme/notebook_theme.dart';
 import '../../../../../l10n/l10n.dart';
 import 'profile_menu_item.dart';
 import 'logout_confirm_dialog.dart';
+import '../../../../chatbot/presentation/widgets/chatbot_sheet.dart';
 
 /// Settings menu card with all profile navigation items.
 class ProfileMenuCard extends StatelessWidget {
@@ -34,7 +35,20 @@ class ProfileMenuCard extends StatelessWidget {
             ),
           ),
           ProfileMenuItem(
-            icon: Icons.account_balance_wallet_outlined,
+            icon: Icons.account_balance_wallet_rounded,
+            title: 'خزنة الطالب (المحفظة الرقمية)',
+            onTap: () => Navigator.pushNamed(
+              context,
+              AppRouter.studentWallet,
+            ),
+          ),
+          ProfileMenuItem(
+            icon: Icons.support_agent_rounded,
+            title: 'المساعد الذكي (الدعم الفوري 24/7)',
+            onTap: () => ChatbotSheet.show(context),
+          ),
+          ProfileMenuItem(
+            icon: Icons.receipt_long_outlined,
             title: 'سجل المعاملات والاشتراكات',
             onTap: () => Navigator.pushNamed(
               context,

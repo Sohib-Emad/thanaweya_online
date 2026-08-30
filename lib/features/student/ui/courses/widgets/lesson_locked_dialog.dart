@@ -38,8 +38,8 @@ class LessonLockedDialog extends StatelessWidget {
             child: Text(context.l10n.cancel, style: NotebookText.strong(13.sp)),
           ),
           NotebookPrimaryButton(
-            label: 'تفعيل الكورس بكود المدرس',
-            icon: Icons.vpn_key_rounded,
+            label: 'الاشتراك والدفع من الخزنة',
+            icon: Icons.account_balance_wallet_rounded,
             onPressed: () {
               Navigator.pop(context);
               onActivate();

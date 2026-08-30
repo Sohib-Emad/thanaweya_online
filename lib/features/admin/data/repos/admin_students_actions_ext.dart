@@ -41,4 +41,50 @@ extension AdminStudentsRepoActions on AdminStudentsRepo {
       return ApiErrorHandler.handleException(e);
     }
   }
+
+  /// Adds funds to the student's wallet and logs a credit transaction.
+  Future<ApiResult<double>> creditStudentWallet({
+    required String studentId,
+    required double amount,
+    String? reason,
+  }) async {
+    try {
+      double currentBalance = 0.0;
+      try {
+        final data = await client
+            .from('students')
+            .select('wallet_balance')
+            .eq('id', studentId)
+            .maybeSingle();
+        currentBalance = (data?['wallet_balance'] as num?)?.toDouble() ?? 0.0;
+      } catch (_) {}
+
+      final newBalance = currentBalance + amount;
+      await client
+          .from('students')
+          .update({'wallet_balance': newBalance})
+          .eq('id', studentId);
+
+      // Record transaction in wallet_transactions
+      try {
+        await client.from('wallet_transactions').insert({
+          'user_id': studentId,
+          'title': 'إيداع إداري في الخزنة',
+          'subtitle': (reason != null && reason.trim().isNotEmpty)
+              ? reason.trim()
+              : 'شحن رصيد بواسطة إدارة المنصة',
+          'amount': amount,
+          'type': 'credit',
+          'status': 'completed',
+        });
+      } catch (e) {
+        debugPrint('[AdminStudentsRepo] Failed to log credit transaction: $e');
+      }
+
+      return ApiResult.success(newBalance);
+    } catch (e) {
+      debugPrint('[AdminStudentsRepo] creditStudentWallet error: $e');
+      return ApiErrorHandler.handleException(e);
+    }
+  }
 }

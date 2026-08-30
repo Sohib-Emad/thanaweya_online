@@ -33,6 +33,7 @@ class StudentRoutes {
   static const String studentWriteReview = StudentCourseRoutes.studentWriteReview;
   static const String studentPaymentMethods = StudentCourseRoutes.studentPaymentMethods;
   static const String studentComments = StudentCourseRoutes.studentComments;
+  static const String studentWallet = StudentProfileRoutes.studentWallet;
   static const String studentTransactions = StudentProfileRoutes.studentTransactions;
   static const String studentEReceipt = StudentProfileRoutes.studentEReceipt;
   static const String studentProfile = StudentProfileRoutes.studentProfile;

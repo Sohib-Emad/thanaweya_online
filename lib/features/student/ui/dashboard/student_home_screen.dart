@@ -18,6 +18,8 @@ import 'package:thanaweya_online/features/student/logic/student_rewards_cubit.da
 import 'package:thanaweya_online/features/student/ui/dashboard/home_init.dart';
 import 'package:thanaweya_online/features/student/ui/dashboard/widgets/student_rewards_sheet.dart';
 import 'package:thanaweya_online/features/student/ui/dashboard/widgets/widgets.dart';
+import 'package:thanaweya_online/features/chatbot/presentation/widgets/chatbot_sheet.dart';
+import 'package:thanaweya_online/features/wallet/presentation/pages/mobile_wallet_page.dart';
 import 'package:thanaweya_online/l10n/l10n.dart';
 
 /// The main home screen for the student dashboard.
@@ -108,13 +110,30 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
               builder: (context, _) => _buildHomeTab(context),
             ),
             StudentMyCoursesListScreen(isSelected: _currentIndex == 1),
-            StudentLeaderboardScreen(isSelected: _currentIndex == 2),
-            StudentExamsListScreen(isSelected: _currentIndex == 3),
+            const MobileWalletPage(isTabMode: true),
+            StudentLeaderboardScreen(isSelected: _currentIndex == 3),
+            StudentExamsListScreen(isSelected: _currentIndex == 4),
             const StudentProfileTab(isTabMode: true),
           ],
         ),
       ),
       bottomNavigationBar: StudentBottomNavBar(currentIndex: _currentIndex, onTabChanged: (i) => setState(() => _currentIndex = i)),
+      floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'student_chatbot_fab',
+        backgroundColor: const Color(0xFF0F172A),
+        foregroundColor: Colors.white,
+        elevation: 4,
+        icon: const Text('🤖', style: TextStyle(fontSize: 18)),
+        label: Text(
+          'المساعد الذكي',
+          style: TextStyle(
+            fontSize: 12.sp,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        onPressed: () => ChatbotSheet.show(context),
+      ),
     );
   }
 

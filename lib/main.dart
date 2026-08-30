@@ -9,6 +9,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:thanaweya_online/core/services/connectivity_service.dart';
+import 'package:thanaweya_online/features/shared/ui/no_internet_screen.dart';
 
 import 'features/student/data/repos/exam_sync_service.dart';
 import 'core/firebase/push_notification_service.dart';
@@ -60,6 +62,9 @@ void main() async {
 
   // Background exam submission sync when internet reconnects
   ExamSyncService.init();
+
+  // Global network connectivity listener
+  ConnectivityService.instance.initialize();
 
   // Restore the saved app language (defaults to Arabic)
   await LocaleController.instance.load();
@@ -116,6 +121,21 @@ class MyApp extends StatelessWidget {
                   initialRoute: AppRouter.splash,
                   onGenerateRoute: AppRouter.onGenerateRoute,
                   navigatorObservers: [appRouteObserver],
+                  builder: (context, child) {
+                    return ValueListenableBuilder<bool>(
+                      valueListenable:
+                          ConnectivityService.instance.isConnectedNotifier,
+                      builder: (context, isConnected, _) {
+                        return Stack(
+                          children: [
+                            ?child,
+                            if (!isConnected)
+                              const Positioned.fill(child: NoInternetScreen()),
+                          ],
+                        );
+                      },
+                    );
+                  },
                 );
               },
             ),

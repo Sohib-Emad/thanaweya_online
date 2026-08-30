@@ -10,6 +10,7 @@ import '../../features/admin/ui/reports/platform_reports_screen.dart';
 import '../../features/admin/ui/students/admin_students_screen.dart';
 import '../../features/admin/ui/codes/admin_active_codes_screen.dart';
 import '../../features/admin/ui/notifications/admin_push_tokens_screen.dart';
+import '../../features/admin/ui/students/admin_student_versions_screen.dart';
 
 /// Route name constants and page builder for admin feature routes.
 class AdminRoutes {
@@ -26,6 +27,7 @@ class AdminRoutes {
   static const String adminStudents = '/admin/students';
   static const String adminActiveCodes = '/admin/active-codes';
   static const String adminPushTokens = '/admin/push-tokens';
+  static const String adminStudentVersions = '/admin/student-versions';
 
   /// Builds the page widget for an admin route.
   /// Returns `null` if [settings.name] does not match any admin route.
@@ -55,6 +57,8 @@ class AdminRoutes {
         );
       case adminPushTokens:
         return const AdminPushTokensScreen();
+      case adminStudentVersions:
+        return const AdminStudentVersionsScreen();
       default:
         return null;
     }
