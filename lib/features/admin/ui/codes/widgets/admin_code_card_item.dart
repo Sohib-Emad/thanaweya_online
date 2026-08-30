@@ -7,8 +7,14 @@ import '../../../../../core/constants/app_colors.dart';
 class AdminCodeCardItem extends StatelessWidget {
   final Map<String, dynamic> item;
   final VoidCallback onDelete;
+  final VoidCallback onPrint;
 
-  const AdminCodeCardItem({super.key, required this.item, required this.onDelete});
+  const AdminCodeCardItem({
+    super.key,
+    required this.item,
+    required this.onDelete,
+    required this.onPrint,
+  });
 
   void _copyCode(BuildContext context, String code) {
     Clipboard.setData(ClipboardData(text: code));
@@ -27,6 +33,7 @@ class AdminCodeCardItem extends StatelessWidget {
     final subject = (teacher['subjects'] as Map<String, dynamic>?)?['name_ar'] as String? ?? 'مادة عامة';
     final course = item['courses'] as Map<String, dynamic>? ?? {};
     final courseTitle = course['title'] as String? ?? 'كافة كورسات المعلم (اشتراك عام)';
+    final price = (item['price'] as num?)?.toDouble() ?? ((course['price'] as num?)?.toDouble() ?? 0.0);
 
     return Container(
       decoration: BoxDecoration(
@@ -49,16 +56,43 @@ class AdminCodeCardItem extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    SelectableText(
-                      code,
-                      style: GoogleFonts.sourceCodePro(fontSize: 15.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A), letterSpacing: 1.1),
+                    Flexible(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: SelectableText(
+                              code,
+                              style: GoogleFonts.sourceCodePro(fontSize: 13.5.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A), letterSpacing: 1.0),
+                            ),
+                          ),
+                          SizedBox(width: 4.w),
+                          InkWell(
+                            onTap: () => _copyCode(context, code),
+                            borderRadius: BorderRadius.circular(4.r),
+                            child: const Padding(padding: EdgeInsets.all(3.0), child: Icon(Icons.copy_rounded, size: 15, color: AppColors.adminPrimary)),
+                          ),
+                        ],
+                      ),
                     ),
-                    SizedBox(width: 8.w),
-                    InkWell(
-                      onTap: () => _copyCode(context, code),
-                      borderRadius: BorderRadius.circular(4.r),
-                      child: const Padding(padding: EdgeInsets.all(4.0), child: Icon(Icons.copy_rounded, size: 16, color: AppColors.adminPrimary)),
+                    SizedBox(width: 6.w),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFEF3C7),
+                        borderRadius: BorderRadius.circular(6.r),
+                        border: Border.all(color: const Color(0xFFFDE68A)),
+                      ),
+                      child: Text(
+                        price > 0 ? '${price.toStringAsFixed(0)} ج.م 💰' : 'كود عام',
+                        style: GoogleFonts.cairo(
+                          fontSize: 10.5.sp,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFFB45309),
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -68,7 +102,26 @@ class AdminCodeCardItem extends StatelessWidget {
               ],
             ),
           ),
-          IconButton(icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 20), tooltip: 'إلغاء وحذف الكود', onPressed: onDelete),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.print_rounded, color: Color(0xFF0284C7), size: 20),
+                tooltip: 'طباعة كارت A4',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                onPressed: onPrint,
+              ),
+              SizedBox(height: 10.h),
+              IconButton(
+                icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 20),
+                tooltip: 'إلغاء وحذف الكود',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                onPressed: onDelete,
+              ),
+            ],
+          ),
         ],
       ),
     );

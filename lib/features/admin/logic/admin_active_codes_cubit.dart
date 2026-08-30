@@ -11,9 +11,9 @@ class AdminActiveCodesCubit extends Cubit<AdminActiveCodesState> {
   Future<void> loadCodes({String? initialTeacherId}) async {
     emit(state.copyWith(status: AdminActiveCodesStatus.loading, selectedTeacherId: initialTeacherId));
     final tRes = await repo.getTeachers();
-    final teachers = tRes.when(success: (d) => d, failure: (_, __) => <Map<String, dynamic>>[]);
+    final teachers = tRes.when(success: (d) => d, failure: (_, _) => <Map<String, dynamic>>[]);
     final courses = initialTeacherId?.isNotEmpty == true
-        ? (await repo.getCourses(initialTeacherId!)).when(success: (d) => d, failure: (_, __) => <Map<String, dynamic>>[])
+        ? (await repo.getCourses(initialTeacherId!)).when(success: (d) => d, failure: (_, _) => <Map<String, dynamic>>[])
         : <Map<String, dynamic>>[];
     final codesRes = await repo.getActiveCodes(teacherId: initialTeacherId);
     codesRes.when(
@@ -32,7 +32,7 @@ class AdminActiveCodesCubit extends Cubit<AdminActiveCodesState> {
   void selectTeacher(String? teacherId) async {
     emit(state.copyWith(status: AdminActiveCodesStatus.loading, selectedTeacherId: teacherId, clearTeacher: teacherId == null, clearCourse: true));
     final courses = teacherId?.isNotEmpty == true
-        ? (await repo.getCourses(teacherId!)).when(success: (d) => d, failure: (_, __) => <Map<String, dynamic>>[])
+        ? (await repo.getCourses(teacherId!)).when(success: (d) => d, failure: (_, _) => <Map<String, dynamic>>[])
         : <Map<String, dynamic>>[];
     final codesRes = await repo.getActiveCodes(teacherId: teacherId);
     codesRes.when(
@@ -60,8 +60,18 @@ class AdminActiveCodesCubit extends Cubit<AdminActiveCodesState> {
         filteredCodes: _filter(state.allCodes, state.selectedTeacherId, state.selectedCourseId, q),
       ));
 
-  Future<bool> generateCodes({required String teacherId, String? courseId, required int count}) async {
-    final res = await repo.generateCodes(teacherId: teacherId, courseId: courseId, count: count);
+  Future<bool> generateCodes({
+    required String teacherId,
+    String? courseId,
+    required int count,
+    required double price,
+  }) async {
+    final res = await repo.generateCodes(
+      teacherId: teacherId,
+      courseId: courseId,
+      count: count,
+      price: price,
+    );
     return res.when(
       success: (_) { loadCodes(initialTeacherId: state.selectedTeacherId); return true; },
       failure: (msg, _) { emit(state.copyWith(errorMessage: msg)); return false; },
@@ -76,7 +86,7 @@ class AdminActiveCodesCubit extends Cubit<AdminActiveCodesState> {
         emit(state.copyWith(allCodes: all, filteredCodes: _filter(all, state.selectedTeacherId, state.selectedCourseId, state.searchQuery)));
         return true;
       },
-      failure: (_, __) => false,
+      failure: (_, _) => false,
     );
   }
 

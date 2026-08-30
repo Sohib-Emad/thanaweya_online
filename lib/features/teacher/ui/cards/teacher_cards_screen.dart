@@ -5,9 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:thanaweya_online/core/theme/teacher_desk_theme.dart';
-import 'package:thanaweya_online/features/shared/models/course_model.dart';
 import 'package:thanaweya_online/features/teacher/data/repos/teacher_cards_repo.dart';
-import 'package:thanaweya_online/features/teacher/data/repos/teacher_courses_repo.dart';
 import 'package:thanaweya_online/features/teacher/logic/teacher_cards_cubit.dart';
 import 'package:thanaweya_online/features/teacher/ui/cards/services/pdf_cards_generator.dart';
 import 'package:thanaweya_online/features/teacher/ui/cards/widgets/widgets.dart';
@@ -24,7 +22,6 @@ class _TeacherCardsScreenState extends State<TeacherCardsScreen> {
   late final TeacherCardsCubit _cubit;
   String _teacherId = '';
   int _selectedFilter = 0;
-  List<CourseModel> _teacherCourses = [];
 
   @override
   void initState() {
@@ -33,13 +30,7 @@ class _TeacherCardsScreenState extends State<TeacherCardsScreen> {
     _teacherId = Supabase.instance.client.auth.currentUser?.id ?? '';
     if (_teacherId.isNotEmpty) {
       _cubit.loadCodes(_teacherId);
-      _loadCourses();
     }
-  }
-
-  Future<void> _loadCourses() async {
-    final res = await TeacherCoursesRepo().getCourses(_teacherId);
-    res.when(success: (c) { if (mounted) setState(() => _teacherCourses = c); }, failure: (_, _) {});
   }
 
   @override
@@ -95,6 +86,27 @@ class _TeacherCardsScreenState extends State<TeacherCardsScreen> {
     if (_selectedFilter == 2) filtered = used;
 
     return Column(children: [
+      Container(
+        margin: EdgeInsets.only(bottom: 10.h),
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF0F9FF),
+          borderRadius: BorderRadius.circular(10.r),
+          border: Border.all(color: const Color(0xFFBAE6FD)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.shield_outlined, color: Color(0xFF0284C7), size: 18),
+            SizedBox(width: 8.w),
+            Expanded(
+              child: Text(
+                'تنويه: توليد وتسعير أكواد التفعيل مخصص حصرياً لإدارة المنصة لضمان أمان العمليات المالية.',
+                style: GoogleFonts.cairo(fontSize: 11.sp, color: const Color(0xFF0369A1), fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+      ),
       CardStatBar(totalCount: all.length, availableCount: available.length, usedCount: used.length),
       SizedBox(height: 12.h),
       CardFilterTabs(
@@ -117,7 +129,7 @@ class _TeacherCardsScreenState extends State<TeacherCardsScreen> {
           backgroundColor: DeskColors.ground,
           appBar: DeskTopBar(
             title: 'أكواد التفعيل والاشتراكات',
-            subtitle: 'إدارة وتوليد أكواد التفعيل المجمعة',
+            subtitle: 'يتم إصدار وتسعير الأكواد حصرياً عبر إدارة المنصة',
             actions: [
               Container(
                 margin: EdgeInsets.symmetric(vertical: 8.h),
@@ -141,17 +153,6 @@ class _TeacherCardsScreenState extends State<TeacherCardsScreen> {
           body: DeskSurface(
             child: BlocConsumer<TeacherCardsCubit, TeacherCardsState>(
               listener: _onStateChanged, builder: _buildBody,
-            ),
-          ),
-          floatingActionButton: FloatingActionButton.extended(
-            backgroundColor: DeskColors.primary,
-            onPressed: () => GenerateCardSheet.show(
-              context, teacherId: _teacherId,
-              teacherCourses: _teacherCourses, cardsCubit: _cubit,
-            ),
-            icon: Icon(Icons.add_card_rounded, color: DeskColors.onPrimary),
-            label: Text('إنشاء كروت تفعيل',
-              style: GoogleFonts.cairo(fontSize: 12.sp, fontWeight: FontWeight.w900, color: DeskColors.onPrimary),
             ),
           ),
         ),

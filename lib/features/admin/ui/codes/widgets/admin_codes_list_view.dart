@@ -9,12 +9,14 @@ class AdminCodesListView extends StatelessWidget {
   final AdminActiveCodesState state;
   final Future<void> Function() onRefresh;
   final Future<void> Function(String codeId) onDeleteCode;
+  final void Function(Map<String, dynamic> item) onPrintCode;
 
   const AdminCodesListView({
     super.key,
     required this.state,
     required this.onRefresh,
     required this.onDeleteCode,
+    required this.onPrintCode,
   });
 
   @override
@@ -32,6 +34,7 @@ class AdminCodesListView extends StatelessWidget {
         separatorBuilder: (_, _) => SizedBox(height: 10.h),
         itemBuilder: (ctx, i) => AdminCodeCardItem(
           item: state.filteredCodes[i],
+          onPrint: () => onPrintCode(state.filteredCodes[i]),
           onDelete: () => showConfirmDeleteCodeDialog(
             context: ctx,
             code: state.filteredCodes[i]['code'] as String? ?? '',

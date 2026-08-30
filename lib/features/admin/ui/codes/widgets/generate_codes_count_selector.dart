@@ -25,6 +25,7 @@ class GenerateCodesCountSelector extends StatelessWidget {
         SizedBox(height: 8.h),
         Wrap(
           spacing: 8.w,
+          runSpacing: 6.h,
           children: [5, 10, 20, 50, 100].map((itemCount) {
             final isSel = selectedCount == itemCount;
             return ChoiceChip(

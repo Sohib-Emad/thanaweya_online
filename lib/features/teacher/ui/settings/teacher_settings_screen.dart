@@ -156,12 +156,6 @@ class _TeacherSettingsScreenState extends State<TeacherSettingsScreen> {
                     onTap: () => Navigator.pushNamed(context, AppRouter.teacherPlans).then((_) => _loadData()),
                   ),
                   MenuItem(
-                    icon: Icons.vpn_key_outlined,
-                    title: 'أكواد التفعيل',
-                    subtitle: 'توليد وإدارة كروت الاشتراك للطلاب',
-                    onTap: () => Navigator.pushNamed(context, AppRouter.teacherCards),
-                  ),
-                  MenuItem(
                     icon: Icons.analytics_outlined,
                     title: 'التحليلات ومؤشرات الأداء',
                     subtitle: 'معدلات نجاح وتفاعل الطلاب ودرجات الاختبارات',

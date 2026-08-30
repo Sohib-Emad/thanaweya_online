@@ -58,14 +58,6 @@ class TeacherQuickActionsBar extends StatelessWidget {
               ),
               SizedBox(width: 8.w),
               TeacherQuickActionBtn(
-                label: '+ توليد أكواد تفعيل',
-                icon: Icons.vpn_key_outlined,
-                color: const Color(0xFFD97706),
-                onTap: () =>
-                    Navigator.pushNamed(context, AppRouter.teacherCards),
-              ),
-              SizedBox(width: 8.w),
-              TeacherQuickActionBtn(
                 label: 'عرض الطلاب',
                 icon: Icons.people_outline_rounded,
                 color: const Color(0xFF16A34A),

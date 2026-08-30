@@ -18,9 +18,9 @@ class AdminActiveCodesRepo {
   }) async {
     try {
       var query = _client.from('activation_codes').select('''
-            id, teacher_id, course_id, code, is_used, created_at,
+            id, teacher_id, course_id, code, is_used, price, created_at,
             teachers(id, users(full_name, email), subjects(name_ar)),
-            courses(id, title)
+            courses(id, title, price)
           ''').eq('is_used', false);
 
       if (teacherId != null && teacherId.isNotEmpty) query = query.eq('teacher_id', teacherId);
@@ -57,7 +57,7 @@ class AdminActiveCodesRepo {
 
   Future<ApiResult<List<Map<String, dynamic>>>> getCourses(String teacherId) async {
     try {
-      final data = await _client.from('courses').select('id, title').eq('teacher_id', teacherId).order('title');
+      final data = await _client.from('courses').select('id, title, price').eq('teacher_id', teacherId).order('title');
       return ApiResult.success(List<Map<String, dynamic>>.from(data));
     } catch (e) {
       return ApiErrorHandler.handleException(e);

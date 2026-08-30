@@ -97,66 +97,79 @@ class WalletSupabaseDatasource implements WalletRemoteDatasource {
       if (formattedWithDashes != null) 'code.eq.$formattedWithDashes',
     ].join(',');
 
-    // 1. محاولة التنفيذ عبر دالة الـ RPC الذرية إذا توفرت
+    // 1. محاولة الشحن الذري السريع عبر دالة الـ RPC (تستغرق أقل من 100 ملي ثانية)
     try {
-      final rpcRes = await _client.rpc(
-        'recharge_wallet_with_card',
-        params: {
-          'p_student_id': userId,
-          'p_card_code': cleanUpper,
-        },
-      );
+      dynamic rpcRes;
+      try {
+        rpcRes = await _client.rpc(
+          'redeem_code_atomic',
+          params: {
+            'p_student_id': userId,
+            'p_card_code': rawTrimmed,
+          },
+        );
+      } catch (_) {
+        rpcRes = await _client.rpc(
+          'recharge_wallet_with_card',
+          params: {
+            'p_student_id': userId,
+            'p_card_code': rawTrimmed,
+          },
+        );
+      }
 
       if (rpcRes is Map) {
         final success = rpcRes['success'] == true;
         if (success) {
           return await getWallet(userId);
         } else {
-          final errorMsg = rpcRes['error']?.toString() ?? '';
-          if (errorMsg.contains('تم استخدام') || errorMsg.contains('انتهت صلاحية')) {
-            throw Exception(errorMsg);
-          }
+          final errorMsg = rpcRes['error']?.toString() ?? 'فشلت عملية شحن الكود';
+          throw Exception(errorMsg);
         }
       }
     } catch (e) {
       final errStr = e.toString();
-      if (errStr.contains('تم استخدام') || errStr.contains('انتهت صلاحية')) {
+      if (errStr.contains('تم استخدام') ||
+          errStr.contains('انتهت صلاحية') ||
+          errStr.contains('غير صحيح أو غير مسجل')) {
         rethrow;
       }
-      debugPrint('[WalletDatasource] RPC not available or failed: $e');
+      debugPrint('[WalletDatasource] RPC fallback to direct query: $e');
     }
 
-    // 2. البحث في جدول كروت الشحن recharge_cards
+    // 2. البحث الفوري أولاً في جدول أكواد التفعيل activation_codes
     Map<String, dynamic>? targetCard;
     bool isFromActivationCodes = false;
 
     try {
-      final cardRows = await _client
-          .from('recharge_cards')
-          .select()
-          .or(queryFilter);
+      final actRows = await _client
+          .from('activation_codes')
+          .select('id, code, is_used, price, course_id, teacher_id, courses(id, title, price)')
+          .or(queryFilter)
+          .limit(1);
 
-      if (cardRows.isNotEmpty) {
-        targetCard = Map<String, dynamic>.from(cardRows.first);
+      if (actRows.isNotEmpty) {
+        targetCard = Map<String, dynamic>.from(actRows.first);
+        isFromActivationCodes = true;
       }
     } catch (e) {
-      debugPrint('[WalletDatasource] Error querying recharge_cards: $e');
+      debugPrint('[WalletDatasource] Error querying activation_codes: $e');
     }
 
-    // 3. إذا لم يوجد في recharge_cards، يتم البحث في جدول أكواد التفعيل activation_codes
+    // 3. إذا لم يوجد، البحث في recharge_cards كخيار ثانٍ
     if (targetCard == null) {
       try {
-        final actRows = await _client
-            .from('activation_codes')
-            .select('*, courses(id, title, price)')
-            .or(queryFilter);
+        final cardRows = await _client
+            .from('recharge_cards')
+            .select()
+            .or(queryFilter)
+            .limit(1);
 
-        if (actRows.isNotEmpty) {
-          targetCard = Map<String, dynamic>.from(actRows.first);
-          isFromActivationCodes = true;
+        if (cardRows.isNotEmpty) {
+          targetCard = Map<String, dynamic>.from(cardRows.first);
         }
       } catch (e) {
-        debugPrint('[WalletDatasource] Error querying activation_codes: $e');
+        debugPrint('[WalletDatasource] Error querying recharge_cards: $e');
       }
     }
 
@@ -179,13 +192,17 @@ class WalletSupabaseDatasource implements WalletRemoteDatasource {
     final cardId = targetCard['id'].toString();
     final actualCode = targetCard['code']?.toString() ?? rawTrimmed;
 
-    // استخراج قيمة الرصيد
+    // استخراج قيمة الرصيد بدقة
     double cardValue = 100.0;
     if (isFromActivationCodes) {
-      final courseMap = targetCard['courses'] as Map<String, dynamic>?;
-      if (courseMap != null && courseMap['price'] != null) {
-        final pr = (courseMap['price'] as num?)?.toDouble() ?? 0.0;
-        if (pr > 0) cardValue = pr;
+      if (targetCard['price'] != null && (targetCard['price'] as num) > 0) {
+        cardValue = (targetCard['price'] as num).toDouble();
+      } else {
+        final courseMap = targetCard['courses'] as Map<String, dynamic>?;
+        if (courseMap != null && courseMap['price'] != null) {
+          final pr = (courseMap['price'] as num?)?.toDouble() ?? 0.0;
+          if (pr > 0) cardValue = pr;
+        }
       }
     } else {
       cardValue = (targetCard['value'] is num)
@@ -193,7 +210,7 @@ class WalletSupabaseDatasource implements WalletRemoteDatasource {
           : (double.tryParse(targetCard['value']?.toString() ?? '0') ?? 100.0);
     }
 
-    // أ) تحديث الكارت كمستخدم والتحقق من عدم تكرار الشحن
+    // أ) تحديث الكارت كمستخدم
     if (isFromActivationCodes) {
       final updated = await _client.from('activation_codes').update({
         'is_used': true,
@@ -205,35 +222,18 @@ class WalletSupabaseDatasource implements WalletRemoteDatasource {
         throw Exception('تم استخدام هذا الكود مسبقاً');
       }
 
-      // تفعيل اشتراك الكورس أيضاً إذا كان الكود مرتبطاً بكورس
+      // تفعيل اشتراك الكورس إن وُجد بالتوازي
       final courseId = targetCard['course_id']?.toString();
       final teacherId = targetCard['teacher_id']?.toString() ?? '';
       if (courseId != null && courseId.isNotEmpty) {
-        try {
-          final existingSub = await _client
-              .from('subscriptions')
-              .select('id')
-              .eq('student_id', userId)
-              .eq('course_id', courseId)
-              .maybeSingle();
-
-          if (existingSub != null) {
-            await _client.from('subscriptions').update({
-              'status': 'active',
-              'starts_at': DateTime.now().toIso8601String(),
-              'expires_at': DateTime.now().add(const Duration(days: 365)).toIso8601String(),
-            }).eq('id', existingSub['id']);
-          } else {
-            await _client.from('subscriptions').insert({
-              'student_id': userId,
-              if (teacherId.isNotEmpty) 'teacher_id': teacherId,
-              'course_id': courseId,
-              'status': 'active',
-              'starts_at': DateTime.now().toIso8601String(),
-              'expires_at': DateTime.now().add(const Duration(days: 365)).toIso8601String(),
-            });
-          }
-        } catch (_) {}
+        _client.from('subscriptions').upsert({
+          'student_id': userId,
+          if (teacherId.isNotEmpty) 'teacher_id': teacherId,
+          'course_id': courseId,
+          'status': 'active',
+          'starts_at': DateTime.now().toIso8601String(),
+          'expires_at': DateTime.now().add(const Duration(days: 365)).toIso8601String(),
+        }).catchError((_) {});
       }
     } else {
       final updated = await _client.from('recharge_cards').update({
@@ -247,48 +247,32 @@ class WalletSupabaseDatasource implements WalletRemoteDatasource {
       }
     }
 
-    // ب) تحديث رصيد الطالب
-    double currentBal = 0.0;
-    try {
-      final studentRow = await _client
-          .from('students')
-          .select('wallet_balance')
-          .eq('id', userId)
-          .maybeSingle();
+    // ب) تحديث رصيد الطالب وتسجيل المعاملة بالتوازي وبسرعة فائقة
+    final studentRow = await _client
+        .from('students')
+        .select('wallet_balance')
+        .eq('id', userId)
+        .maybeSingle();
 
-      if (studentRow != null) {
-        final oldBal = (studentRow['wallet_balance'] is num)
-            ? (studentRow['wallet_balance'] as num).toDouble()
-            : 0.0;
-        currentBal = oldBal + cardValue;
-        await _client.from('students').update({
-          'wallet_balance': currentBal,
-        }).eq('id', userId);
-      } else {
-        currentBal = cardValue;
-        await _client.from('students').insert({
-          'id': userId,
-          'wallet_balance': currentBal,
-        });
-      }
-    } catch (e) {
-      debugPrint('[WalletDatasource] Warning while updating student balance: $e');
-    }
+    final oldBal = (studentRow != null && studentRow['wallet_balance'] is num)
+        ? (studentRow['wallet_balance'] as num).toDouble()
+        : 0.0;
+    final currentBal = oldBal + cardValue;
 
-    // ج) تسجيل حركة إيداع في الخزنة
-    try {
-      await _client.from('wallet_transactions').insert({
+    await Future.wait([
+      _client.from('students').update({
+        'wallet_balance': currentBal,
+      }).eq('id', userId),
+      _client.from('wallet_transactions').insert({
         'user_id': userId,
-        'title': 'شحن رصيد بكارت ',
+        'title': 'شحن رصيد بكارت',
         'subtitle': 'كود: $actualCode',
         'amount': cardValue,
         'type': 'credit',
         'status': 'completed',
         'reference_id': cardId,
-      });
-    } catch (e) {
-      debugPrint('[WalletDatasource] Warning while logging credit transaction: $e');
-    }
+      }),
+    ]);
 
     return await getWallet(userId);
   }
