@@ -54,7 +54,7 @@ class AppSystemConfig {
 
 /// Repository for reading and updating global app maintenance and update modes.
 class AppSystemConfigRepo {
-  static const String currentAppVersion = '1.0.0';
+  static const String currentAppVersion = '1.0.1';
 
   static final AppSystemConfigRepo _instance = AppSystemConfigRepo._internal();
   factory AppSystemConfigRepo() => _instance;
